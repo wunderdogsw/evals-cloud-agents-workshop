@@ -1,0 +1,36 @@
+# Claude as a review agent — GitLab CI. Posts one review note per MR pipeline.
+#
+# Include from .gitlab-ci.yml:
+#   include:
+#     - local: .gitlab/ci/workshop-claude-review.yml
+#
+# CI/CD variables: ANTHROPIC_API_KEY (masked), GITLAB_ACCESS_TOKEN (masked, api scope).
+# Read-only: the agent may read files and run git diff/log, nothing else.
+
+workshop-claude-review:
+  stage: test
+  image: node:22
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  allow_failure: true
+  timeout: 15m
+  variables:
+    GIT_DEPTH: "0"
+    REVIEW_MODEL: "claude-sonnet-5-5"
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq jq > /dev/null
+    - curl -fsSL https://claude.ai/install.sh | bash
+    - export PATH="$HOME/.local/bin:$PATH"
+    - git fetch origin "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME"
+  script:
+    - |
+      # The review agent never sees the GitLab token (it could otherwise read it from its own environment).
+      env -u GITLAB_ACCESS_TOKEN -u CI_JOB_TOKEN claude -p "Review the changes in this merge request: run git diff origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME...HEAD. Follow REVIEW.md if it exists, otherwise AGENTS.md / CLAUDE.md. Report only real problems (bugs, missing tests, broken conventions, risky changes), most severe first, each with file:line and a one-line fix. If there are none, say so in one sentence. Markdown, under 300 words." \
+        --output-format json \
+        --permission-mode dontAsk \
+        --allowedTools "Read,Glob,Grep,Bash(git diff *),Bash(git log *),Bash(git show *)" \
+        --model "$REVIEW_MODEL" \
+        --max-turns 25 > /tmp/review.json || true
+      jq -n --arg b "$(printf '### 🤖 Claude review\n\n%s' "$(jq -r '.result // "Review failed — see job log."' /tmp/review.json)")" '{body:$b}' > /tmp/note.json
+      curl -sS --fail -X POST -H "PRIVATE-TOKEN: $GITLAB_ACCESS_TOKEN" -H "Content-Type: application/json" \
+        --data @/tmp/note.json "$CI_API_V4_URL/projects/$CI_PROJECT_ID/merge_requests/$CI_MERGE_REQUEST_IID/notes" > /dev/null

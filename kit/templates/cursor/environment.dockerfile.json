@@ -1,0 +1,4 @@
+{
+  "build": { "dockerfile": "Dockerfile", "context": ".." },
+  "install": "__TARGET_INSTALL__ && (cd evals && corepack enable && pnpm install)"
+}

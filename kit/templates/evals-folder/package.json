@@ -1,0 +1,17 @@
+{
+  "name": "workshop-evals",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.28.0",
+  "description": "Eval suites for this repository. Runner vendored from the Evals & Cloud Agents Workshop kit.",
+  "scripts": {
+    "eval": "tsx runner/cli.ts run",
+    "compare": "tsx runner/cli.ts compare",
+    "label": "tsx runner/cli.ts label",
+    "calibrate": "tsx runner/cli.ts calibrate"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.135.0",
+    "tsx": "^4.23.15"
+  }
+}

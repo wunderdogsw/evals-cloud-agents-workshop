@@ -1,0 +1,54 @@
+# Eval gate — GitLab CI.
+# Installed by the workshop guide at .gitlab/ci/workshop-evals.yml and included from .gitlab-ci.yml:
+#
+#   include:
+#     - local: .gitlab/ci/workshop-evals.yml
+#
+# CI/CD variables (Settings → CI/CD → Variables):
+#   ANTHROPIC_API_KEY      masked — needed unless EVALS_MOCK=1 (plus any other keys the feature under test needs)
+#   GITLAB_ACCESS_TOKEN    optional, masked — project access token (api scope) to post the summary as an MR note
+#
+# The job fails the pipeline when the suite's threshold is not met. Protect the default branch with
+# "Pipelines must succeed" and the eval becomes a merge gate.
+
+workshop-evals:
+  stage: test
+  image: node:22
+  variables:
+    EVAL_SUITE: "suites/__SUITE__/suite.ts"
+    # Command that installs the target's own dependencies, if the suite imports target code. Empty = skip.
+    TARGET_INSTALL: "__TARGET_INSTALL__"
+  # MR pipelines + the default branch. (Not "web": manual pipelines are for the Claude agent job.)
+  # If the project also runs branch pipelines you'll get duplicates — consider a workflow:rules block.
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "push"
+  timeout: 20m
+  cache:
+    key: workshop-evals-pnpm
+    paths:
+      - .pnpm-store/
+  before_script:
+    - corepack enable
+    - pnpm config set store-dir "$CI_PROJECT_DIR/.pnpm-store"
+    - if [ -n "$TARGET_INSTALL" ]; then sh -c "$TARGET_INSTALL"; fi
+    - cd evals && pnpm install
+  script:
+    # Exit code comes straight from the runner: 1 when the threshold isn't met.
+    - pnpm eval "$EVAL_SUITE" --threshold --label "$CI_COMMIT_SHORT_SHA"
+  after_script:
+    - |
+      SUMMARY="$(ls -td "$CI_PROJECT_DIR"/evals/.eval-runs/*/ 2>/dev/null | head -1)summary.md"
+      if [ -n "$GITLAB_ACCESS_TOKEN" ] && [ -n "$CI_MERGE_REQUEST_IID" ] && [ -f "$SUMMARY" ]; then
+        SUMMARY="$SUMMARY" node -e 'const fs=require("fs");process.stdout.write(JSON.stringify({body:fs.readFileSync(process.env.SUMMARY,"utf8")}))' > /tmp/note.json
+        curl -sS --fail -X POST -H "PRIVATE-TOKEN: $GITLAB_ACCESS_TOKEN" -H "Content-Type: application/json" \
+          --data @/tmp/note.json \
+          "$CI_API_V4_URL/projects/$CI_PROJECT_ID/merge_requests/$CI_MERGE_REQUEST_IID/notes" > /dev/null || true
+      fi
+  artifacts:
+    when: always
+    expire_in: 30 days
+    paths:
+      - evals/.eval-runs/
+    reports:
+      junit: evals/.eval-runs/*/junit.xml

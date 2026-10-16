@@ -1,0 +1,6 @@
+packages:
+  - kit/evals
+  - kit/agent-evals
+
+onlyBuiltDependencies:
+  - esbuild

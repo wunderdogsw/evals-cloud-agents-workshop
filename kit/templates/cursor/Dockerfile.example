@@ -1,0 +1,15 @@
+# Cloud-agent build environment for Cursor (.cursor/Dockerfile, referenced from .cursor/environment.json).
+# Start from what your CI image uses, so "works in CI" == "works for the agent".
+# The evals/ folder needs Node 22 + pnpm in every image.
+
+# Example: .NET target — official SDK image, Node added for the evals.
+FROM mcr.microsoft.com/dotnet/sdk:8.0
+RUN apt-get update && apt-get install -y --no-install-recommends git curl jq ripgrep ca-certificates \
+ && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+ && apt-get install -y --no-install-recommends nodejs \
+ && rm -rf /var/lib/apt/lists/* \
+ && corepack enable
+
+# Example: Node-only target — use this instead of the lines above.
+# FROM node:22-bookworm
+# RUN apt-get update && apt-get install -y --no-install-recommends git curl jq ripgrep && rm -rf /var/lib/apt/lists/* && corepack enable

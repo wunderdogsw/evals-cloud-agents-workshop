@@ -1,0 +1,100 @@
+# Claude as a cloud agent — GitLab CI.
+# Based on https://code.claude.com/docs/en/gitlab-ci-cd (beta, maintained by GitLab), with a
+# deterministic push + MR step so the workshop doesn't depend on optional MCP tooling.
+#
+# Include from .gitlab-ci.yml:
+#   include:
+#     - local: .gitlab/ci/workshop-claude-agent.yml
+#
+# CI/CD variables:
+#   ANTHROPIC_API_KEY     masked
+#   GITLAB_ACCESS_TOKEN   masked — project access token, role Developer+, scopes: api, write_repository
+#
+# Run it: Build → Pipelines → Run pipeline, add ONE of
+#   ISSUE_IID   = 12                         (Claude reads issue #12 and implements it)
+#   CLAUDE_TASK = "Add a VAT split helper…"  (free-text task)
+# or from a terminal:  glab ci run -b <branch> --variables ISSUE_IID:12
+# Run it on an existing claude/… branch with CLAUDE_TASK="Address review: …" to iterate on that MR.
+#
+# Security: the agent processes issue text that anyone with issue access can write. The GitLab token is
+# removed from the agent's environment and only used afterwards for the push/MR. Use workshop mirrors and
+# short-lived tokens. @claude mention triggers need a webhook listener that calls the pipeline trigger API —
+# not set up here.
+
+workshop-claude-agent:
+  stage: build
+  image: node:22
+  rules:
+    - if: ($CI_PIPELINE_SOURCE == "web" || $CI_PIPELINE_SOURCE == "api" || $CI_PIPELINE_SOURCE == "trigger") && ($ISSUE_IID || $CLAUDE_TASK)
+  timeout: 45m
+  variables:
+    GIT_STRATEGY: clone
+    GIT_DEPTH: "0"
+    CLAUDE_MODEL: "claude-sonnet-5-5"
+    CLAUDE_MAX_TURNS: "60"
+    CLAUDE_MAX_BUDGET_USD: "3"
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq jq > /dev/null
+    - corepack enable
+    - curl -fsSL https://claude.ai/install.sh | bash
+    - export PATH="$HOME/.local/bin:$PATH"
+    - git config user.name "Claude (workshop agent)"
+    - git config user.email "claude-agent@noreply.${CI_SERVER_HOST}"
+    - git fetch -q origin "$CI_DEFAULT_BRANCH"
+  script:
+    - |
+      set -eu
+      if [ -n "${ISSUE_IID:-}" ]; then
+        curl -sS --fail -H "PRIVATE-TOKEN: $GITLAB_ACCESS_TOKEN" "$CI_API_V4_URL/projects/$CI_PROJECT_ID/issues/$ISSUE_IID" > /tmp/issue.json
+        TITLE="$(jq -r .title /tmp/issue.json)"
+        printf 'Implement GitLab issue #%s: %s\n\n%s\n' "$ISSUE_IID" "$TITLE" "$(jq -r .description /tmp/issue.json)" > /tmp/task.txt
+      else
+        TITLE="$(printf '%s' "$CLAUDE_TASK" | tr '\n' ' ' | cut -c1-70)"
+        printf '%s\n' "$CLAUDE_TASK" > /tmp/task.txt
+      fi
+      # Iterate on an existing agent branch, or start a new one.
+      case "${CI_COMMIT_BRANCH:-}" in
+        claude/*) BRANCH="$CI_COMMIT_BRANCH"; git checkout -q -B "$BRANCH" ;;
+        *) BRANCH="claude/${ISSUE_IID:+issue-$ISSUE_IID-}$CI_PIPELINE_ID"; git checkout -q -b "$BRANCH" ;;
+      esac
+      printf '%s\n%s\n' "$BRANCH" "$TITLE" > /tmp/meta.txt
+    - |
+      # The agent never sees the GitLab token.
+      env -u GITLAB_ACCESS_TOKEN -u CI_JOB_TOKEN claude -p "$(cat /tmp/task.txt)" \
+        --output-format json \
+        --permission-mode acceptEdits \
+        --allowedTools "Read,Edit,Write,Glob,Grep,Bash" \
+        --append-system-prompt "You run unattended in CI. Follow AGENTS.md/CLAUDE.md. Make the change, run the tests, and commit with a clear message. Do not push. End with a short summary of what you changed and anything you were unsure about." \
+        --model "$CLAUDE_MODEL" \
+        --max-turns "$CLAUDE_MAX_TURNS" \
+        --max-budget-usd "$CLAUDE_MAX_BUDGET_USD" > /tmp/claude.json || true
+      jq -r '"subtype=\(.subtype) turns=\(.num_turns) cost_usd=\(.total_cost_usd)"' /tmp/claude.json || cat /tmp/claude.json
+    - |
+      set -eu
+      BRANCH="$(sed -n 1p /tmp/meta.txt)"; TITLE="$(sed -n 2p /tmp/meta.txt)"
+      git add -A
+      git diff --cached --quiet || git commit -q -m "claude: ${TITLE}" --no-verify
+      if [ "$(git rev-list --count "origin/$CI_DEFAULT_BRANCH"..HEAD)" = "0" ]; then echo "Claude made no changes."; exit 1; fi
+      REMOTE="${CI_SERVER_PROTOCOL}://oauth2:${GITLAB_ACCESS_TOKEN}@${CI_SERVER_FQDN:-$CI_SERVER_HOST}/${CI_PROJECT_PATH}.git"
+      git push -q "$REMOTE" "HEAD:refs/heads/$BRANCH"
+      # Open an MR unless one is already open for this branch. JSON body, so multi-line text is fine.
+      OPEN="$(curl -sS --fail -H "PRIVATE-TOKEN: $GITLAB_ACCESS_TOKEN" "$CI_API_V4_URL/projects/$CI_PROJECT_ID/merge_requests?state=opened&source_branch=$BRANCH" | jq length)"
+      if [ "$OPEN" = "0" ]; then
+        jq -n \
+          --arg source "$BRANCH" --arg target "$CI_DEFAULT_BRANCH" --arg title "Claude: $TITLE" \
+          --arg desc "$(jq -r '.result // "no summary"' /tmp/claude.json | head -c 4000)
+
+      ---
+      Agent run: $CI_PIPELINE_URL${ISSUE_IID:+ · Closes #$ISSUE_IID}" \
+          '{source_branch:$source, target_branch:$target, title:$title, description:$desc, labels:"agent:claude", remove_source_branch:true}' > /tmp/mr.json
+        curl -sS --fail -X POST -H "PRIVATE-TOKEN: $GITLAB_ACCESS_TOKEN" -H "Content-Type: application/json" \
+          --data @/tmp/mr.json "$CI_API_V4_URL/projects/$CI_PROJECT_ID/merge_requests" | jq -r '"MR: \(.web_url)"'
+      else
+        echo "Updated the existing MR for $BRANCH."
+      fi
+  after_script:
+    - cp /tmp/claude.json "$CI_PROJECT_DIR/claude-run.json" 2>/dev/null || true
+  artifacts:
+    when: always
+    paths:
+      - claude-run.json

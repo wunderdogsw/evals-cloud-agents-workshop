@@ -1,0 +1,2 @@
+// One JSON object per line: {"id": "...", "input": {...}, "expected": {...}, "tags": ["..."], "note": "why this case exists"}
+{"id":"placeholder","input":{"question":"TODO"},"expected":{"answer":"TODO"},"tags":["placeholder"]}

@@ -1,0 +1,42 @@
+# Claude as a cloud agent — GitHub. Installed at .github/workflows/workshop-claude.yml
+# From https://code.claude.com/docs/en/github-actions (anthropics/claude-code-action@v1).
+#
+# Setup: install the Claude GitHub App on the repo (or run /install-github-app in Claude Code),
+# add the ANTHROPIC_API_KEY secret. Then comment "@claude implement this" on an issue or PR.
+# On an issue, Claude pushes a branch and replies with a "Create PR" link — click it to open the PR.
+#
+# Alternative on GitHub: start a cloud session at claude.ai/code (or `claude --cloud "<task>"`) —
+# it clones the repo, works in an Anthropic-hosted VM and can open the PR for you.
+
+name: workshop-claude
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+  issues:
+    types: [opened, assigned]
+
+jobs:
+  claude:
+    if: |
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'issues' && contains(github.event.issue.body, '@claude'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_args: "--model claude-sonnet-5-5 --max-turns 60"

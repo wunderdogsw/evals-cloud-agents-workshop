@@ -1,0 +1,10 @@
+// Seed cases — format examples. Write your own; aim for ≥20 that cover the cases you actually worry about.
+// expected.costCode = the right answer. expected.acceptable = other answers you'd accept (optional).
+{"id":"scaffold-rental","input":{"description":"Telinevuokra 4 vk, julkisivu A","supplier":"Ramirent Oy","amount":1840},"expected":{"costCode":"3100"},"tags":["rental","finnish"]}
+{"id":"concrete-readymix","input":{"description":"Valmisbetoni C30/37 XC3","supplier":"Rudus Oy","amount":2790},"expected":{"costCode":"1200"},"tags":["materials","finnish"]}
+{"id":"excavator-with-operator","input":{"description":"Kaivinkonetyö 20t, sis. kuljettaja","supplier":"Maansiirto Virtanen","amount":1520},"expected":{"costCode":"1100"},"tags":["ambiguous","finnish"],"note":"Work with operator is earthworks, not equipment rental."}
+{"id":"hvac-design","input":{"description":"LVI-suunnittelu","supplier":"Granlund","amount":4200},"expected":{"costCode":"4100"},"tags":["ambiguous","finnish"],"note":"Design of HVAC is design, not HVAC."}
+{"id":"temp-site-power","input":{"description":"Sähköliittymä työmaalle, väliaikainen","supplier":"Helen Sähköverkko","amount":890},"expected":{"costCode":"3200"},"tags":["ambiguous","finnish"],"note":"Temporary power is a site facility."}
+{"id":"fire-door-hvac-room","input":{"description":"Palo-ovi EI60 IV-konehuone","supplier":"Daloc","amount":1450},"expected":{"costCode":"1600"},"tags":["ambiguous","finnish"]}
+{"id":"credit-note-plasterboard","input":{"description":"Hyvitys: palautetut kipsilevyt","supplier":"Gyproc / Saint-Gobain","amount":-200},"expected":{"costCode":"1700"},"tags":["credit-note","finnish"],"note":"A credit note keeps the cost code of what is credited."}
+{"id":"bare-transport","input":{"description":"Kuljetus","supplier":"Kuljetusliike Mäkinen","amount":180},"expected":{"costCode":"9000"},"tags":["needs-review","finnish"],"note":"Not enough information — the honest answer is 'needs review'."}

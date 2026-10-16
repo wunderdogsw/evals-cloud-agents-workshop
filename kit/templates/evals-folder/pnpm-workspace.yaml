@@ -1,0 +1,6 @@
+# Makes evals/ its own pnpm root, so it installs the same way inside the workshop
+# control room, inside a monorepo, and in CI.
+packages: []
+
+onlyBuiltDependencies:
+  - esbuild

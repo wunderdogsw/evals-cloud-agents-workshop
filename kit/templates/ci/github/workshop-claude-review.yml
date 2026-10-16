@@ -1,0 +1,31 @@
+# Claude as a review agent — GitHub. Installed at .github/workflows/workshop-claude-review.yml
+# Automation mode of anthropics/claude-code-action@v1: a fixed prompt on every PR.
+
+name: workshop-claude-review
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review]
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Review PR #${{ github.event.pull_request.number }} in ${{ github.repository }}.
+            Follow REVIEW.md if it exists, otherwise AGENTS.md / CLAUDE.md.
+            Report only real problems (bugs, missing tests, broken conventions, risky changes), most severe first,
+            each with file:line and a one-line fix. If there are none, say so in one sentence.
+            Post the review as a single PR comment with `gh pr comment`.
+          claude_args: '--model claude-sonnet-5-5 --max-turns 25 --allowedTools "Read,Glob,Grep,Bash(gh pr comment *),Bash(gh pr diff *),Bash(git diff *)"'

@@ -1,0 +1,5 @@
+# Standalone pnpm root (this sample is attached inside the workshop repo, which is a pnpm workspace).
+packages: []
+
+onlyBuiltDependencies:
+  - esbuild

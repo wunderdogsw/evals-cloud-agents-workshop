@@ -1,0 +1,41 @@
+// Unlabelled pool of synthetic invoice lines. Turn the interesting ones into eval cases.
+{"description":"Telinevuokra 4 vk, julkisivu A","supplier":"Ramirent Oy","quantity":4,"unit":"vk","amount":1840.00}
+{"description":"Telineiden asennus ja purku","supplier":"Telinetekniikka Oy","quantity":32,"unit":"h","amount":1920.00}
+{"description":"Valmisbetoni C30/37 XC3","supplier":"Rudus Oy","quantity":18,"unit":"m3","amount":2790.00}
+{"description":"Betonin pumppaus","supplier":"Rudus Oy","quantity":1,"unit":"krt","amount":640.00}
+{"description":"Raudoitusteräs A500HW T12","supplier":"Celsa Steel Service","quantity":2.4,"unit":"t","amount":3120.00}
+{"description":"HEA 200 palkki S355","supplier":"Ruukki","quantity":6,"unit":"kpl","amount":2460.00}
+{"description":"Kaivinkonetyö 20t, sis. kuljettaja","supplier":"Maansiirto Virtanen","quantity":16,"unit":"h","amount":1520.00}
+{"description":"Kaivinkoneen vuokra ilman kuljettajaa","supplier":"Cramo Finland","quantity":5,"unit":"pv","amount":1100.00}
+{"description":"Murske 0-32 mm","supplier":"Lohja Rudus","quantity":120,"unit":"t","amount":1560.00}
+{"description":"Kertopuupalkki 45x260","supplier":"Stora Enso Wood Products","quantity":40,"unit":"jm","amount":980.00}
+{"description":"Havuvaneri 18 mm","supplier":"Puukeskus","quantity":30,"unit":"lvy","amount":1170.00}
+{"description":"Bitumikermi SBS 4000","supplier":"Katepal","quantity":20,"unit":"rll","amount":1380.00}
+{"description":"Ikkunat MSE 12x14, asennettuna","supplier":"Skaala","quantity":8,"unit":"kpl","amount":7200.00}
+{"description":"Palo-ovi EI60 IV-konehuone","supplier":"Daloc","quantity":1,"unit":"kpl","amount":1450.00}
+{"description":"Kipsilevy GN13","supplier":"Gyproc / Saint-Gobain","quantity":220,"unit":"m2","amount":1100.00}
+{"description":"Sisämaali Harmony täyshimmeä 9 l","supplier":"Tikkurila","quantity":12,"unit":"prk","amount":816.00}
+{"description":"Lattialaatta 30x60 + saumaus","supplier":"Laattapiste","quantity":64,"unit":"m2","amount":2560.00}
+{"description":"IV-kone Swegon Gold RX 08","supplier":"Swegon","quantity":1,"unit":"kpl","amount":14800.00}
+{"description":"Ilmanvaihtokanavat ja asennus","supplier":"IV-Asennus Laine","quantity":1,"unit":"erä","amount":6400.00}
+{"description":"PEX-putki 20 mm + liittimet","supplier":"Onninen","quantity":200,"unit":"m","amount":620.00}
+{"description":"WC-istuin seinämalli + asennuselementti","supplier":"LVI-Dahl","quantity":6,"unit":"kpl","amount":3300.00}
+{"description":"MMJ 3x2,5S kaapeli","supplier":"Sähkö-Tukku","quantity":500,"unit":"m","amount":690.00}
+{"description":"Ryhmäkeskus 3x63A","supplier":"Ahlsell","quantity":1,"unit":"kpl","amount":1240.00}
+{"description":"Sähköliittymä työmaalle, väliaikainen","supplier":"Helen Sähköverkko","quantity":1,"unit":"kpl","amount":890.00}
+{"description":"Työmaakeskus vuokra","supplier":"Cramo Finland","quantity":3,"unit":"kk","amount":420.00}
+{"description":"Taukotilaparakki 3 kk","supplier":"Ramirent Oy","quantity":3,"unit":"kk","amount":1350.00}
+{"description":"Työmaa-aita 3,5 m + jalat","supplier":"Ramirent Oy","quantity":120,"unit":"m","amount":960.00}
+{"description":"Jätelava 10 m3 vaihto, sekajäte","supplier":"Lassila & Tikanoja","quantity":4,"unit":"krt","amount":1480.00}
+{"description":"Lavan vuokra","supplier":"Lassila & Tikanoja","quantity":1,"unit":"kk","amount":95.00}
+{"description":"Henkilönostin 16 m, viikkovuokra","supplier":"Cramo Finland","quantity":2,"unit":"vk","amount":780.00}
+{"description":"Torninosturi Liebherr 150 EC-B, kuukausivuokra","supplier":"Nosturi-Nordic","quantity":1,"unit":"kk","amount":9800.00}
+{"description":"Rakennesuunnittelu, lisätyö","supplier":"Sweco","quantity":12,"unit":"h","amount":1380.00}
+{"description":"LVI-suunnittelu","supplier":"Granlund","quantity":1,"unit":"erä","amount":4200.00}
+{"description":"Kosteusmittaus ja raportti","supplier":"Polygon","quantity":1,"unit":"krt","amount":540.00}
+{"description":"Hyvitys: palautetut kipsilevyt","supplier":"Gyproc / Saint-Gobain","quantity":-40,"unit":"m2","amount":-200.00}
+{"description":"Kuljetus","supplier":"Kuljetusliike Mäkinen","quantity":1,"unit":"krt","amount":180.00}
+{"description":"Rahtikulut","supplier":"Rudus Oy","quantity":1,"unit":"erä","amount":95.00}
+{"description":"Lisätyö sop. mukaan, ks. liite","supplier":"Rakennus Oy Esimerkki","quantity":1,"unit":"erä","amount":2500.00}
+{"description":"Steel reinforcement mesh 150x150 6mm","supplier":"Baltic Rebar Ltd","quantity":60,"unit":"pcs","amount":1320.00}
+{"description":"Scaffold hire week 12-15, east facade","supplier":"Layher Nordic","quantity":4,"unit":"wk","amount":1600.00}

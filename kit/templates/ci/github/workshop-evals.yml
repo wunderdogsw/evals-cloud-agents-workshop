@@ -1,0 +1,54 @@
+# Eval gate — GitHub Actions. Installed at .github/workflows/workshop-evals.yml
+#
+# Secrets: ANTHROPIC_API_KEY (Settings → Secrets and variables → Actions)
+# Make it a merge gate: Settings → Branches → require the "workshop-evals" check.
+
+name: workshop-evals
+
+on:
+  pull_request:
+  push:
+    branches: [__DEFAULT_BRANCH__]
+  workflow_dispatch:
+
+env:
+  EVAL_SUITE: suites/__SUITE__/suite.ts
+  # Command that installs the target's own dependencies, if the suite imports target code. Empty = skip.
+  TARGET_INSTALL: "__TARGET_INSTALL__"
+
+jobs:
+  workshop-evals:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - run: corepack enable
+      - if: env.TARGET_INSTALL != ''
+        run: sh -c "$TARGET_INSTALL"
+      - working-directory: evals
+        run: pnpm install
+      - id: eval
+        working-directory: evals
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Add any other secrets the feature under test needs, e.g. OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          set -o pipefail
+          pnpm eval "$EVAL_SUITE" --threshold --label "${GITHUB_SHA::7}" | tee "$RUNNER_TEMP/summary.md"
+      - if: always()
+        run: cat "$RUNNER_TEMP/summary.md" >> "$GITHUB_STEP_SUMMARY" || true
+      - if: always() && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh pr comment ${{ github.event.pull_request.number }} --body-file "$RUNNER_TEMP/summary.md" || true
+      - if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: eval-runs
+          path: evals/.eval-runs/

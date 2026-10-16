@@ -1,0 +1,11 @@
+node_modules/
+.env
+.env.*
+!.env.example
+.workshop/
+targets/*
+!targets/.gitkeep
+.eval-runs/
+.agent-runs/
+*.log
+.DS_Store

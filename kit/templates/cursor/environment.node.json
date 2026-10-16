@@ -1,0 +1,3 @@
+{
+  "install": "corepack enable && __TARGET_INSTALL__ && (cd evals && pnpm install)"
+}
