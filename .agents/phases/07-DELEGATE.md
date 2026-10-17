@@ -8,7 +8,7 @@ You'll hand a whole task to a coding agent and walk away: it gets a fresh branch
 
 ## 7.1 [LLM] Resume check
 
-Read the profile. Confirm the default branch has `evals/`, `last-run.json` and the eval CI job (Gate 5). If not, stop and fix that first — or `pnpm workshop catchup 7` and push the new target (Phase 5, *No remote yet*).
+Read the profile. Confirm the workshop branch `dev-days-workshop/<participant>` on the remote has `evals/`, `last-run.json` and the eval CI job (Gate 5). If not, stop and fix that first — or `pnpm workshop catchup 7` and push the new target (Phase 5, *No remote yet*).
 
 Check which agent CLIs are available and say so in one line:
 
@@ -36,10 +36,10 @@ pnpm workshop delegate <name> --task-file issue.md   # or: the issue text in a f
 
 Explain what it does in five bullets:
 
-- creates a git worktree on a new `agent/<tool>-…` branch from the latest default branch — their own checkout is untouched;
+- creates a git worktree on a new `dev-days-workshop/<participant>-agent-<tool>-…` branch from the workshop branch — their own checkout is untouched;
 - runs Claude Code (`claude -p`, edits auto-accepted, Bash allowed) or the Cursor CLI (`agent -p --force`) headless with the issue, told to follow AGENTS.md;
 - tells the agent to run the eval gate (`pnpm verify`) before finishing and re-record if it touched the LLM feature;
-- commits, pushes the branch, and opens the MR (GitLab push options) or PR (`gh pr create`);
+- commits, pushes the branch through the push guard, and opens the MR (GitLab push options) or PR (`gh pr create`) **into the workshop branch**, never the default branch;
 - prints the agent's summary and keeps the worktree for inspection.
 
 While it runs: "This is the same loop a cloud agent runs — the only difference is whose machine it's on. Phase 8 moves it off yours."

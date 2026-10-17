@@ -19,7 +19,7 @@ Read `host` from the profile.
   git push -u origin main && git push -u origin dev-days-workshop/<participant>
   ```
 
-  (Pushing `main` here is the one allowed push to a default branch: it seeds an empty remote.)
+  (Pushing `main` here seeds a brand-new, empty project for the sample or a catch-up target, and the push guard allows it only there. Never do this for a real repo: if a real repo has no remote, use a facilitator mirror.)
   Re-run `pnpm workshop profile <name>` so the host is detected. GitLab Premium/Ultimate is needed later for Cursor cloud agents — mention it, don't block on it.
 
   **Catch-up targets:** `progress.json` → `targets.<name>.pendingInstall` lists components the catch-up couldn't install without a host. Install them now, record the evals (5.4), commit on `main`, push, then merge `main` into the workshop branch — exactly as the catch-up printed.
@@ -71,29 +71,29 @@ The job only needs Node: it installs `evals/` (for the runner) and runs `pnpm ve
 
 ## 5.6 [LLM] Green run
 
-Commit `evals/` (with `last-run.json`) and the CI file on the workshop branch, push, open an MR/PR against the default branch (confirm with the participant before pushing). Watch the job and show where results appear (GitLab: MR widget test report; GitHub: job summary).
+Push the workshop branch `dev-days-workshop/<participant>` if it isn't on the remote yet. Commit `evals/` (with `last-run.json`) and the CI file on a new branch `dev-days-workshop/<participant>-gate`, push it, and open an MR/PR **into the workshop branch**, never the default branch (confirm with the participant before pushing). GitLab: `glab mr create --target-branch dev-days-workshop/<participant>`; GitHub: `gh pr create --base dev-days-workshop/<participant>`. Watch the job and show where results appear (GitLab: MR widget test report; GitHub: job summary).
 
 ## 5.7 [HUMAN] Make it block — twice
 
-On a new branch:
+On another new `dev-days-workshop/<participant>-…` branch, with an MR/PR into the workshop branch:
 
 1. **Stale:** make the Phase 4 regression (or any prompt edit) and push *without* re-recording. The gate fails and names the changed file.
 2. **Measured and bad:** re-record with that change and push. Now the gate fails on the threshold and names the failing cases.
 
-Close that MR/PR without merging. Then make it a real gate:
+Close that MR/PR without merging. Making the gate a hard merge requirement is a **project setting**, outside any branch:
 
-- GitLab: *Settings → Merge requests → Pipelines must succeed*.
-- GitHub: branch protection / ruleset on the default branch requiring the `workshop-evals` check.
+- **Sample, catch-up or facilitator mirror:** GitLab: *Settings → Merge requests → Pipelines must succeed*. GitHub: a ruleset on `dev-days-workshop/*` requiring the `workshop-evals` check.
+- **Real repo:** don't change project settings. Show where the setting lives and leave the decision to the repo owner.
 
 ## 5.8 [LLM] Merge the green one
 
-With the participant's OK, merge the green MR/PR so the default branch has `evals/`, the recording and the CI job. Day 2 agents branch from the default branch and must see all three.
+With the participant's OK, merge the green MR/PR into the workshop branch, so `dev-days-workshop/<participant>` has `evals/`, the recording and the CI job. Day 2 agents branch from the workshop branch and must see all three. Nothing goes to the default branch.
 
 ## Gate 5
 
 Verify:
 
-- [ ] Default branch contains `evals/`, `suites/<suite>/last-run.json` and the CI job
+- [ ] The workshop branch (on the remote) contains `evals/`, `suites/<suite>/last-run.json` and the CI job, and the default branch is unchanged
 - [ ] One MR/PR had a passing gate; one failed as stale and then on the threshold
 - [ ] The participant can explain what `tracks` covers and why
 

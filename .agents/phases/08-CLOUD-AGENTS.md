@@ -17,7 +17,7 @@ If neither is available for this target (e.g. GitLab and no Cursor): skip to 8.4
 
 ## 8.2 [LLM] Build environment (Cursor)
 
-Cursor cloud agents read `.cursor/environment.json` from the **default branch**.
+Cursor builds its environment from `.cursor/environment.json` on the **default branch**, but an agent started on a feature branch checks that branch out on top, and without a repo file Cursor uses a personal or team saved environment ([setup docs](https://cursor.com/docs/cloud-agent/setup)). We never merge to the default branch of a real repo, so:
 
 ```bash
 pnpm workshop install <name> cursor-env
@@ -26,7 +26,10 @@ pnpm workshop install <name> cursor-env
 - Node targets → just an `install` command.
 - Other stacks → a Dockerfile in `.cursor/` built from the same base image as CI. Edit it for the target's toolchain.
 
-Commit, push, merge to the default branch (confirm first). For Claude Code cloud sessions the equivalent is the environment's setup script (claude.ai/code → environment settings) — mention it if they use that path.
+- **Real repo:** commit and push the file on the workshop branch and start the agent on that branch, or let Cursor's agent-led setup save a personal environment. Don't merge to the default branch.
+- **Sample, catch-up or facilitator mirror:** committing on the default branch is fine (confirm first).
+
+For Claude Code cloud sessions the equivalent is the environment's setup script (claude.ai/code → environment settings) — mention it if they use that path.
 
 ## 8.3 [LLM] Evals inside the VM
 
@@ -40,8 +43,10 @@ The agent should run `pnpm verify` and re-record if it changes the LLM feature (
 
 They start the agent with a task from the backlog — ideally the same one as Phase 7, or its sibling:
 
-- **Cursor:** Agent input → **Cloud**, pick the repo and default branch (or cursor.com/agents). Ask it to open an MR/PR when done.
-- **Claude Code (GitHub):** start a session at claude.ai/code on the repo, or `claude --cloud "<task>"` from `targets/<name>`; create the PR from the session when done.
+- **Cursor:** Agent input → **Cloud**, pick the repo and the workshop branch `dev-days-workshop/<participant>` (or cursor.com/agents). Ask it to open an MR/PR **into the workshop branch** when done.
+- **Claude Code (GitHub):** start a session at claude.ai/code on the repo, or `claude --cloud "<task>"` from `targets/<name>` while on the workshop branch; create the PR **into the workshop branch** when done.
+
+Cloud agents push from their own machines, where the workshop push guard does not run. Before launching, check the base branch is the workshop branch; afterwards, check the MR/PR target and retarget it if needed.
 
 While it runs: what's different from Phase 7 — someone else's VM, an environment defined in the repo, follow-ups mid-run from a browser or phone.
 
