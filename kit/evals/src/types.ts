@@ -59,6 +59,12 @@ export interface Suite<I = unknown, E = unknown, O = unknown> {
   concurrency?: number;
   /** Run each case N times to measure consistency. Default 1. */
   trials?: number;
+  /**
+   * Files or folders (relative to the suite file) that define the feature under test — prompt, code, schema.
+   * `--record` fingerprints them; `verify` in CI fails when they change without a fresh recording.
+   * The suite folder itself (cases, rubric, suite.ts) is always included.
+   */
+  tracks?: string[];
 }
 
 export interface CaseRun {

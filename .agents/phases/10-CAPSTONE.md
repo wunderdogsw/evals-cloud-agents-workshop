@@ -12,20 +12,20 @@ You'll run several cloud agents in parallel on a small backlog, then act as the 
 
 ## 10.2 [HUMAN] Assign and launch
 
-They decide which agent gets which issue and why (one line each in `agent-notes.md`), within the agreed budget. Launch them all — GitLab pipelines with `ISSUE_IID` / GitHub `@claude` comments / Cursor cloud agents — then step away from the keyboard for a few minutes. That's the point.
+They decide which agent gets which issue and why (one line each in `agent-notes.md`), within the agreed budget — any mix of `pnpm workshop delegate` (Claude Code or Cursor CLI, one terminal each), Cursor cloud agents, and Claude Code cloud sessions for GitHub repos. Launch them all, then step away from the keyboard for a few minutes. That's the point.
 
 ## 10.3 [LLM] Collect evidence
 
-When the MRs/PRs are up, build a table in `agent-notes.md` from what you can read (CI status, eval summary notes/comments, review-agent comments, diff size via `git diff --stat`):
+When the MRs/PRs are up, run a reviewer on each (`pnpm workshop review <name> <branch>`, or read Bugbot's comments), then build a table in `agent-notes.md` from what you can read (eval gate status — pass / stale / below threshold, review findings, diff size via `git diff --stat`):
 
-| Issue | Agent | Eval gate | Tests | Review agent findings | Diff size | Cost |
-|---|---|---|---|---|---|---|
+| Issue | Agent + where | Eval gate | Tests | Review findings | Diff size |
+|---|---|---|---|---|---|
 
 Do not give a merge recommendation. That's theirs.
 
 ## 10.4 [HUMAN] Triage
 
-For each MR/PR: **merge**, **request changes**, or **close**, with one reason. Merge the ones they'd genuinely merge (confirm before you do anything). Iterate once on a "request changes" via the agent (review comment / re-triggered pipeline) and see if it converges.
+For each MR/PR: **merge**, **request changes**, or **close**, with one reason. Merge the ones they'd genuinely merge (confirm before you do anything). Iterate once on a "request changes" via an agent (a follow-up `delegate`, a message to the cloud agent, or their editor's assistant) and see if it converges.
 
 ## 10.5 [HUMAN] Retro
 

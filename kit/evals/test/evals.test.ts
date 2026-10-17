@@ -190,3 +190,62 @@ describe("providers", () => {
     expect(argv[argv.indexOf("--model") + 1]).toBe("claude-haiku-5-5");
   });
 });
+
+describe("record + verify (CI gate without a model)", () => {
+  it("passes when fresh, fails when stale, tracked file changed, or threshold missed", async () => {
+    const { mkdtemp, mkdir, writeFile } = await import("node:fs/promises");
+    const { tmpdir } = await import("node:os");
+    const { join } = await import("node:path");
+    const { writeRecording, verifyRecording } = await import("../src/record.ts");
+    const root = await mkdtemp(join(tmpdir(), "rec-"));
+    const suiteDir = join(root, "suites", "toy");
+    await mkdir(suiteDir, { recursive: true });
+    await mkdir(join(root, "src"));
+    await writeFile(join(suiteDir, "suite.ts"), "// suite");
+    await writeFile(join(suiteDir, "cases.jsonl"), "{}\n");
+    await writeFile(join(root, "src", "prompt.ts"), "v1");
+    const tracks = ["../../src/prompt.ts"];
+    const good = await runSuite(defineSuite({ name: "toy", cases, task: async ({ q }: { q: string }) => ({ a: answers[q]! }), graders: [exactMatch("a")], threshold: { passRate: 0.75 } }));
+
+    writeRecording(suiteDir, good, { provider: "claude-code", models: { task: "m" }, tracks });
+    expect(verifyRecording(suiteDir).ok).toBe(true);
+
+    await writeFile(join(suiteDir, "labels.jsonl"), "{}\n"); // ignored file — still fresh
+    expect(verifyRecording(suiteDir).ok).toBe(true);
+
+    await writeFile(join(root, "src", "prompt.ts"), "v2");
+    const stale = verifyRecording(suiteDir);
+    expect(stale.ok).toBe(false);
+    expect(stale.changed).toEqual(["../../src/prompt.ts"]);
+
+    await writeFile(join(suiteDir, "extra.jsonl"), "{}\n");
+    expect(verifyRecording(suiteDir).added).toEqual(["extra.jsonl"]);
+
+    const bad = await runSuite(defineSuite({ name: "toy", cases, task: async () => ({ a: "x" }), graders: [exactMatch("a")], threshold: { passRate: 0.75 } }));
+    writeRecording(suiteDir, bad, { provider: "claude-code", models: {}, tracks });
+    const v = verifyRecording(suiteDir);
+    expect(v.ok).toBe(false);
+    expect(v.problems.join()).toContain("threshold not met");
+
+    writeRecording(suiteDir, good, { provider: "mock", models: {}, tracks });
+    expect(verifyRecording(suiteDir).problems.join()).toContain("EVALS_MOCK");
+  });
+});
+
+describe("cursor provider", () => {
+  it("parses JSON out of the Cursor CLI's text result and never passes --force", async () => {
+    const { mkdtemp, writeFile, readFile } = await import("node:fs/promises");
+    const { tmpdir } = await import("node:os");
+    const { join } = await import("node:path");
+    const dir = await mkdtemp(join(tmpdir(), "cur-"));
+    const argsFile = join(dir, "args.json");
+    const bin = join(dir, "agent");
+    await writeFile(bin, `#!/usr/bin/env node\nrequire("fs").writeFileSync(${JSON.stringify(argsFile)}, JSON.stringify(process.argv.slice(2)));\nconsole.log(JSON.stringify({type:"result",result:"Here you go:\\n{\\"pass\\": false, \\"score\\": 0, \\"reasoning\\": \\"too long\\"}"}));\n`, { mode: 0o755 });
+    const { cursorClient } = await import("../src/llm.ts");
+    const r = await cursorClient(bin).structured<{ pass: boolean }>({ model: "ignored", prompt: "judge", schema: { type: "object" } });
+    const argv: string[] = JSON.parse(await readFile(argsFile, "utf8"));
+    expect(r.data.pass).toBe(false);
+    expect(argv).not.toContain("--force");
+    expect(argv).toContain("--output-format");
+  });
+});

@@ -21,9 +21,9 @@ By the end, a participant can:
 2. Choose between deterministic graders and LLM-as-judge, and explain why most suites need both.
 3. Calibrate an LLM judge against human labels and report the agreement rate.
 4. Compare two runs and identify regressions, not just score deltas.
-5. Gate merges on eval results in GitLab CI or GitHub Actions.
+5. Gate merges on eval results in GitLab CI or GitHub Actions — without a model or secrets in CI.
 6. Build a coding-agent benchmark from merged changes (hidden tests from the reference commit).
-7. Hand a task to Claude and to Cursor as cloud agents, and review the resulting MR/PR.
+7. Delegate a task to a coding agent (Claude Code or Cursor, locally or as a cloud agent) and review the resulting MR/PR.
 8. Write agent-facing instructions (AGENTS.md / CLAUDE.md / rules) and measure whether they help.
 9. Run several agents in parallel and triage their output by evidence.
 
@@ -42,10 +42,14 @@ By the end, a participant can:
 
 | Phase | Time | Core idea | Gate |
 |---|---|---|---|
-| 7 Claude cloud agent | 09:00–10:00 | An issue becomes an MR without your laptop | Agent-authored MR/PR exists and CI ran on it |
-| 8 Cursor cloud agents | 10:00–10:45 | Same task, different agent | Second MR/PR; side-by-side comparison written |
+| 7 Delegate | 09:00–10:00 | An issue becomes an MR while you do something else | Agent-authored MR/PR exists and the eval gate ran on it |
+| 8 Cloud agents | 10:00–10:45 | Same delegation, someone else's machine | Second MR/PR; side-by-side comparison written |
 | 9 Guardrails | 10:45–11:30 | Instructions are code; measure them | Agent-evals rerun with improved AGENTS.md, delta reported |
 | 10 Capstone | 11:30–12:30 | Parallel agents, evidence-based merge | Retro: which MRs would you merge and why |
+
+## Tools
+
+Participants use any coding tool — Claude Code, Cursor, or both — at any point; there are no tracks. Every model call (feature under test, judge, agents) runs on the participant's own login, auto-detected. CI never holds a model credential: the eval gate verifies a committed, fingerprinted recording of a local run.
 
 ## Eval subject
 

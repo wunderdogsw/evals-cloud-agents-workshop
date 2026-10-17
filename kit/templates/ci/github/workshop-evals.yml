@@ -1,9 +1,9 @@
-# Eval gate — GitHub Actions. Installed at .github/workflows/workshop-evals.yml
+# Eval gate — GitHub Actions. No model and no secrets in CI.
 #
-# Secrets (Settings → Secrets and variables → Actions):
-#   CLAUDE_CODE_OAUTH_TOKEN — from `claude setup-token` (Claude subscription; no API key). Model calls go through
-#   Claude Code on the runner. Alternatives: EVALS_PROVIDER=api + ANTHROPIC_API_KEY, or cursor + CURSOR_API_KEY.
-# Make it a merge gate: Settings → Branches → require the "workshop-evals" check.
+# Developers (or their agents) run the suite locally with their own Claude Code or Cursor login and commit
+# the recording:   cd evals && pnpm eval suites/__SUITE__/suite.ts --record   → suites/__SUITE__/last-run.json
+# This workflow checks the recording is fresh (no tracked file changed since), a real full run, and over
+# the threshold. Make it a merge gate: require the "workshop-evals" check on the default branch.
 
 name: workshop-evals
 
@@ -11,49 +11,22 @@ on:
   pull_request:
   push:
     branches: [__DEFAULT_BRANCH__]
-  workflow_dispatch:
-
-env:
-  EVAL_SUITE: suites/__SUITE__/suite.ts
-  # Command that installs the target's own dependencies, if the suite imports target code. Empty = skip.
-  TARGET_INSTALL: "__TARGET_INSTALL__"
-  EVALS_PROVIDER: claude-code
 
 jobs:
   workshop-evals:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 10
     permissions:
       contents: read
-      pull-requests: write
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v7
         with:
           node-version: 22
       - run: corepack enable
-      - if: env.EVALS_PROVIDER == 'claude-code'
-        run: curl -fsSL https://claude.ai/install.sh | bash && echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-      - if: env.TARGET_INSTALL != ''
-        run: sh -c "$TARGET_INSTALL"
       - working-directory: evals
         run: pnpm install
-      - id: eval
-        working-directory: evals
-        env:
-          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          # Add any other secrets the feature under test needs, e.g. OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      - working-directory: evals
         run: |
           set -o pipefail
-          pnpm eval "$EVAL_SUITE" --threshold --label "${GITHUB_SHA::7}" | tee "$RUNNER_TEMP/summary.md"
-      - if: always()
-        run: cat "$RUNNER_TEMP/summary.md" >> "$GITHUB_STEP_SUMMARY" || true
-      - if: always() && github.event_name == 'pull_request'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh pr comment ${{ github.event.pull_request.number }} --body-file "$RUNNER_TEMP/summary.md" || true
-      - if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: eval-runs
-          path: evals/.eval-runs/
+          pnpm verify suites/__SUITE__/suite.ts --junit "$RUNNER_TEMP/eval-gate-junit.xml" | tee -a "$GITHUB_STEP_SUMMARY"

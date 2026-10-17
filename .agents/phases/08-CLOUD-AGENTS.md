@@ -1,0 +1,72 @@
+# Phase 8 — Cloud agents
+
+## Overview
+
+Same delegation as Phase 7, but the agent runs on someone else's machine: it clones your repo into a remote VM, works there, and pushes a branch while your laptop is closed. You'll set up the VM's build environment, delegate a task, and compare with Phase 7 on the same evidence: eval gate, hidden tests, review effort.
+
+---
+
+## 8.1 [LLM] Which cloud agent is available
+
+Check and report in two lines, don't fix silently. Use whichever applies — participants may have one, both or neither:
+
+- **Cursor cloud agents** — work with GitLab (Premium/Ultimate; self-hosted may need extra networking) and GitHub. Needs: the repo connected in the Cursor dashboard (*Integrations*, synced — facilitators set this up), a paid Cursor plan with cloud agents enabled and a spend limit.
+- **Claude Code cloud sessions** (claude.ai/code, `claude --cloud "<task>"`) — **GitHub repos only**: they can't push back to GitLab. Needs the Claude GitHub App on the repo or `/web-setup`.
+
+If neither is available for this target (e.g. GitLab and no Cursor): skip to 8.4 and run **two `pnpm workshop delegate` jobs in parallel** in two terminals instead — the lesson (delegate, walk away, review evidence) is the same; only the machine differs. Note it in `agent-notes.md`.
+
+## 8.2 [LLM] Build environment (Cursor)
+
+Cursor cloud agents read `.cursor/environment.json` from the **default branch**.
+
+```bash
+pnpm workshop install <name> cursor-env
+```
+
+- Node targets → just an `install` command.
+- Other stacks → a Dockerfile in `.cursor/` built from the same base image as CI. Edit it for the target's toolchain.
+
+Commit, push, merge to the default branch (confirm first). For Claude Code cloud sessions the equivalent is the environment's setup script (claude.ai/code → environment settings) — mention it if they use that path.
+
+## 8.3 [LLM] Evals inside the VM
+
+The agent should run `pnpm verify` and re-record if it changes the LLM feature (AGENTS.md says so). A cloud VM has no participant login, so:
+
+- **Cursor:** add `CURSOR_API_KEY` as a cloud-agent **Secret** (cursor.com/dashboard → Cloud Agents) and `EVALS_PROVIDER=cursor`, if the team is OK with that key living in Cursor's dashboard.
+- **Claude Code cloud session:** runs on the participant's Claude subscription, so `claude -p` works inside it — `EVALS_PROVIDER=claude-code`.
+- **Neither:** fine. If the agent touches the feature, the gate goes red as *stale*, and the human re-records on the branch before merging. That's a legitimate workflow — say so.
+
+## 8.4 [HUMAN] Delegate
+
+They start the agent with a task from the backlog — ideally the same one as Phase 7, or its sibling:
+
+- **Cursor:** Agent input → **Cloud**, pick the repo and default branch (or cursor.com/agents). Ask it to open an MR/PR when done.
+- **Claude Code (GitHub):** start a session at claude.ai/code on the repo, or `claude --cloud "<task>"` from `targets/<name>`; create the PR from the session when done.
+
+While it runs: what's different from Phase 7 — someone else's VM, an environment defined in the repo, follow-ups mid-run from a browser or phone.
+
+## 8.5 [HUMAN] Review and compare
+
+Same review as Phase 7. Then a comparison table in `.workshop/targets/<name>/agent-notes.md`:
+
+| | Phase 7 (laptop, `<tool>`) | Phase 8 (`<where>`, `<tool>`) |
+|---|---|---|
+| Eval gate | | |
+| Hidden tests (sample) | | |
+| Review comments needed | | |
+| Scope creep? | | |
+| Wall time | | |
+| Would merge? | | |
+
+Keep it honest: one task is an anecdote. Phase 9 is where you measure.
+
+## Gate 8
+
+- [ ] A second agent-authored MR/PR exists (cloud agent, or a parallel `delegate` if no cloud agent was available) and its eval gate ran
+- [ ] The comparison table is filled in
+
+---
+
+## Phase Complete
+
+Mark Phase 8 complete. Preview: "Phase 9 — the instructions you give agents are code. You'll change them and measure whether it helped."

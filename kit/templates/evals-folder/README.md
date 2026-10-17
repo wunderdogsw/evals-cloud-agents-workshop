@@ -15,4 +15,15 @@ pnpm calibrate latest --labels suites/<name>/labels.jsonl --grader judge
 - `suites/<name>/suite.ts` — task + graders + threshold.
 - `suites/<name>/cases.jsonl` — the dataset. This is the valuable part.
 
-Model calls go through your Claude Code login by default (`claude -p`, no API key). `EVALS_PROVIDER=cursor` uses the Cursor CLI, `EVALS_PROVIDER=api` uses `ANTHROPIC_API_KEY`. Settings are read from the environment or a `.env` in this folder or any parent. In CI, set `CLAUDE_CODE_OAUTH_TOKEN` (from `claude setup-token`). `EVALS_MOCK=1` runs offline fakes.
+Model calls use whichever CLI you're logged in to: Claude Code (`claude -p`) or Cursor (`agent -p`) — no API key. Force one with `EVALS_PROVIDER=claude-code|cursor` (or `api` + `ANTHROPIC_API_KEY`). Settings are read from the environment or a `.env` in this folder or any parent. `EVALS_MOCK=1` runs offline fakes.
+
+## The CI gate
+
+CI never calls a model. Record a full run locally and commit it:
+
+```bash
+pnpm eval suites/<name>/suite.ts --record   # → suites/<name>/last-run.json (results + file fingerprints)
+pnpm verify suites/<name>/suite.ts          # exactly what CI runs
+```
+
+`verify` fails if the suite folder or any `tracks` file (the feature's prompt/code) changed since the recording, if it was a mock or partial run, or if it missed the threshold.

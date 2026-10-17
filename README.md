@@ -2,7 +2,7 @@
 
 A hands-on, 1.5-day workshop on **evaluating LLM features and coding agents**, and on **delegating work to cloud agents safely** — on *your own* repository.
 
-Stack: **Cursor**, **Claude** (Claude Code + Claude API), **GitLab or GitHub**.
+Stack: **Cursor** and/or **Claude Code** — use either, both, or switch any time — with **GitLab or GitHub**. No API keys, nothing secret in CI.
 
 ## How this works
 
@@ -37,10 +37,10 @@ evals-cloud-agents-workshop/       ← open THIS in Cursor / Claude Code
 | 1 | 2 — Your first eval | Golden dataset + deterministic graders, baseline score |
 | 1 | 3 — LLM-as-judge | Write a rubric, calibrate the judge against your own labels |
 | 1 | 4 — Iterate without regressing | Change prompt/model, compare runs, catch a regression |
-| 1 | 5 — Evals in CI | Eval gate in GitLab CI or GitHub Actions — a bad MR/PR gets blocked |
+| 1 | 5 — Evals in CI | Record evals locally, verify in GitLab CI / GitHub Actions — no model or secrets in CI |
 | 1 | 6 — Evaluate the coding agent | Replay merged changes from your history as agent tasks |
-| 2 | 7 — Claude as a cloud agent | Claude opens an MR/PR from an issue (GitLab CI job / GitHub Action) |
-| 2 | 8 — Cursor cloud agents | Same task, different agent, compare |
+| 2 | 7 — Delegate | An issue goes to Claude Code or Cursor headless; an MR/PR comes back |
+| 2 | 8 — Cloud agents | Same delegation in a cloud VM (Cursor cloud agents; Claude Code cloud for GitHub) |
 | 2 | 9 — Guardrails | AGENTS.md for agents, eval gate, review agent |
 | 2 | 10 — Capstone | Parallel agents on a backlog, triaged by eval results |
 
@@ -49,8 +49,8 @@ evals-cloud-agents-workshop/       ← open THIS in Cursor / Claude Code
 - Node.js 22+ and pnpm (`corepack enable`)
 - Git
 - Cursor and/or Claude Code
-- A Claude subscription (Claude Code logged in) — the evals call Claude through it, **no API key needed**. Cursor's CLI works as a fallback.
-- For Day 2: a GitLab project (Premium/Ultimate for Cursor cloud agents) **or** a GitHub repo you can push to, with CI enabled
+- Claude Code and/or Cursor, logged in — evals and agents run on your own subscription, **no API key needed**. For scripted steps: the `claude` CLI or Cursor's `agent` CLI.
+- For Day 2: a GitLab project or GitHub repo you can push to, with CI enabled (GitLab Premium/Ultimate if you want Cursor cloud agents on it)
 
 ## From zero to action
 
@@ -66,7 +66,8 @@ Under the hood the guide uses a few helpers you can also run yourself:
 
 ```bash
 pnpm workshop attach sample            # or a git URL, or a path to a local checkout
-pnpm workshop install <target> evals   # kit components: evals, ci-evals, ci-claude, ci-review, cursor-env, …
+pnpm workshop install <target> evals   # kit components: evals, ci-evals, cursor-env, agents-section, …
+pnpm workshop delegate <target> --issue 3   # Claude Code or Cursor CLI works the issue, opens an MR/PR
 pnpm workshop catchup 5                # fresh sample target, ready to start Phase 5
 pnpm evals --help                      # eval runner
 pnpm agent-evals --help                # coding-agent benchmark
@@ -78,10 +79,12 @@ Both are first-class targets. The guide detects the host from your target's remo
 
 | | GitLab | GitHub |
 |---|---|---|
-| Eval gate | `.gitlab-ci.yml` job, JUnit report in MR | Actions workflow, check on PR |
-| Claude cloud agent | Claude Code CI job (beta, maintained by GitLab) | `anthropics/claude-code-action@v1`, or Claude Code on the web |
-| Cursor cloud agent | Supported (needs GitLab Premium/Ultimate) | Supported, also via `@cursor` comments |
-| Review agent | Claude review job / Cursor Bugbot | Claude review workflow / Cursor Bugbot |
+| Eval gate | `.gitlab-ci.yml` job verifies the committed recording; JUnit in the MR | Actions workflow verifies it; check on the PR |
+| Delegated agent | `pnpm workshop delegate` (Claude Code or Cursor CLI) → MR | same → PR |
+| Cloud agent | Cursor cloud agents (Premium/Ultimate) | Cursor cloud agents, Claude Code cloud sessions |
+| Review agent | `pnpm workshop review` / Cursor Bugbot | `pnpm workshop review` / Cursor Bugbot |
+
+Optional templates for organisations that *do* allow a model credential in CI (`ci-evals-live`, `ci-claude`, `ci-review`) are in `kit/templates/ci/`, unused by default.
 
 ## Manual vs generated work
 

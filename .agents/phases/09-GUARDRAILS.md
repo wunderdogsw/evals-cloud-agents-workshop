@@ -29,12 +29,14 @@ Commit the AGENTS.md change on the workshop branch (the benchmark snapshots `bas
 - **Sample tasks** (`base: "HEAD"`) → just commit; the next run picks it up.
 - **Mined tasks** (`base` = old parent commits) → the old commits don't have the new AGENTS.md. Explain the trade-off and copy the new file in with `setupCommand`, e.g. `--setup "<install> && cp <abs path to new AGENTS.md> AGENTS.md && git add AGENTS.md"` (setup runs before the `eval-base` tag, so it isn't counted as the agent's diff).
 
-Then re-run with the same settings as Phase 6 and compare:
+Then re-run with the same agent and settings as Phase 6 (`--agent claude` or `--agent cursor`, whichever they benchmarked) and compare:
 
 ```bash
-pnpm agent-evals run targets/<name> --tasks <tasks-file> --agent claude --setup "…" --max-budget-usd 2 --label claude-guarded
-pnpm evals compare <claude-baseline run dir> latest
+pnpm agent-evals run targets/<name> --tasks <tasks-file> --agent <claude|cursor> --setup "…" --max-budget-usd 2 --label <agent>-guarded
+pnpm evals compare <agent>-baseline <agent>-guarded
 ```
+
+Both tools read the same AGENTS.md (Claude via the `@AGENTS.md` import in CLAUDE.md), so if they have both, running the other agent too shows whether the instructions help across tools.
 
 Read it like Phase 4: fixes, regressions, cost, noise (5–10 tasks is a small sample — say so).
 
@@ -42,12 +44,14 @@ Read it like Phase 4: fixes, regressions, cost, noise (5–10 tasks is a small s
 
 ```bash
 pnpm workshop install <name> review-md
-pnpm workshop install <name> ci-review
 ```
 
-GitLab: `.gitlab/ci/workshop-claude-review.yml` posts a review note on every MR pipeline (needs `GITLAB_ACCESS_TOKEN`). GitHub: `.github/workflows/workshop-claude-review.yml`. Alternative on either host: enable **Cursor Bugbot** for the repo in the Cursor dashboard.
+`REVIEW.md` tells any review agent what matters in this repo (including: flag hand edits to `cases.jsonl`, thresholds or `last-run.json`). Commit it. Then run a reviewer on the Phase 7 or 8 MR/PR — whichever they have:
 
-Commit, push, merge to the default branch (confirm first). Existing MR/PR pipelines use their own branch's CI config, so merge the default branch into the Phase 7 or 8 agent branch (or open a fresh MR/PR), then read the review.
+- **Any tool, from the laptop:** `pnpm workshop review <name> <agent-branch>` runs Claude Code or the Cursor CLI read-only on the diff and prints the review; add `--post` to put it on the MR/PR with their `glab`/`gh` login (confirm first).
+- **Cursor Bugbot:** enable it for the repo in the Cursor dashboard (*Bugbot*, per repo; works on GitLab and GitHub). It reviews every MR/PR automatically, no CI setup.
+
+(Only where the organisation allows a model credential in CI: `ci-review` adds a Claude review job to the pipeline. Not used in this workshop.)
 
 ## 9.6 [HUMAN] Review the reviewer
 

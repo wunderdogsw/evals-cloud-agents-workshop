@@ -9,3 +9,4 @@ export { compareRuns, comparisonMarkdown } from "./compare.ts";
 export { calibrate, calibrationMarkdown, type HumanLabel } from "./calibrate.ts";
 export { toMarkdown, toJUnit, writeRun } from "./report.ts";
 export { DEFAULT_MODELS, model, estimateCostUsd } from "./models.ts";
+export { fingerprint, writeRecording, verifyRecording, verificationMarkdown, recordingJUnit, RECORDING_FILE, type Recording, type Verification } from "./record.ts";

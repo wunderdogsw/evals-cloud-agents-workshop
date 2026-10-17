@@ -9,6 +9,9 @@ import { calibrate, calibrationMarkdown, type HumanLabel } from "./calibrate.ts"
 import { compareRuns, comparisonMarkdown } from "./compare.ts";
 import { parseJsonl } from "./dataset.ts";
 import { toMarkdown, writeRun } from "./report.ts";
+import { isMock, resolveProvider } from "./llm.ts";
+import { model } from "./models.ts";
+import { recordingJUnit, verificationMarkdown, verifyRecording, writeRecording } from "./record.ts";
 import { runSuite } from "./runner.ts";
 import type { RunResult, Suite } from "./types.ts";
 
@@ -17,12 +20,15 @@ const HELP = `evals — tiny eval runner
   evals run <suite.ts> [--out .eval-runs] [--tag t1,t2] [--id a,b] [--limit n]
                        [--trials n] [--concurrency n] [--label name] [--threshold]
                        [--regrade <run>]     re-grade that run's outputs (no task calls)
+                       [--record]            full run → <suite dir>/last-run.json, to commit (CI gate)
+  evals verify <suite.ts> [--junit file]      CI gate without a model: recording fresh + threshold met
   evals compare <before> <after> [--fail-on-regression]
   evals label <run> [--out labels.jsonl] [--grader judge]     interactive PASS/FAIL labelling
   evals calibrate <run> --labels labels.jsonl [--grader judge]
 
 <run>/<before>/<after> may be a results.json, a run directory, "latest" / "latest~1", or a run label.
-Set EVALS_MOCK=1 to run with offline fakes (no API calls).`;
+Model calls: EVALS_PROVIDER=claude-code (your Claude Code login) | cursor (Cursor CLI login) | api.
+Set EVALS_MOCK=1 to run with offline fakes (no model calls).`;
 
 /** Load every .env from cwd up to / — nearest first; loadEnvFile never overrides values already set. */
 function loadDotEnv() {
@@ -86,6 +92,8 @@ async function main() {
       label: { type: "string" },
       threshold: { type: "boolean", default: false },
       regrade: { type: "string" },
+      record: { type: "boolean", default: false },
+      junit: { type: "string" },
       "fail-on-regression": { type: "boolean", default: false },
       labels: { type: "string" },
       grader: { type: "string", default: "judge" },
@@ -103,6 +111,10 @@ async function main() {
     const mod = await import(pathToFileURL(abs).href);
     const suite: Suite = mod.default ?? mod.suite;
     if (!suite?.task) throw new Error(`${file} must export default defineSuite({...})`);
+    if (values.record) {
+      if (values.tag || values.id || values.limit || values.regrade) throw new Error("--record needs a full run: drop --tag/--id/--limit/--regrade");
+      if (isMock()) throw new Error("--record with EVALS_MOCK would gate on fake results — unset EVALS_MOCK");
+    }
     let done = 0;
     let reuseOutputs: Map<string, { output?: unknown; error?: string }> | undefined;
     if (values.regrade) {
@@ -127,7 +139,24 @@ async function main() {
     const dir = await writeRun(result, outDir);
     console.log(toMarkdown(result));
     console.log(`→ ${dir}`);
+    if (values.record) {
+      const provider = process.env.EVALS_PROVIDER ?? (() => { try { return resolveProvider(); } catch { return "custom"; } })();
+      const p = writeRecording(dirname(abs), result, { provider, models: { task: model("task"), judge: model("judge") }, tracks: suite.tracks ?? [] });
+      console.log(`→ recorded ${p} — commit it with your change`);
+    }
     if (values.threshold && result.summary.thresholdMet === false) process.exitCode = 1;
+    return;
+  }
+
+  if (cmd === "verify") {
+    const file = positionals[0];
+    if (!file) throw new Error("usage: evals verify <suite.ts | suite dir>");
+    const abs = resolve(file);
+    const dir = existsSync(abs) && statSync(abs).isDirectory() ? abs : dirname(abs);
+    const v = verifyRecording(dir);
+    console.log(verificationMarkdown(v));
+    if (values.junit && v.recording) await writeFile(values.junit, recordingJUnit(v.recording));
+    if (!v.ok) process.exitCode = 1;
     return;
   }
 

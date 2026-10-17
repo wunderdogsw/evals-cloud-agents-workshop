@@ -2,7 +2,7 @@
 
 ## Overview
 
-You'll run the eval suite in GitLab CI or GitHub Actions on every merge/pull request, with a threshold that fails the pipeline. Then you'll prove it works by opening a change that should be blocked — and watching it get blocked. This gate is what Day 2's agents will have to get past.
+You'll turn the eval suite into a merge gate in GitLab CI or GitHub Actions — without putting a model or any secret into CI. The suite runs on your machine with your own Claude Code or Cursor login and records its result, fingerprinted against the exact prompt, code and dataset it measured. CI checks that the recording is fresh and passed. Then you'll prove it blocks a bad change. This gate is what Day 2's agents will have to get past.
 
 ---
 
@@ -22,11 +22,17 @@ Read `host` from the profile.
   (Pushing `main` here is the one allowed push to a default branch: it seeds an empty remote.)
   Re-run `pnpm workshop profile <name>` so the host is detected. GitLab Premium/Ultimate is needed later for Cursor cloud agents — mention it, don't block on it.
 
-  **Catch-up targets:** `progress.json` → `targets.<name>.pendingInstall` lists components the catch-up couldn't install without a host. Install them now (`pnpm workshop install <name> <components…>`), commit on `main`, push, then merge `main` into the workshop branch — exactly as the catch-up printed.
+  **Catch-up targets:** `progress.json` → `targets.<name>.pendingInstall` lists components the catch-up couldn't install without a host. Install them now, record the evals (5.4), commit on `main`, push, then merge `main` into the workshop branch — exactly as the catch-up printed.
 
-## 5.2 [HUMAN] Choose the threshold
+## 5.2 [LLM] Explain the gate in four lines
 
-Show the last runs' numbers (overall pass rate, per-grader means, `critical` tag pass rate, and the noise floor from Phase 4). They set `threshold` in `suite.ts`:
+> "CI here has no model and no secrets. So: you run the suite locally with `--record`. That writes `last-run.json` next to the suite — the results plus a SHA-256 of every file that defines the experiment. CI re-hashes those files. Changed prompt, code, cases or threshold without a fresh recording → red. Fresh but below threshold → red."
+
+Be honest about the trust model in one line: CI proves someone ran the full suite on exactly this code and it passed; it can't prove the file wasn't hand-edited, so `last-run.json` gets reviewed like code (and the review agent in Phase 9 is told to flag hand edits).
+
+## 5.3 [HUMAN] Choose the threshold and what to track
+
+Show the last runs' numbers (overall pass rate, per-grader means, `critical` tag pass rate, noise floor from Phase 4). They set two things in `suite.ts`:
 
 ```ts
 threshold: {
@@ -34,60 +40,62 @@ threshold: {
   graders: { "<grader name>": 0.85 },  // names exactly as in the summary table, e.g. "exact:costCode"
   tags: { critical: 1 },               // every case tagged critical must pass
 },
+tracks: ["../../../src/classify.ts"],  // the feature under test: prompt, code, schema (relative to suite.ts)
 ```
 
-Rule of thumb to offer: below the current score by more than the noise floor, high enough that the Phase 4 regression would have failed it. They should be able to say *why* each number. A misspelled grader or tag name fails every run — check against the summary table.
+Rule of thumb for the threshold: below the current score by more than the noise floor, high enough that the Phase 4 regression would have failed it. A misspelled grader or tag name fails every run — check against the summary table.
 
-## 5.3 [LLM] Install the CI job
+For `tracks`: exactly the files whose change should force a re-measurement — the prompt, the model call, the parsing. Too narrow and a prompt change sneaks through; too broad (a whole `src/`) and every unrelated change goes red. The suite folder itself is always tracked. For `sample-feature` targets: `["../../subject/cost-coder"]`. For `shellTask` targets: the feature's source files or folder.
+
+## 5.4 [LLM] Record
+
+```bash
+pnpm --dir targets/<name>/evals eval suites/<suite>/suite.ts --record --label gate
+pnpm --dir targets/<name>/evals verify suites/<suite>/suite.ts
+```
+
+The first uses whichever model the participant has (Claude Code or Cursor login — say which the summary used). The second is exactly what CI will run. If the recorded run misses the threshold, that's a real finding: go back to Phase 4 or justify a lower threshold — don't move on red.
+
+## 5.5 [LLM] Install the CI job
 
 ```bash
 pnpm workshop install <name> ci-evals --suite <suite>
 ```
 
-- **GitLab** → writes `.gitlab/ci/workshop-evals.yml` and adds an `include:` to `.gitlab-ci.yml`. If the script printed `MANUAL` or `CHECK`, fix the target's CI config by hand now (existing `include:` syntax, missing `test` stage). Show the participant the final `include:` block.
+- **GitLab** → writes `.gitlab/ci/workshop-evals.yml` and adds an `include:` to `.gitlab-ci.yml`. If the script printed `MANUAL` or `CHECK`, fix the target's CI config by hand now (existing `include:` syntax, missing `test` stage, `workflow:` rules). Show the final `include:` block.
 - **GitHub** → writes `.github/workflows/workshop-evals.yml`.
 
-Check `TARGET_INSTALL` in the job: it must install the target's dependencies if the suite imports target code; empty otherwise. For non-Node targets that use `shellTask`, the CI image needs that toolchain too — change `image:` (GitLab) or add a setup step (GitHub) and say which.
+The job only needs Node: it installs `evals/` (for the runner) and runs `pnpm verify`. No secrets to configure. It publishes the recorded per-case results as a JUnit report, so the MR/PR shows them.
 
-## 5.4 [HUMAN] Add the secret
+(Only if the organisation allows a model credential in CI: `ci-evals-live` re-runs the suite in the pipeline instead. Not used in this workshop.)
 
-CI has no logged-in user, so the job authenticates Claude Code with a long-lived token from the participant's subscription:
+## 5.6 [LLM] Green run
 
-```bash
-claude setup-token      # in their own terminal; approve in the browser; copy the printed token
-```
+Commit `evals/` (with `last-run.json`) and the CI file on the workshop branch, push, open an MR/PR against the default branch (confirm with the participant before pushing). Watch the job and show where results appear (GitLab: MR widget test report; GitHub: job summary).
 
-They add it as `CLAUDE_CODE_OAUTH_TOKEN` (never paste it into chat):
+## 5.7 [HUMAN] Make it block — twice
 
-- GitLab: *Settings → CI/CD → Variables* — masked, **not** protected (MR pipelines from unprotected branches must see it). Optional `GITLAB_ACCESS_TOKEN` (project access token, `api` scope) lets the job post the eval summary as an MR note.
-- GitHub: *Settings → Secrets and variables → Actions → New repository secret.*
+On a new branch:
 
-Say it plainly: CI runs now count against *their* subscription's usage, and anyone who can edit the pipeline in that project could use the token — fine for a workshop mirror, a decision for the team in a real repo. Alternatives: `EVALS_PROVIDER=cursor` + `CURSOR_API_KEY`, or `EVALS_PROVIDER=api` + `ANTHROPIC_API_KEY` where the organisation allows it.
+1. **Stale:** make the Phase 4 regression (or any prompt edit) and push *without* re-recording. The gate fails and names the changed file.
+2. **Measured and bad:** re-record with that change and push. Now the gate fails on the threshold and names the failing cases.
 
-## 5.5 [LLM] Green run
-
-Commit and push the workshop branch, open an MR/PR against the default branch (confirm with the participant before pushing). Watch the job; when it finishes, show where the results appear (GitLab: MR widget test report + artifacts + optional note; GitHub: job summary + PR comment + artifact).
-
-## 5.6 [HUMAN] Make it block
-
-They make a change that *should* fail the gate — the Phase 4 regression is perfect — on a new branch, push, open a second MR/PR. Confirm the eval job fails and the summary names the failing cases (and the threshold line names any failing `critical` cases). Close that MR/PR without merging.
-
-Then make it a real gate:
+Close that MR/PR without merging. Then make it a real gate:
 
 - GitLab: *Settings → Merge requests → Pipelines must succeed*.
 - GitHub: branch protection / ruleset on the default branch requiring the `workshop-evals` check.
 
-## 5.7 [LLM] Merge the green one
+## 5.8 [LLM] Merge the green one
 
-With the participant's OK, merge the green MR/PR so the default branch has `evals/` and the CI job. Day 2 agents branch from the default branch and must see both.
+With the participant's OK, merge the green MR/PR so the default branch has `evals/`, the recording and the CI job. Day 2 agents branch from the default branch and must see all three.
 
 ## Gate 5
 
 Verify:
 
-- [ ] Default branch contains `evals/` and the CI job
-- [ ] One MR/PR had a passing eval job; one had a failing eval job that named the failing cases
-- [ ] `CLAUDE_CODE_OAUTH_TOKEN` (or the chosen alternative) is configured — the job didn't fail on auth
+- [ ] Default branch contains `evals/`, `suites/<suite>/last-run.json` and the CI job
+- [ ] One MR/PR had a passing gate; one failed as stale and then on the threshold
+- [ ] The participant can explain what `tracks` covers and why
 
 ## Room Gate 5
 

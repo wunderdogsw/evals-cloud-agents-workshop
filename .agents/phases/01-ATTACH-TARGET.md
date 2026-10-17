@@ -10,20 +10,21 @@ You'll pick the repo you want to work in, attach it under `targets/`, and let th
 
 > Narrate: "Quick preflight — Node, pnpm, git, and a model the evals can call."
 
-The evals call Claude through the participant's **own subscription** — no API key. By default that's Claude Code (`claude -p`, using their normal Claude Code login); the Cursor CLI (`agent -p`) is the fallback. Run and report in one compact block:
+Evals, judges and agents run on the participant's **own** Claude Code or Cursor login — whichever they have, no API key, no choice to make. Run and report in one compact block:
 
 ```bash
 node -v && pnpm -v && git --version
-claude --version 2>/dev/null || echo "claude: not installed"
-claude -p "Reply with: ok" --tools "" --no-session-persistence 2>&1 | tail -1
+claude --version 2>/dev/null || echo "claude CLI: not installed"
+agent --version 2>/dev/null || echo "cursor CLI: not installed"
+glab --version 2>/dev/null | head -1 || gh --version 2>/dev/null | head -1 || echo "glab/gh: not installed"
 ```
 
 - Node < 22.12 or missing pnpm → tell them `corepack enable` (or install Node 22+) and stop until fixed.
 - If `node_modules/` is missing at the root, run `pnpm install`.
-- `claude` missing → install Claude Code (`curl -fsSL https://claude.ai/install.sh | bash`), run `claude` once and log in with their work Claude account.
-- `claude -p` prints a login/auth error → they run `claude` in their own terminal and log in, then retry.
-- No Claude Code at all → check `agent --version` (Cursor CLI; install with `curl https://cursor.com/install -fsS | bash`, then `agent login`) and set `EVALS_PROVIDER=cursor` in `.env`.
-- Tell them in one line which provider the evals will use. If their organisation also has API keys, `EVALS_PROVIDER=api` + `ANTHROPIC_API_KEY` in `.env` works too — never ask them to paste a key or token into chat.
+- **At least one** of `claude` (Claude Code CLI) or `agent` (Cursor CLI) must be installed and logged in. Missing both → install the one matching the tool they already use: Claude Code `curl -fsSL https://claude.ai/install.sh | bash` then `claude` to log in; Cursor CLI `curl https://cursor.com/install -fsS | bash` then `agent login`. Having both is a bonus, not a requirement.
+- Smoke-test the one they have: `claude -p "Reply with: ok" --tools ""` or `agent -p "Reply with: ok"`. An auth error → they log in in their own terminal and retry.
+- `glab` / `gh` is only needed on Day 2 (reading issues, opening MRs/PRs) — mention it, don't block.
+- Never ask them to paste a key or token into chat.
 
 ## 1.2 [HUMAN] Choose a target
 

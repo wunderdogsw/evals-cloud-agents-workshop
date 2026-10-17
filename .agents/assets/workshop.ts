@@ -4,11 +4,17 @@
  *   attach <git-url | local-path | sample> [--name n] [--participant p]
  *   profile <name> [--redetect]          (keeps manually corrected commands unless --redetect)
  *   install <name> <component…> [--suite s] [--force]
- *       components: evals | subject-cost-coder | ci-evals | ci-claude | ci-review | cursor-env | agents-section | review-md | agent-tasks
+ *       components: evals | subject-cost-coder | ci-evals | cursor-env | agents-section | review-md | agent-tasks
+                   optional, only where Claude may run in CI: ci-evals-live | ci-claude | ci-review
+ *   delegate <name> (--issue n | --task "…" | --task-file f) [--agent claude|cursor] [--no-push]
+ *       run Claude Code or the Cursor CLI headless on a fresh branch, then push it and open an MR/PR
+ *   review <name> <branch> [--agent claude|cursor] [--post]
+ *       read-only agent review of a branch; --post puts it on the MR/PR via glab/gh
  *   catchup <phase> [--participant p]
  *   status
  */
-import { execSync } from "node:child_process";
+import { execSync, spawnSync } from "node:child_process";
+import { tmpdir } from "node:os";
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -379,9 +385,17 @@ function installOne(name: string, component: string, opts: { suite?: string; for
       break;
     }
     case "ci-evals":
+    case "ci-evals-live":
     case "ci-claude":
     case "ci-review": {
-      const file = { "ci-evals": "workshop-evals.yml", "ci-claude": p.host === "github" ? "workshop-claude.yml" : "workshop-claude-agent.yml", "ci-review": "workshop-claude-review.yml" }[component]!;
+      // ci-evals is the default gate (verifies a committed recording; no model or secrets in CI).
+      // ci-evals-live / ci-claude / ci-review run Claude inside CI — only where the organisation allows a CI credential.
+      const file = {
+        "ci-evals": "workshop-evals.yml",
+        "ci-evals-live": "workshop-evals-live.yml",
+        "ci-claude": p.host === "github" ? "workshop-claude.yml" : "workshop-claude-agent.yml",
+        "ci-review": "workshop-claude-review.yml",
+      }[component]!;
       if (p.host === "github") {
         done.push(`.github/workflows/${file}: ${copyTemplate(join(T, "ci", "github", file), join(dir, ".github", "workflows", file), vars, force)}`);
       } else {
@@ -454,8 +468,15 @@ function catchup(phase: number, participant?: string) {
     const src = join(KIT, "catchup", "cost-coder", "evals", "suites", "cost-coder");
     const dest = join(dir, "evals", "suites", "cost-coder");
     cpSync(src, dest, { recursive: true, force: true });
-    writeFileSync(join(dest, "suite.ts"), readFileSync(join(dest, "suite.ts"), "utf8").replace("__CLASSIFY_IMPORT__", "../../../src/classify.ts"));
+    writeFileSync(join(dest, "suite.ts"), readFileSync(join(dest, "suite.ts"), "utf8").replace("__CLASSIFY_IMPORT__", "../../../src/classify.ts").replace("__TRACKS__", JSON.stringify(["../../../src/classify.ts", "../../../src/codes.ts", "../../../src/llm"])));
     commit("workshop: eval suite (catch-up)");
+  }
+  if (phase > 4) {
+    // Phase 4 reference change: tighter rationale rules (v1 → v2 takes the reference suite from ~0% to ~80%).
+    const cls = join(dir, "src", "classify.ts");
+    const v2 = readFileSync(join(KIT, "catchup", "cost-coder", "prompt-v2.txt"), "utf8").replace(/\n+$/, "");
+    writeFileSync(cls, readFileSync(cls, "utf8").replace("Pick the single best cost code for the line.`;", `Pick the single best cost code for the line.${v2}\`;`));
+    commit("feature: rationale rules (prompt v2, catch-up)");
   }
   if (phase > 6) install(name, ["agent-tasks"], {});
   if (phase > 9) {
@@ -465,7 +486,7 @@ function catchup(phase: number, participant?: string) {
   run(`git checkout -q -B ${p.workBranch}`, dir);
 
   // CI and cloud-agent files depend on the host, which is unknown until the sample is pushed somewhere.
-  const later = [phase > 5 && "ci-evals", phase > 7 && "ci-claude", phase > 8 && "cursor-env", phase > 9 && "ci-review"].filter(Boolean) as string[];
+  const later = [phase > 5 && "ci-evals", phase > 7 && "cursor-env"].filter(Boolean) as string[];
 
   const progress = readJson<any>(PROGRESS, initialProgress());
   const now = new Date().toISOString();
@@ -484,6 +505,170 @@ function catchup(phase: number, participant?: string) {
     log(`    pnpm workshop install ${name} ${later.join(" ")}`);
     log(`    cd targets/${name} && git checkout main && git add -A && git commit -m "workshop: CI + agents (catch-up)" && git push && git checkout ${p.workBranch} && git merge -q main`);
   }
+  if (phase > 5) {
+    log(`! The CI gate needs a recording made with a real model (your Claude Code or Cursor login):`);
+    log(`    pnpm --dir targets/${name}/evals eval suites/cost-coder/suite.ts --record   # then commit evals/suites/cost-coder/last-run.json on main`);
+  }
+}
+
+// ───────────────────────────── delegate / review ─────────────────────────────
+// Tool-agnostic agents that run from the participant's machine with their own login (Claude Code or Cursor CLI)
+// and push results to GitLab/GitHub with their own git credentials. No model credential ever goes into CI.
+
+type AgentCli = "claude" | "cursor";
+
+function onPath(bin: string): boolean {
+  return ok(`command -v ${bin}`);
+}
+
+function pickAgent(requested?: string): AgentCli {
+  if (requested === "claude" || requested === "cursor") return requested;
+  if (requested) die(`--agent must be claude or cursor (got ${requested})`);
+  if (onPath("claude")) return "claude";
+  if (onPath("agent")) return "cursor";
+  return die("Neither Claude Code (`claude`) nor the Cursor CLI (`agent`) is installed. Install one and log in.");
+}
+
+/** Run a CLI with an argument array (no shell), streaming its stderr so the participant sees progress. */
+function runArgs(cmd: string, args: string[], cwd: string, timeoutMs = 60 * 60_000): { code: number | null; stdout: string } {
+  const env = { ...process.env };
+  delete env.CLAUDECODE;
+  const r = spawnSync(cmd, args, { cwd, env, encoding: "utf8", timeout: timeoutMs, maxBuffer: 64 * 1024 * 1024, stdio: ["ignore", "pipe", "inherit"] });
+  return { code: r.status, stdout: r.stdout ?? "" };
+}
+
+function lastJson(s: string): any {
+  for (const line of s.trim().split("\n").reverse()) {
+    try {
+      return JSON.parse(line);
+    } catch {}
+  }
+  return {};
+}
+
+function agentRun(agent: AgentCli, prompt: string, cwd: string, mode: "write" | "read"): { ok: boolean; summary: string; costUsd?: number } {
+  if (agent === "claude") {
+    const args =
+      mode === "write"
+        ? ["-p", prompt, "--output-format", "json", "--permission-mode", "acceptEdits", "--allowedTools", "Read,Edit,Write,Glob,Grep,Bash", "--max-turns", "80"]
+        : ["-p", prompt, "--output-format", "json", "--permission-mode", "dontAsk", "--allowedTools", "Read,Glob,Grep,Bash(git diff *),Bash(git log *),Bash(git show *)", "--max-turns", "30"];
+    const r = runArgs("claude", args, cwd);
+    const out = lastJson(r.stdout);
+    return { ok: r.code === 0 && out.subtype === "success", summary: String(out.result ?? out.subtype ?? "no output"), costUsd: out.total_cost_usd };
+  }
+  // Cursor CLI: --force lets it write; without it, it only proposes changes.
+  const r = runArgs("agent", ["-p", prompt, "--output-format", "json", "--trust", ...(mode === "write" ? ["--force"] : [])], cwd);
+  const out = lastJson(r.stdout);
+  return { ok: r.code === 0, summary: String(out.result ?? "no output") };
+}
+
+const oneLine = (s: string, n: number) => s.replace(/\s+/g, " ").trim().slice(0, n);
+
+function fetchIssue(p: Profile, dir: string, n: string): { title: string; body: string } {
+  if (p.host === "gitlab" && onPath("glab")) {
+    const j = JSON.parse(run(`glab issue view ${Number(n)} --output json`, dir));
+    return { title: j.title, body: j.description ?? "" };
+  }
+  if (p.host === "github" && onPath("gh")) {
+    const j = JSON.parse(run(`gh issue view ${Number(n)} --json title,body`, dir));
+    return { title: j.title, body: j.body ?? "" };
+  }
+  return die(`Can't read issue #${n}: need ${p.host === "github" ? "gh" : "glab"} installed and logged in. Or pass the text with --task / --task-file.`);
+}
+
+function delegate(name: string, o: { task?: string; taskFile?: string; issue?: string; agent?: string; push?: boolean }) {
+  const dir = targetDir(name);
+  const p = profileOf(name);
+  const agent = pickAgent(o.agent);
+  let title: string;
+  let body: string;
+  if (o.issue) ({ title, body } = fetchIssue(p, dir, o.issue));
+  else if (o.taskFile) {
+    body = readFileSync(o.taskFile, "utf8");
+    title = oneLine(body.split("\n")[0]!.replace(/^#+\s*/, ""), 70);
+  } else if (o.task) {
+    body = o.task;
+    title = oneLine(o.task, 70);
+  } else return die("delegate needs --issue <n>, --task \"…\" or --task-file <file>");
+
+  const hasRemote = Boolean(p.remote);
+  if (hasRemote) tryRun(`git fetch -q origin ${p.defaultBranch}`, dir);
+  const base = hasRemote ? `origin/${p.defaultBranch}` : p.defaultBranch;
+  const branch = `agent/${agent}-${o.issue ? `issue-${o.issue}-` : ""}${slug(title).slice(0, 30)}-${Date.now().toString(36).slice(-4)}`;
+  const wt = join(tmpdir(), "workshop-delegate", branch.replace(/\//g, "_"));
+  run(`git worktree add -q -b ${branch} ${JSON.stringify(wt)} ${base}`, dir);
+  log(`✓ ${agent} works in ${wt} on ${branch} (from ${base})`);
+  if (p.commands.install) log(ok(p.commands.install, wt) ? `✓ ${p.commands.install}` : `! ${p.commands.install} failed — the agent will have to cope`);
+  if (existsSync(join(wt, "evals", "package.json"))) ok("pnpm install --silent", join(wt, "evals"));
+
+  const prompt = `${o.issue ? `Issue #${o.issue}: ` : ""}${title}
+
+${body}
+
+You are working unattended on branch ${branch}; nobody can answer questions, so make reasonable assumptions and list them at the end.
+- Follow AGENTS.md / CLAUDE.md.
+- Run the tests.
+- Before you finish, run the eval gate exactly as CI will: \`pnpm --dir evals verify suites/<suite>/suite.ts\` for each suite in evals/suites/. If it says "stale", re-run that suite with \`--record\` (see evals/README.md), and commit the updated last-run.json. If the recorded run misses the threshold, fix the cause — never edit cases, thresholds or last-run.json by hand.
+- Commit your work with clear messages. Do not push.
+- Finish with a short summary: what you changed, what you assumed, what you did not do.`;
+  log(`… running ${agent} (this can take several minutes)`);
+  const t0 = Date.now();
+  const res = agentRun(agent, prompt, wt, "write");
+  log(`${res.ok ? "✓" : "!"} ${agent} finished in ${Math.round((Date.now() - t0) / 1000)}s${res.costUsd ? ` (≈$${res.costUsd.toFixed(2)} API-equivalent)` : ""}`);
+
+  run(`git add -A`, wt);
+  tryRun(`git -c user.name=${JSON.stringify(`${agent} agent (via ${tryRun("git config user.name") || "workshop"})`)} commit -qm ${JSON.stringify(`${agent}: ${title}`)} --no-verify`, wt);
+  const commits = Number(tryRun(`git rev-list --count ${base}..HEAD`, wt) || 0);
+  writeFileSync(join(wt, "..", `${branch.replace(/\//g, "_")}.summary.md`), res.summary);
+  if (!commits) return die(`${agent} made no changes. Its summary:\n${res.summary}`);
+  log(`\n${res.summary}\n`);
+
+  if (o.push === false || !hasRemote) {
+    log(`✓ ${commits} commit(s) on ${branch}${hasRemote ? "" : " — no remote, so nothing pushed"}. Workspace: ${wt}`);
+    return;
+  }
+  const mrTitle = `${agent === "claude" ? "Claude" : "Cursor"}: ${title}`;
+  if (p.host === "gitlab") {
+    run(
+      `git push -q -u origin ${branch} -o merge_request.create -o merge_request.target=${p.defaultBranch} ` +
+        `-o merge_request.title=${JSON.stringify(oneLine(mrTitle, 120))} -o merge_request.label=agent:${agent} ` +
+        `-o merge_request.description=${JSON.stringify(oneLine(`Delegated to ${agent} from the workshop.${o.issue ? ` Closes #${o.issue}.` : ""} Agent summary is in the first comment / commit message.`, 300))}`,
+      wt,
+    );
+    log(`✓ pushed ${branch} and opened an MR (GitLab prints its link above). Paste the summary above as the first MR comment.`);
+  } else {
+    run(`git push -q -u origin ${branch}`, wt);
+    if (onPath("gh")) {
+      const bodyFile = join(wt, "..", `${branch.replace(/\//g, "_")}.summary.md`);
+      log(run(`gh pr create --base ${p.defaultBranch} --head ${branch} --title ${JSON.stringify(mrTitle)} --body-file ${JSON.stringify(bodyFile)}`, wt));
+    } else log(`✓ pushed ${branch}. Open the PR: ${p.hostUrl}/${p.projectPath}/compare/${p.defaultBranch}...${branch}`);
+  }
+  log(`Workspace kept at ${wt} (git worktree of targets/${name}).`);
+}
+
+function review(name: string, branch: string, o: { agent?: string; post?: boolean }) {
+  const dir = targetDir(name);
+  const p = profileOf(name);
+  const agent = pickAgent(o.agent);
+  if (p.remote) tryRun(`git fetch -q origin ${p.defaultBranch} ${branch}`, dir);
+  const head = p.remote ? `origin/${branch}` : branch;
+  const base = p.remote ? `origin/${p.defaultBranch}` : p.defaultBranch;
+  const wt = join(tmpdir(), "workshop-review", slug(branch));
+  if (existsSync(wt)) tryRun(`git worktree remove --force ${JSON.stringify(wt)}`, dir);
+  run(`git worktree add -q --detach ${JSON.stringify(wt)} ${head}`, dir);
+  const prompt = `Review the changes on this branch: run \`git diff ${base}...HEAD\`. Follow REVIEW.md if it exists, otherwise AGENTS.md / CLAUDE.md. Do not modify any files.
+Report only real problems (bugs, missing tests, broken conventions, risky changes, edits to evals/suites/*/cases.jsonl or thresholds), most severe first, each with file:line and a one-line fix. If there are none, say so in one sentence. Markdown, under 300 words.`;
+  log(`… ${agent} is reviewing ${branch}`);
+  const res = agentRun(agent, prompt, wt, "read");
+  const md = `### 🤖 ${agent === "claude" ? "Claude" : "Cursor"} review\n\n${res.summary}\n`;
+  const out = join(tmpdir(), "workshop-review", `${slug(branch)}.md`);
+  writeFileSync(out, md);
+  log(`\n${md}\n→ ${out}`);
+  tryRun(`git worktree remove --force ${JSON.stringify(wt)}`, dir);
+  if (!o.post) return log("Add --post to put this on the MR/PR (uses your glab/gh login).");
+  if (p.host === "gitlab" && onPath("glab")) log(run(`glab mr note ${branch} --message ${JSON.stringify(md)}`, dir) || "✓ posted");
+  else if (p.host === "github" && onPath("gh")) log(run(`gh pr comment ${branch} --body-file ${JSON.stringify(out)}`, dir) || "✓ posted");
+  else log(`! no ${p.host === "github" ? "gh" : "glab"} CLI — paste ${out} into the MR/PR by hand.`);
 }
 
 // ───────────────────────────── main ─────────────────────────────
@@ -492,7 +677,19 @@ const [cmd, ...rest] = process.argv.slice(2);
 const { values, positionals } = parseArgs({
   args: rest,
   allowPositionals: true,
-  options: { name: { type: "string" }, participant: { type: "string" }, suite: { type: "string" }, force: { type: "boolean" }, redetect: { type: "boolean" } },
+  options: {
+    name: { type: "string" },
+    participant: { type: "string" },
+    suite: { type: "string" },
+    force: { type: "boolean" },
+    redetect: { type: "boolean" },
+    task: { type: "string" },
+    "task-file": { type: "string" },
+    issue: { type: "string" },
+    agent: { type: "string" },
+    "no-push": { type: "boolean" },
+    post: { type: "boolean" },
+  },
 });
 
 try {
@@ -507,6 +704,19 @@ try {
     case "install":
       if (positionals.length < 2) die("install <name> <component…>");
       install(positionals[0]!, positionals.slice(1), { suite: values.suite, force: values.force });
+      break;
+    case "delegate":
+      delegate(positionals[0] ?? readJson<any>(PROGRESS, {}).activeTarget ?? die("delegate <name> --issue n | --task …"), {
+        task: values.task,
+        taskFile: values["task-file"],
+        issue: values.issue,
+        agent: values.agent,
+        push: !values["no-push"],
+      });
+      break;
+    case "review":
+      if (positionals.length < 2) die("review <name> <branch> [--agent claude|cursor] [--post]");
+      review(positionals[0]!, positionals[1]!, { agent: values.agent, post: values.post });
       break;
     case "catchup":
       catchup(Number(positionals[0]), values.participant);

@@ -43,30 +43,32 @@ pnpm agent-evals validate targets/<name> --tasks <tasks-file> --setup "<install 
 
 Every task must **fail at base** (otherwise it measures nothing) and **pass with the reference** (otherwise the hidden tests depend on something the task doesn't describe, or the env is broken). Drop or fix ❌ tasks. Report: N tasks kept.
 
-## 6.5 [LLM] Run Claude
+## 6.5 [LLM] Run the agent
 
 Confirm usage first: this runs on their Claude subscription and is the heaviest part of the day (each task is a full agent session; `--max-budget-usd` caps the API-equivalent estimate per task). This takes 10–30 minutes — hand the participant the command to run in their own terminal (or run it in the background):
 
+Use whichever agent CLI they have — `claude` (Claude Code) or `cursor` (Cursor CLI, `agent`). Same harness, same tasks, same grading:
+
 ```bash
-pnpm agent-evals run targets/<name> --tasks <tasks-file> --agent claude --setup "<install>" \
-  --max-budget-usd 2 --concurrency 2 --label claude-baseline
+pnpm agent-evals run targets/<name> --tasks <tasks-file> --agent <claude|cursor> --setup "<install>" \
+  --max-budget-usd 2 --concurrency 2 --label <agent>-baseline
 ```
 
 While it runs, explain what's happening: history-free snapshot (no `git log` cheating), the agent reads the target's CLAUDE.md/AGENTS.md, works, then hidden tests are copied in and run.
 
 ## 6.6 [HUMAN] Read what the agent did
 
-Results: pass rate, cost, per-task (`.eval-runs/` in the control room). The run prints where workspaces are kept (system temp dir, `workshop-agent-runs/claude-baseline/<task>-claude/`). They open **one pass and one fail** and run `git diff eval-base` there. For the failure: wrong understanding of the task, missing repo knowledge, flailing, or a task that's unfair? Write one line per task in `.workshop/targets/<name>/agent-notes.md`.
+Results: pass rate, cost, per-task (`.eval-runs/` in the control room). The run prints where workspaces are kept (system temp dir, `workshop-agent-runs/<agent>-baseline/<task>-<agent>/`). They open **one pass and one fail** and run `git diff eval-base` there. For the failure: wrong understanding of the task, missing repo knowledge, flailing, or a task that's unfair? Write one line per task in `.workshop/targets/<name>/agent-notes.md`.
 
 ## 6.7 [LLM] Optional: second opinion and second agent
 
 - Add an LLM judge over the diff: write a short `.workshop/targets/<name>/diff-rubric.md` (scope creep, tests added, follows conventions) and re-run with `--judge .workshop/targets/<name>/diff-rubric.md --label claude-judged`.
-- If the Cursor CLI is installed and `CURSOR_API_KEY` is set: `--agent cursor --label cursor-baseline`, then `pnpm evals compare <claude run> <cursor run>`.
+- If they have both CLIs: run the other agent with the same tasks (`--label <other>-baseline`), then `pnpm evals compare claude-baseline cursor-baseline`. Same tasks, same hidden tests — a fair head-to-head on their own code.
 
 ## Gate 6
 
 - [ ] ≥ 5 validated tasks in the tasks file
-- [ ] One completed `claude` run with pass rate and cost reported
+- [ ] One completed agent run (`claude` or `cursor`) with pass rate reported
 - [ ] `agent-notes.md` has a line per task
 
 ## Room Gate 6

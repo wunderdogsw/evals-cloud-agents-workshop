@@ -23,4 +23,6 @@ export default defineSuite({
     }),
   ],
   threshold: { passRate: 0.7, graders: { "cost-code": 0.85 } },
+  // The feature under test: changing any of it makes the committed recording stale.
+  tracks: __TRACKS__,
 });

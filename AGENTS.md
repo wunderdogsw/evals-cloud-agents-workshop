@@ -12,6 +12,12 @@ Tone: direct and encouraging. Short sentences. Explain the *why* behind each ste
 
 The workshop has one through-line, repeat it when it helps: **you can only delegate to agents what you can measure.** Day 1 builds the measurement. Day 2 delegates against it.
 
+## Any tool, any time
+
+Participants use whatever coding tool they like — Claude Code, Cursor, or both — and may switch mid-workshop. You may be running in either. Never ask them to pick a tool or a "track". Every helper auto-detects what's installed and logged in on the machine (`claude` first, then Cursor's `agent`; override with `EVALS_PROVIDER` / `--agent`). When a step depends on a tool-specific feature (Cursor cloud agents, Bugbot, Claude Code cloud sessions), offer what's available and the equivalent fallback.
+
+No model credential ever goes into CI: models run on participants' own logins, on their machines or in cloud-agent VMs. CI only verifies committed eval recordings.
+
 ## Control room and target
 
 - This repo is the **control room**. The participant's code lives in a **target** repo attached under `targets/<name>/`.
@@ -65,8 +71,8 @@ Initial `.workshop/progress.json`:
 | 4 | 1 | Iterate without regressing | `.agents/phases/04-ITERATE.md` |
 | 5 | 1 | Evals in CI | `.agents/phases/05-EVALS-IN-CI.md` |
 | 6 | 1 | Evaluate the coding agent | `.agents/phases/06-AGENT-EVALS.md` |
-| 7 | 2 | Claude as a cloud agent | `.agents/phases/07-CLAUDE-CLOUD-AGENT.md` |
-| 8 | 2 | Cursor cloud agents | `.agents/phases/08-CURSOR-CLOUD-AGENTS.md` |
+| 7 | 2 | Delegate: issue in, MR out | `.agents/phases/07-DELEGATE.md` |
+| 8 | 2 | Cloud agents | `.agents/phases/08-CLOUD-AGENTS.md` |
 | 9 | 2 | Guardrails | `.agents/phases/09-GUARDRAILS.md` |
 | 10 | 2 | Capstone | `.agents/phases/10-CAPSTONE.md` |
 
@@ -111,7 +117,7 @@ Phase N — <Title>        (target: <name>)
 | Load phase documents on demand | Do not read the next phase document until the current one is complete. |
 | Progress is authoritative | If `progress.json` shows a phase as complete, do not re-run it. |
 | One phase at a time | Never reference content from a future phase document. |
-| Secrets | Model calls use the participant's subscription (Claude Code login locally, `CLAUDE_CODE_OAUTH_TOKEN` in CI) — no API keys. Never write tokens or keys into files that could be committed, never ask for them in chat, never echo them back. |
+| Secrets | Model calls use the participant's own Claude Code / Cursor login — no API keys, and nothing model-related in CI. Never write tokens or keys into files that could be committed, never ask for them in chat, never echo them back. |
 | Target safety | Work on the workshop branch only. No force-push, no pushing to default branches, no deleting branches you didn't create. |
 | Costs are visible | Whenever you run evals or agents against a real model, report the cost/token figures the tools print. |
 | Model IDs | Default models live in `kit/evals/src/models.ts`. Use those (or `facilitator.json` overrides); do not invent model IDs. |
@@ -128,7 +134,10 @@ If a participant falls behind or their target breaks, offer `pnpm workshop catch
 |---|---|
 | `pnpm workshop attach <url\|path\|sample>` | Attach a target under `targets/` on `workshop/<participant>`, then profile it |
 | `pnpm workshop profile <name>` | Re-detect stack, host, commands, CI, LLM call sites |
-| `pnpm workshop install <name> <component>` | Install kit pieces into the target: `evals`, `subject-cost-coder`, `ci-evals`, `ci-claude`, `ci-review`, `cursor-env`, `agents-section`, `review-md`, `agent-tasks` |
+| `pnpm workshop install <name> <component>` | Install kit pieces into the target: `evals`, `subject-cost-coder`, `ci-evals`, `cursor-env`, `agents-section`, `review-md`, `agent-tasks` (optional, only where Claude may run in CI: `ci-evals-live`, `ci-claude`, `ci-review`) |
 | `pnpm workshop catchup <phase>` | Fresh sample target, pre-applied up to `<phase>` |
 | `pnpm evals …` / `cd targets/<name>/evals && pnpm eval …` | Eval runner (run, compare, label, calibrate) |
-| `pnpm agent-evals mine\|validate\|run …` | Coding-agent benchmark from the target's history |
+| `pnpm agent-evals mine\|validate\|run …` | Coding-agent benchmark from the target's history (`--agent claude\|cursor`) |
+| `pnpm workshop delegate <name> --issue n` | Hand an issue to Claude Code or Cursor CLI headless on a new branch; pushes and opens the MR/PR |
+| `pnpm workshop review <name> <branch>` | Read-only agent review of a branch (`--post` to comment on the MR/PR) |
+| `pnpm --dir targets/<name>/evals eval … --record` / `verify …` | Record a full eval run for the CI gate / check it exactly as CI does |

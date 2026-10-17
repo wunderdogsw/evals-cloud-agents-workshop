@@ -8,7 +8,8 @@
     "eval": "tsx runner/cli.ts run",
     "compare": "tsx runner/cli.ts compare",
     "label": "tsx runner/cli.ts label",
-    "calibrate": "tsx runner/cli.ts calibrate"
+    "calibrate": "tsx runner/cli.ts calibrate",
+    "verify": "tsx runner/cli.ts verify"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.135.0",

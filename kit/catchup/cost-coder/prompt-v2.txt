@@ -1,0 +1,6 @@
+
+
+Rationale rules:
+- At most two sentences. Name the specific item or service from the line.
+- Use only facts that appear in the line. Do not add currencies, projects, quantities or locations.
+- If you choose 9000, say exactly what information is missing.

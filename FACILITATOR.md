@@ -5,9 +5,10 @@
 - [ ] **Data approval.** Participants' code will be sent to Anthropic (Claude) and Cursor. Get written OK from the customer for the repos in scope, or plan for the sample target.
 - [ ] **Pick target repos** with the customer. Good targets: builds in < 5 min, has a test suite, has ≥ 20 merged MRs/PRs that touched tests, ideally already calls an LLM somewhere.
 - [ ] **Mirror targets** into a workshop group/org (`<group>/workshop-<repo>`). Agents, CI minutes and messy MRs never touch production projects.
-- [ ] **GitLab tier.** Cursor cloud agents need GitLab Premium/Ultimate (project access tokens). Confirm.
+- [ ] **GitLab tier.** Cursor cloud agents on GitLab need Premium/Ultimate (project access tokens). Without them, Phase 8 falls back to parallel `delegate` runs — still fine.
 - [ ] **Cursor**: connect the GitLab/GitHub integration in the Cursor dashboard (needs Cursor admin + GitLab maintainer), sync repos, set a spend limit, add secrets the target needs at test time.
-- [ ] **Claude — no API keys.** Everything runs on participants' Claude subscriptions: locally through their Claude Code login (`claude -p`), in CI through `CLAUDE_CODE_OAUTH_TOKEN` from `claude setup-token`. Confirm with the customer's Claude admin that `claude setup-token` is allowed for their seats and that runners can reach Anthropic. Expect subscription rate limits with 40-case suites × a room — keep `--concurrency` low (2–4). Fallback provider: Cursor CLI (`EVALS_PROVIDER=cursor`, `CURSOR_API_KEY` in CI).
+- [ ] **Models — no API keys, nothing in CI.** Participants use Claude Code and/or Cursor with their own logins, and may switch tools at any time. Helpers auto-detect `claude` then Cursor's `agent`. CI only verifies committed eval recordings. Expect subscription rate limits with a room running 40-case suites — keep `--concurrency` at 2–4.
+- [ ] **CLIs on laptops:** `claude` (Claude Code) and/or `agent` (Cursor CLI), plus `glab` (GitLab) or `gh` (GitHub) logged in — `delegate` uses them to read issues and open MRs/PRs.
 - [ ] **CI runners** that can build each target and reach `api.anthropic.com`.
 
 ## One week before — dry run (mandatory)
@@ -15,10 +16,10 @@
 Run the whole workshop yourself on every target:
 
 1. Phase 1 → commit the resulting profile as `kit/profiles/<target>.json` so participants start pre-profiled.
-2. Phase 5 → confirm the eval job runs on the target's runners.
+2. Phase 5 → record the suite and confirm the verify job runs on the target's runners. Commit a known-good `last-run.json` to the mirror's default branch.
 3. Phase 6 → `pnpm agent-evals mine` and hand-pick 8–10 good replay tasks per target; commit them as `kit/profiles/<target>.tasks.jsonl`.
-4. Phase 7 → Claude job/action opens an MR/PR.
-5. Phase 8 → a Cursor cloud agent clones, builds and pushes. **Build environments are where most prep time goes** — commit a working `.cursor/environment.json` to the mirror.
+4. Phase 7 → `pnpm workshop delegate <target> --issue <n>` opens an MR/PR, and its eval gate is green.
+5. Phase 8 → a Cursor cloud agent clones, builds and pushes (and/or a Claude Code cloud session, for GitHub targets). **Build environments are where most prep time goes** — commit a working `.cursor/environment.json` to the mirror.
 
 ## `.workshop/facilitator.json` (optional, per machine)
 

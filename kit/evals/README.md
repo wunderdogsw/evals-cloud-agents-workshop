@@ -20,11 +20,15 @@ export default defineSuite({
 | `evals compare <a> <b> [--fail-on-regression]` | Regressions (pass → fail), fixes, grader deltas, cost |
 | `evals label <run> --out labels.jsonl` | Blind PASS/FAIL labelling in the terminal |
 | `evals calibrate <run> --labels labels.jsonl --grader judge` | Judge vs human: agreement, Cohen's κ, confusion matrix, disagreements |
+| `evals run <suite.ts> --record` | Full run → `last-run.json` next to the suite: results + SHA-256 of the suite folder and `tracks` files |
+| `evals verify <suite.ts> [--junit f]` | The CI gate, no model: recording fresh, real, full, over threshold |
 
 Run refs: a `results.json`, a run directory, `latest`, `latest~1`, …
 
 Graders: `exactMatch`, `oneOf`, `includes`, `excludes`, `matches`, `numericClose`, `hasShape`, `custom`, `llmJudge`.
 Task adapters: direct function, `shellTask`, `httpTask`.
+
+Model calls: `EVALS_PROVIDER=claude-code` (Claude Code login, `claude -p --json-schema`), `cursor` (Cursor CLI login, `agent -p`), or `api` (`ANTHROPIC_API_KEY`); default = auto-detect.
 
 `EVALS_MOCK=1` replaces judge calls with offline fakes (and the sample app's classifier with a keyword heuristic).
 Models: `src/models.ts` (`EVAL_TASK_MODEL`, `EVAL_JUDGE_MODEL`, `EVAL_AGENT_MODEL` override).
