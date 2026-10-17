@@ -1,12 +1,12 @@
-# Phase 8 — Cloud agents
+# Phase 17 — Cloud agents
 
 ## Overview
 
-Same delegation as Phase 7, but the agent runs on someone else's machine: it clones your repo into a remote VM, works there, and pushes a branch while your laptop is closed. You'll set up the VM's build environment, delegate a task, and compare with Phase 7 on the same evidence: eval gate, hidden tests, review effort.
+Same delegation as Phase 16, but the agent runs on someone else's machine: it clones your repo into a remote VM, works there, and pushes a branch while your laptop is closed. You'll set up the VM's build environment, delegate a task, and compare with Phase 16 on the same evidence: eval gate, hidden tests, review effort.
 
 ---
 
-## 8.1 [LLM] Which cloud agent is available
+## 17.1 [LLM] Which cloud agent is available
 
 Check and report in two lines, don't fix silently. Use whichever applies — participants may have one, both or neither:
 
@@ -15,7 +15,7 @@ Check and report in two lines, don't fix silently. Use whichever applies — par
 
 If neither is available for this target (e.g. GitLab and no Cursor): skip to 8.4 and run **two `pnpm workshop delegate` jobs in parallel** in two terminals instead — the lesson (delegate, walk away, review evidence) is the same; only the machine differs. Note it in `agent-notes.md`.
 
-## 8.2 [LLM] Build environment (Cursor)
+## 17.2 [LLM] Build environment (Cursor)
 
 Cursor builds its environment from `.cursor/environment.json` on the **default branch**, but an agent started on a feature branch checks that branch out on top, and without a repo file Cursor uses a personal or team saved environment ([setup docs](https://cursor.com/docs/cloud-agent/setup)). We never merge to the default branch of a real repo, so:
 
@@ -31,7 +31,7 @@ pnpm workshop install <name> cursor-env
 
 For Claude Code cloud sessions the equivalent is the environment's setup script (claude.ai/code → environment settings) — mention it if they use that path.
 
-## 8.3 [LLM] Evals inside the VM
+## 17.3 [LLM] Evals inside the VM
 
 The agent should run `pnpm verify` and re-record if it changes the LLM feature (AGENTS.md says so). A cloud VM has no participant login, so:
 
@@ -39,22 +39,22 @@ The agent should run `pnpm verify` and re-record if it changes the LLM feature (
 - **Claude Code cloud session:** runs on the participant's Claude subscription, so `claude -p` works inside it — `EVALS_PROVIDER=claude-code`.
 - **Neither:** fine. If the agent touches the feature, the gate goes red as *stale*, and the human re-records on the branch before merging. That's a legitimate workflow — say so.
 
-## 8.4 [HUMAN] Delegate
+## 17.4 [HUMAN] Delegate
 
-They start the agent with a task from the backlog — ideally the same one as Phase 7, or its sibling:
+They start the agent with a task from the backlog — ideally the same one as Phase 16, or its sibling:
 
 - **Cursor:** Agent input → **Cloud**, pick the repo and the workshop branch `dev-days-workshop/<participant>` (or cursor.com/agents). Ask it to open an MR/PR **into the workshop branch** when done.
 - **Claude Code (GitHub):** start a session at claude.ai/code on the repo, or `claude --cloud "<task>"` from `targets/<name>` while on the workshop branch; create the PR **into the workshop branch** when done.
 
 Cloud agents push from their own machines, where the workshop push guard does not run. Before launching, check the base branch is the workshop branch; afterwards, check the MR/PR target and retarget it if needed.
 
-While it runs: what's different from Phase 7 — someone else's VM, an environment defined in the repo, follow-ups mid-run from a browser or phone.
+While it runs: what's different from Phase 16 — someone else's VM, an environment defined in the repo, follow-ups mid-run from a browser or phone.
 
-## 8.5 [HUMAN] Review and compare
+## 17.5 [HUMAN] Review and compare
 
-Same review as Phase 7. Then a comparison table in `.workshop/targets/<name>/agent-notes.md`:
+Same review as Phase 16. Then a comparison table in `.workshop/targets/<name>/agent-notes.md`:
 
-| | Phase 7 (laptop, `<tool>`) | Phase 8 (`<where>`, `<tool>`) |
+| | Phase 16 (laptop, `<tool>`) | Phase 17 (`<where>`, `<tool>`) |
 |---|---|---|
 | Eval gate | | |
 | Hidden tests (sample) | | |
@@ -63,9 +63,9 @@ Same review as Phase 7. Then a comparison table in `.workshop/targets/<name>/age
 | Wall time | | |
 | Would merge? | | |
 
-Keep it honest: one task is an anecdote. Phase 9 is where you measure.
+Keep it honest: one task is an anecdote. Phase 18 is where you measure.
 
-## Gate 8
+## Gate 17
 
 - [ ] A second agent-authored MR/PR exists (cloud agent, or a parallel `delegate` if no cloud agent was available) and its eval gate ran
 - [ ] The comparison table is filled in
@@ -74,4 +74,4 @@ Keep it honest: one task is an anecdote. Phase 9 is where you measure.
 
 ## Phase Complete
 
-Mark Phase 8 complete. Preview: "Phase 9 — the instructions you give agents are code. You'll change them and measure whether it helped."
+Mark Phase 17 complete. Preview: "Phase 18 — the instructions you give agents are code. You'll change them and measure whether it helped."

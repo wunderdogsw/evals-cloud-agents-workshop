@@ -31,18 +31,29 @@ evals-cloud-agents-workshop/       ← open THIS in Cursor / Claude Code
 
 ## What you do
 
-| Day | Phase | What you do |
+| Section | Phase | What you do |
 |---|---|---|
-| 1 | 1 — Attach your target | Pick a repo, attach it, profile it, prove its tests run |
-| 1 | 2 — Your first eval | Golden dataset + deterministic graders, baseline score |
-| 1 | 3 — LLM-as-judge | Write a rubric, calibrate the judge against your own labels |
-| 1 | 4 — Iterate without regressing | Change prompt/model, compare runs, catch a regression |
-| 1 | 5 — Evals in CI | Record evals locally, verify in GitLab CI / GitHub Actions — no model or secrets in CI |
-| 1 | 6 — Evaluate the coding agent | Replay merged changes from your history as agent tasks |
-| 2 | 7 — Delegate | An issue goes to Claude Code or Cursor headless; an MR/PR comes back |
-| 2 | 8 — Cloud agents | Same delegation in a cloud VM (Cursor cloud agents; Claude Code cloud for GitHub) |
-| 2 | 9 — Guardrails | AGENTS.md for agents, eval gate, review agent |
-| 2 | 10 — Capstone | Parallel agents on a backlog, triaged by eval results |
+| Evals | 1 — Attach your target | Attach a repo on a `dev-days-workshop` branch and prove its tests run |
+| Evals | 2 — Discover your agent setup | Inventory what the agent actually loads: instructions, rules, skills, hooks, MCP |
+| Evals | 3 — Check the setup with Claude Code | `claude doctor`, `/doctor` and `/doctor prompt-audit`; rank the findings |
+| Evals | 4 — Fix the instruction files | Make the instructions load, agree and stay short; re-audit |
+| Evals | 5 — Add skills, hooks and permissions | A run skill, a hook that blocks, a reviewed allow list |
+| Evals | 6 — Turn your rules into expectations | Mark each rule checkable by code or by a judge; pick five |
+| Evals | 7 — Build agent tasks from your history | Replay merged changes as agent tasks with hidden tests |
+| Evals | 8 — Baseline the agent | Run the tasks with and without your setup |
+| Evals | 9 — Grade rules with code | Deterministic graders for the code rules |
+| Evals | 10 — Write the judge rubric | A rubric and blind labels for the judgement rules |
+| Evals | 11 — Calibrate the judge | Agreement with your labels, and the judge's lean |
+| Evals | 12 — Change one agent file, measure it | One change, a compared run, a keep-or-revert decision |
+| Evals | 13 — Catch a regression | Read scores per rule and explain a regression |
+| Evals | 14 — Record evals for CI | A fingerprinted recording, verified in CI without a model |
+| Evals | 15 — Make the gate block | One MR/PR passes the gate, one is blocked |
+| Cloud agents | 16 — Delegate | An issue goes to Claude Code or Cursor headless; an MR/PR comes back |
+| Cloud agents | 17 — Cloud agents | Same delegation in a cloud VM |
+| Cloud agents | 18 — Guardrails | Review agent and measured agent instructions |
+| Cloud agents | 19 — Capstone | Parallel agents on a backlog, triaged by eval results |
+
+Phases 8–15 are being built; the guide stops there and hands over to a facilitator until they're ready.
 
 ## Prerequisites
 
@@ -68,7 +79,7 @@ Under the hood the guide uses a few helpers you can also run yourself:
 pnpm workshop attach sample            # or a git URL, or a path to a local checkout
 pnpm workshop install <target> evals   # kit components: evals, ci-evals, cursor-env, agents-section, …
 pnpm workshop delegate <target> --issue 3   # Claude Code or Cursor CLI works the issue, opens an MR/PR
-pnpm workshop catchup 5                # fresh sample target, ready to start Phase 5
+pnpm workshop catchup 6                # fresh sample target, ready to start Phase 6
 pnpm evals --help                      # eval runner
 pnpm agent-evals --help                # coding-agent benchmark
 ```

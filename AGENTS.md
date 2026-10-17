@@ -62,7 +62,16 @@ Initial `.workshop/progress.json`:
     "7":  { "status": "not_started", "startedAt": null, "completedAt": null },
     "8":  { "status": "not_started", "startedAt": null, "completedAt": null },
     "9":  { "status": "not_started", "startedAt": null, "completedAt": null },
-    "10": { "status": "not_started", "startedAt": null, "completedAt": null }
+    "10": { "status": "not_started", "startedAt": null, "completedAt": null },
+    "11": { "status": "not_started", "startedAt": null, "completedAt": null },
+    "12": { "status": "not_started", "startedAt": null, "completedAt": null },
+    "13": { "status": "not_started", "startedAt": null, "completedAt": null },
+    "14": { "status": "not_started", "startedAt": null, "completedAt": null },
+    "15": { "status": "not_started", "startedAt": null, "completedAt": null },
+    "16": { "status": "not_started", "startedAt": null, "completedAt": null },
+    "17": { "status": "not_started", "startedAt": null, "completedAt": null },
+    "18": { "status": "not_started", "startedAt": null, "completedAt": null },
+    "19": { "status": "not_started", "startedAt": null, "completedAt": null }
   }
 }
 ```
@@ -71,18 +80,29 @@ Initial `.workshop/progress.json`:
 
 ## Phase map
 
-| Phase | Day | Title | Document |
+| Phase | Section | Title | Document |
 |---|---|---|---|
-| 1 | 1 | Attach your target | `.agents/phases/01-ATTACH-TARGET.md` |
-| 2 | 1 | Your first eval | `.agents/phases/02-FIRST-EVAL.md` |
-| 3 | 1 | LLM-as-judge | `.agents/phases/03-LLM-JUDGE.md` |
-| 4 | 1 | Iterate without regressing | `.agents/phases/04-ITERATE.md` |
-| 5 | 1 | Evals in CI | `.agents/phases/05-EVALS-IN-CI.md` |
-| 6 | 1 | Evaluate the coding agent | `.agents/phases/06-AGENT-EVALS.md` |
-| 7 | 2 | Delegate: issue in, MR out | `.agents/phases/07-DELEGATE.md` |
-| 8 | 2 | Cloud agents | `.agents/phases/08-CLOUD-AGENTS.md` |
-| 9 | 2 | Guardrails | `.agents/phases/09-GUARDRAILS.md` |
-| 10 | 2 | Capstone | `.agents/phases/10-CAPSTONE.md` |
+| 1 | Evals | Attach your target | `.agents/phases/01-ATTACH-TARGET.md` |
+| 2 | Evals | Discover your agent setup | `.agents/phases/02-DISCOVER-AGENT-SETUP.md` |
+| 3 | Evals | Check the setup with Claude Code | `.agents/phases/03-CHECK-SETUP.md` |
+| 4 | Evals | Fix the instruction files | `.agents/phases/04-FIX-INSTRUCTIONS.md` |
+| 5 | Evals | Add skills, hooks and permissions | `.agents/phases/05-SKILLS-HOOKS-PERMISSIONS.md` |
+| 6 | Evals | Turn your rules into expectations | `.agents/phases/06-RULES-TO-EXPECTATIONS.md` |
+| 7 | Evals | Build agent tasks from your history | `.agents/phases/07-AGENT-TASKS.md` |
+| 8 | Evals | Baseline the agent | `.agents/phases/08-BASELINE-AGENT.md` |
+| 9 | Evals | Grade rules with code | `.agents/phases/09-CODE-GRADERS.md` |
+| 10 | Evals | Write the judge rubric | `.agents/phases/10-JUDGE-RUBRIC.md` |
+| 11 | Evals | Calibrate the judge | `.agents/phases/11-CALIBRATE-JUDGE.md` |
+| 12 | Evals | Change one agent file, measure it | `.agents/phases/12-CHANGE-AND-MEASURE.md` |
+| 13 | Evals | Catch a regression | `.agents/phases/13-CATCH-REGRESSION.md` |
+| 14 | Evals | Record evals for CI | `.agents/phases/14-RECORD-FOR-CI.md` |
+| 15 | Evals | Make the gate block | `.agents/phases/15-MERGE-GATE.md` |
+| 16 | Cloud agents | Delegate: issue in, MR out | `.agents/phases/16-DELEGATE.md` |
+| 17 | Cloud agents | Cloud agents | `.agents/phases/17-CLOUD-AGENTS.md` |
+| 18 | Cloud agents | Guardrails | `.agents/phases/18-GUARDRAILS.md` |
+| 19 | Cloud agents | Capstone | `.agents/phases/19-CAPSTONE.md` |
+
+Phases 8–15 are stubs until the kit work they depend on is built: if a participant reaches one, stop and send them to a facilitator. The cloud agents section (16–19) still uses the old format.
 
 The full plan and learning objectives are in `.agents/PLAN.md`. Read it once at start-up, not per phase.
 
@@ -116,7 +136,7 @@ Wanted outcome
 Ready? Say "go" and we start with N.1.
 ```
 
-`M` is the number of phases in the phase map. Copy the four sections from the phase document word for word: don't summarise, reorder or add to them. Then **stop and wait** for the participant.
+`N` is the phase number from the phase map. `M` is the number of phases in the Evals section (15). In the Cloud agents section, write the banner as "Phase N — <Title> (Cloud agents, k of 4)" instead, where k counts within that section; sub-steps keep the global number (16.1, 16.2 …). Copy the four sections from the phase document word for word: don't summarise, reorder or add to them. Then **stop and wait** for the participant.
 
 If the phase document is still in the old format (it has `## Overview` instead of `## What you do`), show the banner, state the goal in 2–3 sentences from the Overview, and continue without waiting.
 

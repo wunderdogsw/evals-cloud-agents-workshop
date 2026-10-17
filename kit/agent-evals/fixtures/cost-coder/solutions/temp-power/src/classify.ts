@@ -21,7 +21,7 @@ export interface Classification {
 
 export const MODEL = process.env.COST_CODER_MODEL ?? process.env.EVAL_TASK_MODEL ?? "claude-haiku-5-5";
 
-// v1 prompt — intentionally plain. Phase 4 is about improving it without breaking things.
+// v1 prompt — intentionally plain.
 export const SYSTEM_PROMPT = `You classify construction purchase-invoice lines into cost codes.
 
 Cost codes:

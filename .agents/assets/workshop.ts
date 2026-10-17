@@ -81,9 +81,19 @@ function writeJson(p: string, v: unknown) {
   writeFileSync(p, JSON.stringify(v, null, 2) + "\n");
 }
 
+/** Number of phases, read from the AGENTS.md phase map so it never drifts from the docs. */
+function phaseCount(): number {
+  const md = readFileSync(join(ROOT, "AGENTS.md"), "utf8");
+  const sec = md.split(/^## /m).find((x) => x.startsWith("Phase map"));
+  const nums = [...(sec ?? "").matchAll(/^\|\s*(\d+)\s*\|/gm)].map((m) => Number(m[1]));
+  if (!nums.length) die("AGENTS.md has no phase map");
+  return Math.max(...nums);
+}
+
 function initialProgress() {
   const phases: Record<string, unknown> = {};
-  for (let i = 1; i <= 10; i++) phases[String(i)] = { status: "not_started", startedAt: null, completedAt: null };
+  const count = phaseCount();
+  for (let i = 1; i <= count; i++) phases[String(i)] = { status: "not_started", startedAt: null, completedAt: null };
   return { version: 1, participant: null, activeTarget: null, targets: {}, currentPhase: 1, phases };
 }
 
@@ -511,7 +521,8 @@ function installOne(name: string, component: string, opts: { suite?: string; for
 // ───────────────────────────── catchup ─────────────────────────────
 
 function catchup(phase: number, participant?: string) {
-  if (!(phase >= 2 && phase <= 10)) die("catchup <phase>: phase 2–10 = the phase you want to START");
+  const count = phaseCount();
+  if (!(Number.isInteger(phase) && phase >= 2 && phase <= count)) die(`catchup <phase>: phase 2–${count} = the phase you want to START`);
   let name = "cost-coder-catchup";
   for (let i = 2; existsSync(join(TARGETS, name)); i++) name = `cost-coder-catchup-${i}`;
   attach("sample", { name, participant });
@@ -523,33 +534,50 @@ function catchup(phase: number, participant?: string) {
   run(`git checkout -q main`, dir);
   const commit = (m: string) => run(`git add -A && git -c user.email=workshop@example.invalid -c user.name=workshop commit -qm ${JSON.stringify(m)} --allow-empty`, dir);
 
-  if (phase > 2) {
+  // Evals section reference work (Phases 4–7): the fixed agent setup and the expectations.
+  const setup = join(KIT, "catchup", "cost-coder", "agent-setup");
+  const copy = (rel: string) => cpSync(join(setup, rel), join(dir, rel), { recursive: true, force: true });
+  if (phase > 4) {
+    for (const rel of ["CLAUDE.md", "AGENTS.md", ".claude/rules"]) copy(rel);
+    commit("workshop: fix agent instructions (catch-up)");
+  }
+  if (phase > 5) {
+    for (const rel of [".claude/skills", ".claude/hooks", ".claude/settings.json"]) copy(rel);
+    commit("workshop: agent skill, hook and permissions (catch-up)");
+  }
+  if (phase > 6) {
+    cpSync(join(KIT, "catchup", "cost-coder", "expectations.md"), join(STATE, "targets", name, "expectations.md"));
+    log(`✓ .workshop/targets/${name}/expectations.md (reference)`);
+  }
+  if (phase > 7) install(name, ["agent-tasks"], {});
+  if (phase > 8) log("! No precomputed baseline yet: Phases 8–15 are still being built. Ask a facilitator.");
+
+  // Cloud agents section (Phases 16–19) still builds on the old eval-suite reference work.
+  if (phase > 15) {
     install(name, ["evals"], { suite: "cost-coder" });
     const src = join(KIT, "catchup", "cost-coder", "evals", "suites", "cost-coder");
     const dest = join(dir, "evals", "suites", "cost-coder");
     cpSync(src, dest, { recursive: true, force: true });
     writeFileSync(join(dest, "suite.ts"), readFileSync(join(dest, "suite.ts"), "utf8").replace("__CLASSIFY_IMPORT__", "../../../src/classify.ts").replace("__TRACKS__", JSON.stringify(["../../../src/classify.ts", "../../../src/codes.ts", "../../../src/llm"])));
     commit("workshop: eval suite (catch-up)");
-  }
-  if (phase > 4) {
-    // Phase 4 reference change: tighter rationale rules (v1 → v2 takes the reference suite from ~0% to ~80%).
+    // Reference prompt change: tighter rationale rules (v1 → v2 takes the reference suite from ~0% to ~80%).
     const cls = join(dir, "src", "classify.ts");
     const v2 = readFileSync(join(KIT, "catchup", "cost-coder", "prompt-v2.txt"), "utf8").replace(/\n+$/, "");
     writeFileSync(cls, readFileSync(cls, "utf8").replace("Pick the single best cost code for the line.`;", `Pick the single best cost code for the line.${v2}\`;`));
     commit("feature: rationale rules (prompt v2, catch-up)");
   }
-  if (phase > 6) install(name, ["agent-tasks"], {});
-  if (phase > 9) {
+  if (phase > 18) {
     install(name, ["agents-section", "review-md"], {});
     commit("workshop: agent instructions (catch-up)");
   }
   run(`git checkout -q -B ${p.workBranch}`, dir);
 
   // CI and cloud-agent files depend on the host, which is unknown until the sample is pushed somewhere.
-  const later = [phase > 5 && "ci-evals", phase > 7 && "cursor-env"].filter(Boolean) as string[];
+  const later = [phase > 15 && "ci-evals", phase > 16 && "cursor-env"].filter(Boolean) as string[];
 
   const progress = readJson<any>(PROGRESS, initialProgress());
   const now = new Date().toISOString();
+  for (let i = 1; i <= count; i++) progress.phases[String(i)] ??= { status: "not_started", startedAt: null, completedAt: null };
   for (let i = 1; i < phase; i++) {
     const ph = progress.phases[String(i)];
     if (ph.status !== "complete") Object.assign(ph, { status: "complete", completedAt: now, note: "catch-up" });
@@ -560,12 +588,12 @@ function catchup(phase: number, participant?: string) {
   writeJson(PROGRESS, progress);
   log(`\n✓ catch-up target targets/${name} ready to start Phase ${phase}.`);
   if (later.length) {
-    log(`! Needs a remote first (Phase 5 doc, "No remote yet"). Then, on main:`);
+    log(`! Needs a remote first (Phase 14 doc, "No remote yet"). Then, on main:`);
     log(`    pnpm workshop profile ${name}`);
     log(`    pnpm workshop install ${name} ${later.join(" ")}`);
     log(`    cd targets/${name} && git checkout main && git add -A && git commit -m "workshop: CI + agents (catch-up)" && git push && git checkout ${p.workBranch} && git merge -q main`);
   }
-  if (phase > 5) {
+  if (phase > 15) {
     log(`! The CI gate needs a recording made with a real model (your Claude Code or Cursor login):`);
     log(`    pnpm --dir targets/${name}/evals eval suites/cost-coder/suite.ts --record   # then commit evals/suites/cost-coder/last-run.json on main`);
   }

@@ -1,4 +1,4 @@
-// Replay tasks for Phase 6 on the sample target. base "HEAD" = the attached commit.
+// Replay tasks for Phase 7 on the sample target. base "HEAD" = the attached commit.
 // hiddenTests.dir is relative to this file and is never visible to the agent.
 // referenceDir = a known-good solution, used only by `agent-evals validate`.
 // hiddenTests are copied in AFTER the agent finishes, then testCommand decides pass/fail.
