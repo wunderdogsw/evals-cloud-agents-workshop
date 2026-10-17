@@ -48,7 +48,8 @@ These come from `AGENTS.md` → Invariants; read it for the full list.
 - Attendees write eval cases, judge rubrics, calibration labels, CI thresholds and agent task prompts themselves. These are always `[HUMAN]`.
 - Every step works with Claude Code or Cursor, or offers the equivalent fallback. Never ask the attendee to pick a tool.
 - No model credential or API key goes into CI.
-- Work on the target's workshop branch only, and prefer `pnpm --dir targets/<name>/…` and `git -C targets/<name> …` over `cd`.
+- Targets may be production repos. Work happens on `dev-days-workshop/<participant>` branches; a phase never pushes or merges to the default branch, never force-pushes, and every MR/PR it opens targets the workshop branch. User-level settings (`~/.claude`, `~/.cursor`) are never changed. See `AGENTS.md` → Control room and target.
+- Prefer `pnpm --dir targets/<name>/…` and `git -C targets/<name> …` over `cd`.
 
 ## Procedure
 

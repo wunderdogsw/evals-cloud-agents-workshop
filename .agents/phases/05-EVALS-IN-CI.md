@@ -16,7 +16,7 @@ Read `host` from the profile.
   ```bash
   cd targets/<name>
   git remote add origin <url>
-  git push -u origin main && git push -u origin workshop/<participant>
+  git push -u origin main && git push -u origin dev-days-workshop/<participant>
   ```
 
   (Pushing `main` here is the one allowed push to a default branch: it seeds an empty remote.)

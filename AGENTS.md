@@ -21,10 +21,18 @@ No model credential ever goes into CI: models run on participants' own logins, o
 ## Control room and target
 
 - This repo is the **control room**. The participant's code lives in a **target** repo attached under `targets/<name>/`.
-- All product code, eval suites, CI files and agent instructions you create go **inside the target**, on the target's workshop branch (`workshop/<participant>` by default).
+- All product code, eval suites, CI files and agent instructions you create go **inside the target**, on the target's workshop branch (`dev-days-workshop/<participant>`).
 - Workshop state (progress, repo profile, run reports) stays in `.workshop/` in the control room. Never commit it to the target.
 - When you work inside `targets/<name>/`, the target's own AGENTS.md / CLAUDE.md / `.cursor/rules` apply to code you write there. Follow them.
-- Never push to the target's default branch — except merging an MR/PR the participant approved, or seeding a brand-new empty remote (Phase 5.1). Never force-push. Never touch remotes other than the one recorded in the profile.
+- **Treat every target as a production repo: all workshop changes must stay reversible.**
+  - `attach` creates the `dev-days-workshop/<participant>` branch and a `dev-days-workshop/<participant>-start` tag where the work starts. Work only on `dev-days-workshop/*` branches.
+  - Push only `dev-days-workshop/*` branches. Never push or merge to the default branch, never force-push, never push tags. MRs/PRs target the participant's workshop branch, never the default branch.
+  - Exceptions: throwaway targets (`sample`, catch-up) and facilitator mirrors listed under `mirrors` in `.workshop/facilitator.json`.
+  - The push guard enforces this: `.agents/assets/push-guard.mjs`, run as a Claude Code hook (`.claude/settings.json`), a Cursor hook (`.cursor/hooks.json`) and by `pnpm workshop` itself. If it blocks something, don't work around it; tell the participant why.
+  - Pushing a branch or opening an MR runs the repo's existing pipelines. `attach` runs `pnpm workshop ci-check <name>`; if it says REVIEW, show the lines and have the participant confirm those jobs can't run on workshop branches or MRs before the first push. If unsure, switch to a mirror.
+  - Change only project-scope agent settings in the target, committed on the workshop branch. If `/doctor`, `/update-config` or `/fewer-permission-prompts` proposes a user-level change (`~/.claude`, `~/.cursor`), decline it unless the participant explicitly wants it. `attach` backs those files up.
+  - At the end, `pnpm workshop cleanup <name>` lists everything the workshop created; `--yes` undoes it once the participant confirms.
+  - Never touch remotes other than the one recorded in the profile.
 
 ## Start-up sequence
 
@@ -33,7 +41,7 @@ Every time a workshop session begins:
 1. Check whether `.workshop/progress.json` exists.
 2. **If it does not exist** — create it with the initial state below, then start Phase 1.
 3. **If it exists** — read it. Give a one-paragraph resume summary (active target, completed phases, what comes next). Ask whether to continue from `currentPhase`, restart, or switch target.
-4. If `.workshop/facilitator.json` exists, read it and apply its overrides: `models.task/judge/agent` → prefix eval/agent commands with `EVAL_TASK_MODEL=… EVAL_JUDGE_MODEL=… EVAL_AGENT_MODEL=…`; `releasedRoomGates`; `skipPhases`.
+4. If `.workshop/facilitator.json` exists, read it and apply its overrides: `models.task/judge/agent` → prefix eval/agent commands with `EVAL_TASK_MODEL=… EVAL_JUDGE_MODEL=… EVAL_AGENT_MODEL=…`; `releasedRoomGates`; `skipPhases`; `mirrors` (remote URL fragments of facilitator mirrors, where the push guard doesn't restrict branches).
 
 Initial `.workshop/progress.json`:
 
@@ -138,7 +146,7 @@ When a sub-step is done, say so in one line (`✓ N.2 <Action> done`) and start 
 | Progress is authoritative | If `progress.json` shows a phase as complete, do not re-run it. |
 | One phase at a time | Never reference content from a future phase document. |
 | Secrets | Model calls use the participant's own Claude Code / Cursor login — no API keys, and nothing model-related in CI. Never write tokens or keys into files that could be committed, never ask for them in chat, never echo them back. |
-| Target safety | Work on the workshop branch only. No force-push, no pushing to default branches, no deleting branches you didn't create. |
+| Target safety | Work on `dev-days-workshop/<participant>` branches only. Push only `dev-days-workshop/*`; MRs/PRs target the workshop branch. No force-push, no tags, nothing pushed or merged to the default branch, no deleting branches you didn't create, no user-level settings changes. |
 | Costs are visible | Whenever you run evals or agents against a real model, report the cost/token figures the tools print. |
 | Model IDs | Default models live in `kit/evals/src/models.ts`. Use those (or `facilitator.json` overrides); do not invent model IDs. |
 | Long or interactive commands | `pnpm label` is interactive and `pnpm agent-evals run` can take 30+ minutes: give the participant the exact command to run in their own terminal (or run it in the background if your harness supports that), then read the results files. |
@@ -152,7 +160,9 @@ If a participant falls behind or their target breaks, offer `pnpm workshop catch
 
 | Command | What it does |
 |---|---|
-| `pnpm workshop attach <url\|path\|sample>` | Attach a target under `targets/` on `workshop/<participant>`, then profile it |
+| `pnpm workshop attach <url\|path\|sample>` | Attach a target under `targets/` on `dev-days-workshop/<participant>` with a start tag, back up user-level agent settings, profile it and run `ci-check` |
+| `pnpm workshop ci-check <name>` | List CI lines that look like deploys, before anything is pushed |
+| `pnpm workshop cleanup <name> [--yes]` | Dry run (or, with `--yes`, undo) of everything the workshop created: MRs/PRs, `dev-days-workshop/*` branches, start tag, worktrees, user-settings backups |
 | `pnpm workshop profile <name>` | Re-detect stack, host, commands, CI, LLM call sites |
 | `pnpm workshop install <name> <component>` | Install kit pieces into the target: `evals`, `subject-cost-coder`, `ci-evals`, `cursor-env`, `agents-section`, `review-md`, `agent-tasks` (optional, only where Claude may run in CI: `ci-evals-live`, `ci-claude`, `ci-review`) |
 | `pnpm workshop catchup <phase>` | Fresh sample target, pre-applied up to `<phase>` |

@@ -44,7 +44,7 @@ Good targets build in minutes, have tests, and have a history of merged changes 
 pnpm workshop attach <url | path | sample> --participant <name>
 ```
 
-This clones/worktrees/copies the target, creates `workshop/<name>`, writes `.workshop/targets/<name>/profile.json`, and sets `activeTarget` in `progress.json`.
+This clones/worktrees/copies the target, creates `dev-days-workshop/<participant>` and a `dev-days-workshop/<participant>-start` tag, writes `.workshop/targets/<name>/profile.json`, and sets `activeTarget` in `progress.json`.
 
 Read the profile and summarise it in **at most 6 lines**: stack, host, default branch, install/build/test commands, CI present, LLM call sites found (count + top 2 files), agent instruction files present.
 
@@ -77,7 +77,7 @@ Show the LLM call sites from the profile (file:line). Ask:
 
 The participant confirms, and you verify:
 
-- [ ] `targets/<name>/` exists and is on branch `workshop/<participant>`
+- [ ] `targets/<name>/` exists and is on branch `dev-days-workshop/<participant>`
 - [ ] The target's test command passed in this session (or they consciously switched to `sample`, which passes)
 - [ ] `evalSubject` and `suite` are set in the profile
 

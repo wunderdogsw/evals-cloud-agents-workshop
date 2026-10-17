@@ -11,14 +11,28 @@
  *   review <name> <branch> [--agent claude|cursor] [--post]
  *       read-only agent review of a branch; --post puts it on the MR/PR via glab/gh
  *   catchup <phase> [--participant p]
+ *   ci-check <name>
+ *       list CI lines that look like deploys, so nobody's push to a real repo triggers production
+ *   cleanup <name> [--yes]
+ *       list (dry run) or undo everything the workshop created: MRs/PRs, dev-days-workshop/* branches
+ *       (remote and local), the start tag, worktrees, and the backed-up ~/.claude / ~/.cursor files
  *   status
+ *
+ * Safety on real repos: all work happens on dev-days-workshop/<participant> branches, every push this
+ * helper makes goes through .agents/assets/push-guard.mjs, and MRs/PRs target the workshop branch,
+ * never the default branch.
  */
 import { execSync, spawnSync } from "node:child_process";
-import { tmpdir } from "node:os";
-import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { homedir, tmpdir } from "node:os";
+import { copyFileSync, cpSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
+// @ts-ignore — plain ESM module shared with the Claude Code / Cursor hooks.
+import { checkCommand, contextFor, explain, PREFIX } from "./push-guard.mjs";
+
+/** Every workshop branch starts with this, e.g. dev-days-workshop/mikko. */
+const BRANCH_PREFIX: string = PREFIX;
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const TARGETS = join(ROOT, "targets");
@@ -49,6 +63,14 @@ function ok(cmd: string, cwd = ROOT): boolean {
   } catch {
     return false;
   }
+}
+
+/** Push through the same guard the agent hooks use; refuses anything outside dev-days-workshop/* on real repos. */
+function guardedPush(args: string, dir: string): string {
+  const cmd = `git push ${args}`;
+  const res = checkCommand(cmd, dir, contextFor);
+  if (!res.allowed) die(explain(res.problems));
+  return run(cmd, dir);
 }
 
 function readJson<T = any>(p: string, fallback: T): T {
@@ -86,7 +108,12 @@ function slug(s: string) {
 function attach(src: string, opts: { name?: string; participant?: string }) {
   mkdirSync(TARGETS, { recursive: true });
   const participant = slug(opts.participant ?? (tryRun("git config user.name") || process.env.USER || "me"));
-  const branch = `workshop/${participant}`;
+  const branch = `${BRANCH_PREFIX}${participant}`;
+  // Marks where the workshop started, so `cleanup` (or a person) can see and undo everything after it.
+  const startTag = `${BRANCH_PREFIX}${participant}-start`;
+  const tagStart = (repo: string, at: string) => {
+    if (!tryRun(`git rev-parse --verify --quiet refs/tags/${startTag}`, repo)) run(`git tag ${startTag} ${at}`, repo);
+  };
   let name: string;
   let source: Profile["source"];
 
@@ -101,6 +128,7 @@ function attach(src: string, opts: { name?: string; participant?: string }) {
     });
     run(`git init -q -b main`, dest);
     run(`git add -A && git -c user.email=workshop@example.invalid -c user.name=workshop commit -qm "Initial commit: cost-coder sample"`, dest);
+    tagStart(dest, "HEAD");
     run(`git checkout -q -b ${branch}`, dest);
   } else if (/^(https?:\/\/|git@|ssh:\/\/)/.test(src)) {
     name = opts.name ?? slug(basename(src));
@@ -108,6 +136,7 @@ function attach(src: string, opts: { name?: string; participant?: string }) {
     const dest = join(TARGETS, name);
     if (existsSync(dest)) die(`targets/${name} already exists. Pick another --name or remove it.`);
     run(`git clone ${JSON.stringify(src)} ${JSON.stringify(dest)}`);
+    tagStart(dest, "HEAD");
     if (tryRun(`git rev-parse --verify --quiet refs/remotes/origin/${branch}`, dest)) run(`git checkout -q -b ${branch} --track origin/${branch}`, dest);
     else run(`git checkout -q -b ${branch}`, dest);
   } else {
@@ -119,14 +148,41 @@ function attach(src: string, opts: { name?: string; participant?: string }) {
     if (existsSync(dest)) die(`targets/${name} already exists. Pick another --name or remove it.`);
     // A worktree keeps the participant's own checkout untouched and shares its objects and remotes.
     const exists = tryRun(`git rev-parse --verify --quiet refs/heads/${branch}`, abs);
+    tagStart(abs, exists ? branch : "HEAD");
     run(`git worktree add ${exists ? "" : `-b ${branch}`} ${JSON.stringify(dest)} ${exists ? branch : ""}`.replace(/\s+/g, " "), abs);
   }
 
   const progress = readJson<any>(PROGRESS, initialProgress());
   progress.participant ??= participant;
   writeJson(PROGRESS, progress);
-  log(`✓ attached targets/${name} (${source}) on branch ${branch}`);
-  profile(name, { source, workBranch: branch });
+  log(`✓ attached targets/${name} (${source}) on branch ${branch}, start marked by tag ${startTag}`);
+  profile(name, { source, workBranch: branch, startTag });
+  backupUserSettings();
+  ciCheck(name);
+}
+
+/**
+ * Claude Code and Cursor commands (/doctor, /update-config, /fewer-permission-prompts …) can change files
+ * in the participant's home folder, outside any branch. Keep a copy of each from before the workshop.
+ */
+function backupUserSettings() {
+  const home = homedir();
+  const files = [join(home, ".claude", "settings.json"), join(home, ".claude", "CLAUDE.md"), join(home, ".cursor", "hooks.json")];
+  const progress = readJson<any>(PROGRESS, initialProgress());
+  progress.backups ??= [];
+  for (const from of files) {
+    if (progress.backups.some((b: any) => b.from === from)) continue;
+    if (!existsSync(from)) {
+      progress.backups.push({ from, to: null, at: new Date().toISOString() });
+      continue;
+    }
+    const to = join(STATE, "backups", relative(home, from).replace(/[\\/]/g, "__"));
+    mkdirSync(dirname(to), { recursive: true });
+    copyFileSync(from, to);
+    progress.backups.push({ from, to: relative(ROOT, to), at: new Date().toISOString() });
+    log(`✓ backed up ${from.replace(home, "~")} → ${relative(ROOT, to)}`);
+  }
+  writeJson(PROGRESS, progress);
 }
 
 // ───────────────────────────── profile ─────────────────────────────
@@ -141,6 +197,8 @@ interface Profile {
   projectPath: string | null;
   defaultBranch: string;
   workBranch: string;
+  startTag: string | null;
+  ciCheck: { checkedAt: string; verdict: string; deployLines: number } | null;
   languages: string[];
   packageManager: string | null;
   commands: { install: string | null; build: string | null; test: string | null };
@@ -273,7 +331,9 @@ function profile(name: string, extra: Partial<Profile> = {}, redetect = false) {
     remote,
     ...detectHost(remote, dir),
     defaultBranch,
-    workBranch: extra.workBranch ?? prev.workBranch ?? (tryRun("git branch --show-current", dir) || "workshop/me"),
+    workBranch: extra.workBranch ?? prev.workBranch ?? (tryRun("git branch --show-current", dir) || `${BRANCH_PREFIX}me`),
+    startTag: extra.startTag ?? prev.startTag ?? null,
+    ciCheck: prev.ciCheck ?? null,
     ...det,
     // Phase 1.4 corrections survive re-profiling.
     commands: !redetect && prev.commands ? prev.commands : det.commands,
@@ -546,11 +606,16 @@ function lastJson(s: string): any {
   return {};
 }
 
+/** The push guard as a Claude Code hook, for headless runs that start outside the control room. */
+const GUARD_SETTINGS = JSON.stringify({
+  hooks: { PreToolUse: [{ matcher: "Bash", hooks: [{ type: "command", command: `node ${JSON.stringify(join(ROOT, ".agents", "assets", "push-guard.mjs"))}` }] }] },
+});
+
 function agentRun(agent: AgentCli, prompt: string, cwd: string, mode: "write" | "read"): { ok: boolean; summary: string; costUsd?: number } {
   if (agent === "claude") {
     const args =
       mode === "write"
-        ? ["-p", prompt, "--output-format", "json", "--permission-mode", "acceptEdits", "--allowedTools", "Read,Edit,Write,Glob,Grep,Bash", "--max-turns", "80"]
+        ? ["-p", prompt, "--output-format", "json", "--permission-mode", "acceptEdits", "--allowedTools", "Read,Edit,Write,Glob,Grep,Bash", "--max-turns", "80", "--settings", GUARD_SETTINGS]
         : ["-p", prompt, "--output-format", "json", "--permission-mode", "dontAsk", "--allowedTools", "Read,Glob,Grep,Bash(git diff *),Bash(git log *),Bash(git show *)", "--max-turns", "30"];
     const r = runArgs("claude", args, cwd);
     const out = lastJson(r.stdout);
@@ -591,10 +656,15 @@ function delegate(name: string, o: { task?: string; taskFile?: string; issue?: s
     title = oneLine(o.task, 70);
   } else return die("delegate needs --issue <n>, --task \"…\" or --task-file <file>");
 
+  // Agent work branches off the participant's workshop branch and its MR/PR targets that branch,
+  // so nothing an agent does can land on the default branch of a real repo.
   const hasRemote = Boolean(p.remote);
-  if (hasRemote) tryRun(`git fetch -q origin ${p.defaultBranch}`, dir);
-  const base = hasRemote ? `origin/${p.defaultBranch}` : p.defaultBranch;
-  const branch = `agent/${agent}-${o.issue ? `issue-${o.issue}-` : ""}${slug(title).slice(0, 30)}-${Date.now().toString(36).slice(-4)}`;
+  if (hasRemote) {
+    if (!tryRun(`git ls-remote --heads origin ${p.workBranch}`, dir)) guardedPush(`-u origin ${p.workBranch}`, dir);
+    tryRun(`git fetch -q origin ${p.workBranch}`, dir);
+  }
+  const base = hasRemote ? `origin/${p.workBranch}` : p.workBranch;
+  const branch = `${p.workBranch}-agent-${agent}-${o.issue ? `issue-${o.issue}-` : ""}${slug(title).slice(0, 30)}-${Date.now().toString(36).slice(-4)}`;
   const wt = join(tmpdir(), "workshop-delegate", branch.replace(/\//g, "_"));
   run(`git worktree add -q -b ${branch} ${JSON.stringify(wt)} ${base}`, dir);
   log(`✓ ${agent} works in ${wt} on ${branch} (from ${base})`);
@@ -629,19 +699,19 @@ You are working unattended on branch ${branch}; nobody can answer questions, so 
   }
   const mrTitle = `${agent === "claude" ? "Claude" : "Cursor"}: ${title}`;
   if (p.host === "gitlab") {
-    run(
-      `git push -q -u origin ${branch} -o merge_request.create -o merge_request.target=${p.defaultBranch} ` +
+    guardedPush(
+      `-q -u origin ${branch} -o merge_request.create -o merge_request.target=${p.workBranch} ` +
         `-o merge_request.title=${JSON.stringify(oneLine(mrTitle, 120))} -o merge_request.label=agent:${agent} ` +
-        `-o merge_request.description=${JSON.stringify(oneLine(`Delegated to ${agent} from the workshop.${o.issue ? ` Closes #${o.issue}.` : ""} Agent summary is in the first comment / commit message.`, 300))}`,
+        `-o merge_request.description=${JSON.stringify(oneLine(`Delegated to ${agent} from the workshop.${o.issue ? ` Refs #${o.issue}.` : ""} Agent summary is in the first comment / commit message.`, 300))}`,
       wt,
     );
-    log(`✓ pushed ${branch} and opened an MR (GitLab prints its link above). Paste the summary above as the first MR comment.`);
+    log(`✓ pushed ${branch} and opened an MR into ${p.workBranch} (GitLab prints its link above). Paste the summary above as the first MR comment.`);
   } else {
-    run(`git push -q -u origin ${branch}`, wt);
+    guardedPush(`-q -u origin ${branch}`, wt);
     if (onPath("gh")) {
       const bodyFile = join(wt, "..", `${branch.replace(/\//g, "_")}.summary.md`);
-      log(run(`gh pr create --base ${p.defaultBranch} --head ${branch} --title ${JSON.stringify(mrTitle)} --body-file ${JSON.stringify(bodyFile)}`, wt));
-    } else log(`✓ pushed ${branch}. Open the PR: ${p.hostUrl}/${p.projectPath}/compare/${p.defaultBranch}...${branch}`);
+      log(run(`gh pr create --base ${p.workBranch} --head ${branch} --title ${JSON.stringify(mrTitle)} --body-file ${JSON.stringify(bodyFile)}`, wt));
+    } else log(`✓ pushed ${branch}. Open the PR into ${p.workBranch}: ${p.hostUrl}/${p.projectPath}/compare/${p.workBranch}...${branch}`);
   }
   log(`Workspace kept at ${wt} (git worktree of targets/${name}).`);
 }
@@ -650,9 +720,10 @@ function review(name: string, branch: string, o: { agent?: string; post?: boolea
   const dir = targetDir(name);
   const p = profileOf(name);
   const agent = pickAgent(o.agent);
-  if (p.remote) tryRun(`git fetch -q origin ${p.defaultBranch} ${branch}`, dir);
+  if (p.remote) tryRun(`git fetch -q origin ${p.workBranch} ${branch}`, dir);
   const head = p.remote ? `origin/${branch}` : branch;
-  const base = p.remote ? `origin/${p.defaultBranch}` : p.defaultBranch;
+  // Agent MRs/PRs target the workshop branch, so that's what the review compares against.
+  const base = p.remote ? `origin/${p.workBranch}` : p.workBranch;
   const wt = join(tmpdir(), "workshop-review", slug(branch));
   if (existsSync(wt)) tryRun(`git worktree remove --force ${JSON.stringify(wt)}`, dir);
   run(`git worktree add -q --detach ${JSON.stringify(wt)} ${head}`, dir);
@@ -669,6 +740,118 @@ Report only real problems (bugs, missing tests, broken conventions, risky change
   if (p.host === "gitlab" && onPath("glab")) log(run(`glab mr note ${branch} --message ${JSON.stringify(md)}`, dir) || "✓ posted");
   else if (p.host === "github" && onPath("gh")) log(run(`gh pr comment ${branch} --body-file ${JSON.stringify(out)}`, dir) || "✓ posted");
   else log(`! no ${p.host === "github" ? "gh" : "glab"} CLI — paste ${out} into the MR/PR by hand.`);
+}
+
+// ───────────────────────────── ci-check / cleanup ─────────────────────────────
+
+const DEPLOY_LINE =
+  /\b(deploy\w*|release|publish|production|prod|helm\s+(upgrade|install)|kubectl\s+(apply|rollout|set)|terraform\s+apply|serverless\s+deploy|docker\s+push|npm\s+publish|az\s+webapp|aws\s+s3\s+(sync|cp))\b|^\s*environment:/i;
+const HIDDEN_CI = /^\s*-?\s*(project|remote|template|component):|^\s*uses:\s*[\w.-]+\/[\w.-]+\/\.github\/workflows\//;
+
+/**
+ * Pushing a workshop branch or opening an MR runs the repo's existing pipelines. List the CI lines that
+ * look like deploys so a human can confirm they only run on the default branch, tags or by hand.
+ */
+function ciCheck(name: string) {
+  const dir = targetDir(name);
+  const p = profileOf(name);
+  const hits: string[] = [];
+  const hidden: string[] = [];
+  for (const f of p.ci.files) {
+    readFileSync(join(dir, f), "utf8")
+      .split("\n")
+      .forEach((l, i) => {
+        if (/^\s*#/.test(l)) return;
+        if (DEPLOY_LINE.test(l)) hits.push(`${f}:${i + 1}  ${l.trim().slice(0, 110)}`);
+        if (HIDDEN_CI.test(l)) hidden.push(`${f}:${i + 1}  ${l.trim().slice(0, 110)}`);
+      });
+  }
+  const ctx = contextFor(dir);
+  let verdict: string;
+  if (!p.remote) verdict = "no remote: pushes and pipelines can't happen yet";
+  else if (ctx?.unrestricted) verdict = "throwaway or mirror target: its pipelines can't reach production";
+  else if (hits.length) verdict = "REVIEW: deploy-like CI lines found; confirm they never run on dev-days-workshop/* branches or MRs, or use a mirror";
+  else if (hidden.length) verdict = "REVIEW: CI includes jobs defined elsewhere; check those before the first push";
+  else verdict = "no deploy-like CI lines found";
+  log(`\nCI check for targets/${name}: ${verdict}`);
+  for (const h of hits) log(`  deploy?  ${h}`);
+  for (const h of hidden) log(`  include  ${h}`);
+  const f = join(STATE, "targets", name, "profile.json");
+  writeJson(f, { ...readJson<any>(f, {}), ciCheck: { checkedAt: new Date().toISOString(), verdict, deployLines: hits.length } });
+}
+
+function cleanup(name: string, yes: boolean) {
+  const dir = targetDir(name);
+  const p = profileOf(name);
+  const common = tryRun("git rev-parse --path-format=absolute --git-common-dir", dir);
+  const mainRepo = common ? dirname(common) : dir;
+  const refs = (prefix: string) => tryRun(`git for-each-ref --format="%(refname:short)" ${prefix}`, dir).split("\n").filter(Boolean);
+  // for-each-ref matches a pattern "up to a slash", so pass the prefix without its trailing slash.
+  const ns = BRANCH_PREFIX.replace(/\/$/, "");
+  const localBranches = refs(`refs/heads/${ns}`).filter((b) => b.startsWith(BRANCH_PREFIX));
+  const tags = refs(`refs/tags/${ns}`).filter((t) => t.startsWith(BRANCH_PREFIX));
+  const remoteBranches = p.remote
+    ? tryRun(`git ls-remote --heads origin "${BRANCH_PREFIX}*"`, dir).split("\n").filter(Boolean).map((l) => l.split("refs/heads/")[1]!).filter(Boolean)
+    : [];
+  const worktrees = tryRun("git worktree list --porcelain", dir)
+    .split("\n\n")
+    .map((b) => ({ path: /^worktree (.+)$/m.exec(b)?.[1], branch: /^branch refs\/heads\/(.+)$/m.exec(b)?.[1] }))
+    .filter((w) => w.path && w.branch?.startsWith(BRANCH_PREFIX) && resolve(w.path) !== resolve(mainRepo)) as { path: string; branch: string }[];
+  let reviews: { id: string; head: string }[] = [];
+  let reviewNote = "";
+  if (p.host === "github" && onPath("gh")) {
+    const j = tryRun(`gh pr list --state open --limit 200 --json number,headRefName`, dir);
+    reviews = j ? JSON.parse(j).filter((r: any) => String(r.headRefName).startsWith(BRANCH_PREFIX)).map((r: any) => ({ id: String(r.number), head: r.headRefName })) : [];
+  } else if (p.host === "gitlab" && onPath("glab")) {
+    const j = tryRun(`glab mr list --per-page 100 --output json`, dir);
+    reviews = j ? JSON.parse(j).filter((r: any) => String(r.source_branch).startsWith(BRANCH_PREFIX)).map((r: any) => ({ id: String(r.iid), head: r.source_branch })) : [];
+  } else if (p.remote) reviewNote = `close open MRs/PRs from ${BRANCH_PREFIX}* branches by hand (no ${p.host === "github" ? "gh" : "glab"} CLI)`;
+  const home = homedir();
+  const backups = (readJson<any>(PROGRESS, {}).backups ?? []) as { from: string; to: string | null }[];
+  const restore = backups.filter((b) => b.to && existsSync(b.from) && readFileSync(b.from, "utf8") !== readFileSync(join(ROOT, b.to), "utf8"));
+  const created = backups.filter((b) => !b.to && existsSync(b.from));
+
+  log(`Cleanup plan for targets/${name}:`);
+  const list = (title: string, items: string[]) => items.length && log(`  ${title}:\n${items.map((i) => `    - ${i}`).join("\n")}`);
+  list("close MRs/PRs", reviews.map((r) => `#${r.id} (${r.head})`));
+  list("delete remote branches", remoteBranches);
+  list("remove worktrees", worktrees.map((w) => `${w.path} (${w.branch})`));
+  list("delete local branches", localBranches);
+  list("delete tags", tags);
+  list("restore from backup", restore.map((b) => `${b.from.replace(home, "~")} ← ${b.to}`));
+  if (created.length) log(`  created during the workshop (review and remove by hand if unwanted):\n${created.map((b) => `    - ${b.from.replace(home, "~")}`).join("\n")}`);
+  if (reviewNote) log(`  manual: ${reviewNote}`);
+  if (!yes) return log(`\nDry run — nothing changed. Run \`pnpm workshop cleanup ${name} --yes\` to do it.`);
+
+  for (const r of reviews) {
+    if (p.host === "github") tryRun(`gh pr close ${r.id}`, dir);
+    else tryRun(`glab mr close ${r.id}`, dir);
+    log(`✓ closed #${r.id}`);
+  }
+  for (const b of remoteBranches) {
+    guardedPush(`-q origin --delete ${b}`, dir);
+    log(`✓ deleted remote branch ${b}`);
+  }
+  for (const w of worktrees) {
+    run(`git worktree remove --force ${JSON.stringify(w.path)}`, mainRepo);
+    log(`✓ removed worktree ${w.path}`);
+  }
+  if (existsSync(dir) && tryRun("git branch --show-current", dir).startsWith(BRANCH_PREFIX)) run(`git checkout -q ${p.defaultBranch}`, dir);
+  for (const b of localBranches) {
+    if (tryRun(`git branch -D ${b}`, mainRepo)) log(`✓ deleted local branch ${b}`);
+    else log(`! could not delete ${b} (still checked out somewhere?)`);
+  }
+  for (const t of tags) {
+    run(`git tag -d ${t}`, mainRepo);
+    log(`✓ deleted tag ${t}`);
+  }
+  for (const b of restore) {
+    const before = join(STATE, "backups", `${basename(b.to!)}.before-restore`);
+    copyFileSync(b.from, before);
+    copyFileSync(join(ROOT, b.to!), b.from);
+    log(`✓ restored ${b.from.replace(home, "~")} (the workshop version is kept in ${relative(ROOT, before)})`);
+  }
+  if (existsSync(dir)) log(`\nThe folder targets/${name} is still there; delete it when you no longer need it.`);
 }
 
 // ───────────────────────────── main ─────────────────────────────
@@ -689,6 +872,7 @@ const { values, positionals } = parseArgs({
     agent: { type: "string" },
     "no-push": { type: "boolean" },
     post: { type: "boolean" },
+    yes: { type: "boolean" },
   },
 });
 
@@ -720,6 +904,12 @@ try {
       break;
     case "catchup":
       catchup(Number(positionals[0]), values.participant);
+      break;
+    case "ci-check":
+      ciCheck(positionals[0] ?? readJson<any>(PROGRESS, {}).activeTarget ?? die("ci-check <name>"));
+      break;
+    case "cleanup":
+      cleanup(positionals[0] ?? readJson<any>(PROGRESS, {}).activeTarget ?? die("cleanup <name> [--yes]"), Boolean(values.yes));
       break;
     case "status": {
       const pr = readJson<any>(PROGRESS, null);
