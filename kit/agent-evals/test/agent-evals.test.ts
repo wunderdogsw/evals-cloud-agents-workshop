@@ -83,7 +83,7 @@ describe("claude adapter", () => {
       const prompt = "Add `splitVat()` costing $HOME and \"quotes\"";
       const out = await claude.run({ cwd: bin, prompt, timeoutMs: 20_000 });
       const argv = JSON.parse(await (await import("node:fs/promises")).readFile(argsFile, "utf8"));
-      expect(argv[1]).toBe(prompt);
+      expect(argv[argv.indexOf("-p") + 1]).toBe(prompt);
       expect(out.ok).toBe(true);
       expect(out.costUsd).toBe(0.5);
       expect(out.turns).toBe(3);

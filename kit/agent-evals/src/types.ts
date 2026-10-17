@@ -36,5 +36,5 @@ export interface AgentRunOutput {
 
 export interface AgentAdapter {
   name: string;
-  run(opts: { cwd: string; prompt: string; timeoutMs: number; model?: string; maxTurns?: number; maxBudgetUsd?: number }): Promise<AgentRunOutput>;
+  run(opts: { cwd: string; prompt: string; timeoutMs: number; model?: string; maxTurns?: number; maxBudgetUsd?: number; withoutSetup?: boolean }): Promise<AgentRunOutput>;
 }

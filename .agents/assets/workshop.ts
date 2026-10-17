@@ -4,7 +4,7 @@
  *   attach <git-url | local-path | sample> [--name n] [--participant p]
  *   profile <name> [--redetect]          (keeps manually corrected commands unless --redetect)
  *   install <name> <component…> [--suite s] [--force]
- *       components: evals | subject-cost-coder | ci-evals | cursor-env | agents-section | review-md | agent-tasks
+ *       components: evals | subject-cost-coder | ci-evals | cursor-env | agents-section | review-md | agent-tasks | agent-suite | ci-agent-evals
                    optional, only where Claude may run in CI: ci-evals-live | ci-claude | ci-review
  *   delegate <name> (--issue n | --task "…" | --task-file f) [--agent claude|cursor] [--no-push]
  *       run Claude Code or the Cursor CLI headless on a fresh branch, then push it and open an MR/PR
@@ -402,6 +402,20 @@ function ensureGitlabInclude(dir: string, localPath: string, p: Profile, stage: 
   return out;
 }
 
+/** Agent files the agent-eval recording tracks, when the target has them. */
+const AGENT_TRACK_CANDIDATES = ["CLAUDE.md", "AGENTS.md", ".claude", ".cursor/rules", ".cursor/hooks.json", ".cursor/hooks", ".mcp.json"];
+
+/** Copy the eval runner into <target>/evals/ so CI can run `pnpm verify` without the control room. */
+function vendorRunner(ev: string, T: string, vars: Record<string, string>, force: boolean, done: string[]) {
+  for (const f of ["package.json", "README.md", ".gitignore", "pnpm-workspace.yaml"]) done.push(`evals/${f}: ${copyTemplate(join(T, "evals-folder", f), join(ev, f), vars, force)}`);
+  mkdirSync(join(ev, "runner"), { recursive: true });
+  for (const f of readdirSync(join(KIT, "evals", "src"))) {
+    const body = readFileSync(join(KIT, "evals", "src", f), "utf8");
+    writeFileSync(join(ev, "runner", f), `// Vendored from the Evals & Cloud Agents Workshop kit (kit/evals/src/${f}). Update there, not here.\n${body.replace(/^#!.*\n/, "")}`);
+  }
+  done.push("evals/runner/: vendored");
+}
+
 function install(name: string, components: string[], opts: { suite?: string; force?: boolean }) {
   for (const c of components) installOne(name, c, opts);
 }
@@ -426,13 +440,7 @@ function installOne(name: string, component: string, opts: { suite?: string; for
   switch (component) {
     case "evals": {
       const ev = join(dir, "evals");
-      for (const f of ["package.json", "README.md", ".gitignore", "pnpm-workspace.yaml"]) done.push(`evals/${f}: ${copyTemplate(join(T, "evals-folder", f), join(ev, f), vars, force)}`);
-      mkdirSync(join(ev, "runner"), { recursive: true });
-      for (const f of readdirSync(join(KIT, "evals", "src"))) {
-        const body = readFileSync(join(KIT, "evals", "src", f), "utf8");
-        writeFileSync(join(ev, "runner", f), `// Vendored from the Evals & Cloud Agents Workshop kit (kit/evals/src/${f}). Update there, not here.\n${body.replace(/^#!.*\n/, "")}`);
-      }
-      done.push("evals/runner/: vendored");
+      vendorRunner(ev, T, vars, force, done);
       const sdir = join(ev, "suites", suite);
       if (!existsSync(sdir)) {
         mkdirSync(sdir, { recursive: true });
@@ -441,6 +449,31 @@ function installOne(name: string, component: string, opts: { suite?: string; for
         done.push(`evals/suites/${suite}/: skeleton`);
       } else done.push(`evals/suites/${suite}/: exists`);
       done.push(ok(`pnpm install`, ev) ? "evals/: pnpm install done" : "evals/: run `pnpm install` there by hand (corepack enable first)");
+      break;
+    }
+    case "agent-suite": {
+      // Phase 9 on: rule graders, rubrics and (from Phase 14) the CI recording for the agent evals.
+      const sdir = join(dir, "evals", "suites", "agent");
+      const tracks = AGENT_TRACK_CANDIDATES.filter((t) => existsSync(join(dir, t))).map((t) => `../../../${t}`);
+      const agentVars = { ...vars, TRACKS: JSON.stringify(tracks) };
+      for (const f of ["README.md", "rules.mjs", "agent-suite.json"]) done.push(`evals/suites/agent/${f}: ${copyTemplate(join(T, "agent-suite", f), join(sdir, f), agentVars, force)}`);
+      if (!tracks.length) done.push("NOTE: no agent files found to track; add them to agent-suite.json → tracks");
+      break;
+    }
+    case "ci-agent-evals": {
+      // The agent-eval gate: verifies evals/suites/agent/last-run.json. No model or secrets in CI.
+      if (!existsSync(join(dir, "evals", "suites", "agent", "agent-suite.json"))) die("install `agent-suite` first");
+      vendorRunner(join(dir, "evals"), T, vars, force, done);
+      done.push(ok(`pnpm install`, join(dir, "evals")) ? "evals/: pnpm install done" : "evals/: run `pnpm install` there by hand (corepack enable first)");
+      const file = "workshop-agent-evals.yml";
+      if (p.host === "github") {
+        done.push(`.github/workflows/${file}: ${copyTemplate(join(T, "ci", "github", file), join(dir, ".github", "workflows", file), vars, force)}`);
+      } else {
+        const rel = `.gitlab/ci/${file}`;
+        done.push(`${rel}: ${copyTemplate(join(T, "ci", "gitlab", file), join(dir, rel), vars, force)}`);
+        done.push(...ensureGitlabInclude(dir, rel, p, "test"));
+        if (p.host === "none") done.push("NOTE: target has no remote yet — CI runs once it's pushed to GitLab.");
+      }
       break;
     }
     case "subject-cost-coder": {
@@ -550,7 +583,29 @@ function catchup(phase: number, participant?: string) {
     log(`✓ .workshop/targets/${name}/expectations.md (reference)`);
   }
   if (phase > 7) install(name, ["agent-tasks"], {});
-  if (phase > 8) log("! No precomputed baseline yet: Phases 8–15 are still being built. Ask a facilitator.");
+  if (phase > 8) {
+    // Facilitators record the sample's baseline runs before the workshop (see kit/catchup/cost-coder/baseline/README.md).
+    const base = join(KIT, "catchup", "cost-coder", "baseline");
+    const runs = existsSync(base) ? readdirSync(base).filter((d) => existsSync(join(base, d, "results.json"))) : [];
+    for (const d of runs) cpSync(join(base, d), join(ROOT, ".eval-runs", d), { recursive: true, force: true });
+    log(runs.length ? `✓ .eval-runs/: precomputed baseline (${runs.join(", ")})` : "! No precomputed baseline in kit/catchup/cost-coder/baseline/ — run Phase 8's two runs now, or ask a facilitator.");
+  }
+  // Phases 9–14 reference work: the agent suite folder with rules, rubrics and threshold.
+  const suiteRef = join(KIT, "catchup", "cost-coder", "agent-suite");
+  const suiteDir = join(dir, "evals", "suites", "agent");
+  if (phase > 9) {
+    install(name, ["agent-suite"], {});
+    cpSync(join(suiteRef, "rules.mjs"), join(suiteDir, "rules.mjs"));
+    commit("workshop: rule graders (catch-up)");
+  }
+  if (phase > 10) {
+    for (const f of ["rubric-r5.md", "rubric-r6.md"]) cpSync(join(suiteRef, f), join(suiteDir, f));
+    commit("workshop: judge rubrics (catch-up)");
+  }
+  if (phase > 13) {
+    cpSync(join(suiteRef, "agent-suite.json"), join(suiteDir, "agent-suite.json"));
+    commit("workshop: agent eval threshold (catch-up)");
+  }
 
   // Cloud agents section (Phases 16–19) still builds on the old eval-suite reference work.
   if (phase > 15) {
@@ -573,7 +628,7 @@ function catchup(phase: number, participant?: string) {
   run(`git checkout -q -B ${p.workBranch}`, dir);
 
   // CI and cloud-agent files depend on the host, which is unknown until the sample is pushed somewhere.
-  const later = [phase > 15 && "ci-evals", phase > 16 && "cursor-env"].filter(Boolean) as string[];
+  const later = [phase > 14 && "ci-agent-evals", phase > 15 && "ci-evals", phase > 16 && "cursor-env"].filter(Boolean) as string[];
 
   const progress = readJson<any>(PROGRESS, initialProgress());
   const now = new Date().toISOString();
@@ -592,6 +647,10 @@ function catchup(phase: number, participant?: string) {
     log(`    pnpm workshop profile ${name}`);
     log(`    pnpm workshop install ${name} ${later.join(" ")}`);
     log(`    cd targets/${name} && git checkout main && git add -A && git commit -m "workshop: CI + agents (catch-up)" && git push && git checkout ${p.workBranch} && git merge -q main`);
+  }
+  if (phase > 14) {
+    log(`! The agent gate needs a recording made with your own Claude Code or Cursor login:`);
+    log(`    pnpm agent-evals run targets/${name} --tasks .workshop/targets/${name}/agent-tasks/tasks.jsonl --agent claude --setup "pnpm install --ignore-workspace" --record targets/${name}/evals/suites/agent`);
   }
   if (phase > 15) {
     log(`! The CI gate needs a recording made with a real model (your Claude Code or Cursor login):`);

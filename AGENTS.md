@@ -184,10 +184,11 @@ If a participant falls behind or their target breaks, offer `pnpm workshop catch
 | `pnpm workshop ci-check <name>` | List CI lines that look like deploys, before anything is pushed |
 | `pnpm workshop cleanup <name> [--yes]` | Dry run (or, with `--yes`, undo) of everything the workshop created: MRs/PRs, `dev-days-workshop/*` branches, start tag, worktrees, user-settings backups |
 | `pnpm workshop profile <name>` | Re-detect stack, host, commands, CI, LLM call sites |
-| `pnpm workshop install <name> <component>` | Install kit pieces into the target: `evals`, `subject-cost-coder`, `ci-evals`, `cursor-env`, `agents-section`, `review-md`, `agent-tasks` (optional, only where Claude may run in CI: `ci-evals-live`, `ci-claude`, `ci-review`) |
+| `pnpm workshop install <name> <component>` | Install kit pieces into the target: `evals`, `subject-cost-coder`, `ci-evals`, `cursor-env`, `agents-section`, `review-md`, `agent-tasks`, `agent-suite`, `ci-agent-evals` (optional, only where Claude may run in CI: `ci-evals-live`, `ci-claude`, `ci-review`) |
 | `pnpm workshop catchup <phase>` | Fresh sample target, pre-applied up to `<phase>` |
 | `pnpm evals …` / `cd targets/<name>/evals && pnpm eval …` | Eval runner (run, compare, label, calibrate) |
-| `pnpm agent-evals mine\|validate\|run …` | Coding-agent benchmark from the target's history (`--agent claude\|cursor`) |
+| `pnpm agent-evals mine\|validate\|run …` | Coding-agent benchmark from the target's history (`--agent claude\|cursor`, `--without-setup`, `--rules`, `--judge`, `--record`) |
+| `pnpm agent-evals regrade\|label\|grade-patch …` | Re-grade stored runs, label diffs blind, prove a rule grader on a planted patch |
 | `pnpm workshop delegate <name> --issue n` | Hand an issue to Claude Code or Cursor CLI headless on a new branch; pushes and opens the MR/PR |
 | `pnpm workshop review <name> <branch>` | Read-only agent review of a branch (`--post` to comment on the MR/PR) |
 | `pnpm --dir targets/<name>/evals eval … --record` / `verify …` | Record a full eval run for the CI gate / check it exactly as CI does |

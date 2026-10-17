@@ -15,8 +15,13 @@ const RULES = `You are working on a task in an isolated copy of a repository.
  */
 export const claude: AgentAdapter = {
   name: "claude",
-  async run({ cwd, prompt, timeoutMs, model, maxTurns, maxBudgetUsd }) {
+  async run({ cwd, prompt, timeoutMs, model, maxTurns, maxBudgetUsd, withoutSetup }) {
+    // With the setup: project and local settings only, so the participant's own ~/.claude doesn't leak in.
+    // Without: --safe-mode turns off CLAUDE.md, skills, hooks, MCP, plugins and auto memory
+    // (https://code.claude.com/docs/en/cli-reference). The harness also strips the files from the workspace.
+    const setup = withoutSetup ? ["--safe-mode"] : ["--setting-sources", "project,local"];
     const args = [
+      ...setup,
       "-p",
       prompt,
       "--output-format",
@@ -31,6 +36,7 @@ export const claude: AgentAdapter = {
       model ?? defaultModel("agent"),
       "--max-turns",
       String(maxTurns ?? 40),
+      "--no-session-persistence",
       ...(maxBudgetUsd ? ["--max-budget-usd", String(maxBudgetUsd)] : []),
     ];
     const r = await spawnArgs("claude", args, { cwd, timeoutMs });
@@ -77,5 +83,17 @@ export const noop: AgentAdapter = {
     return { ok: true, exitCode: 0, durationMs: 0, log: "", summary: "no changes" };
   },
 };
+
+/** Applies a fixed patch instead of running a model. Used by `grade-patch` to prove rule graders. */
+export function patchAgent(file: string): AgentAdapter {
+  return {
+    name: "patch",
+    async run({ cwd }) {
+      const r = await spawnArgs("git", ["apply", "--whitespace=nowarn", file], { cwd, timeoutMs: 60_000 });
+      if (r.code !== 0) throw new Error(`git apply ${file} failed: ${r.stderr.trim()}`);
+      return { ok: true, exitCode: 0, durationMs: r.durationMs, log: "", summary: `applied ${file}` };
+    },
+  };
+}
 
 export const AGENTS: Record<string, AgentAdapter> = { claude, cursor, noop };
