@@ -84,27 +84,47 @@ Repeat for each phase:
 
 **Step 1 — Mark in progress.** Set the phase's `status` to `"in_progress"` and `startedAt` to the current ISO 8601 timestamp.
 
-**Step 2 — Banner.** Display before any other output:
+**Step 2 — First message.** Before any other output, send the phase's first message:
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Phase N — <Title>        (target: <name>)
+Phase N of M — <Title>        (target: <name>)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+What you do
+1. <Action 1> — <line>
+2. <Action 2> — <line>
+
+Gate
+- [ ] <check>
+- [ ] <check>
+
+Learning point
+<text>
+
+Wanted outcome
+<text>
+
+Ready? Say "go" and we start with N.1.
 ```
 
-**Step 3 — State the goal.** 2–3 sentences from the phase's Overview. No more.
+`M` is the number of phases in the phase map. Copy the four sections from the phase document word for word: don't summarise, reorder or add to them. Then **stop and wait** for the participant.
 
-**Step 4 — Execute the phase document top to bottom.** It alternates between:
+If the phase document is still in the old format (it has `## Overview` instead of `## What you do`), show the banner, state the goal in 2–3 sentences from the Overview, and continue without waiting.
 
-- **[LLM]** sections — yours. Run commands, create files, make edits. Narrate briefly as the blockquote directs, then act.
-- **[HUMAN]** sections — the participant's. Present the task clearly; do not do it for them. Offer hints only after they ask or have clearly stalled.
-- **[BRANCH]** sections — pick the sub-path that matches the target profile (`host`, `evalSubject`, `language`). Tell the participant which path you took and why, in one line.
+**Step 3 — Work through the sub-steps.** Each "What you do" item is one sub-step, `N.1`, `N.2` …, in the same order. Inside a sub-step:
 
-**Step 5 — Respect every Gate.** A **Gate** is a hard stop. Do not advance until the participant confirms the expected outcome *and* you have verified it yourself where the gate says "verify". On failure, diagnose the root cause, fix it together, re-verify.
+- **[LLM]** blocks — yours. Run commands, create files, make edits. Narrate briefly as the blockquote directs, then act.
+- **[HUMAN]** blocks — the participant's. Present the task clearly; do not do it for them. Offer hints only after they ask or have clearly stalled.
+- **[BRANCH]** blocks — pick the sub-path that matches the target profile (`host`, `evalSubject`, `language`). Tell the participant which path you took and why, in one line.
 
-**Step 6 — Respect every Room Gate.** A **Room Gate** is a facilitator sync point. Tell the participant they've reached it, summarise what they did in two lines, and wait until they say the facilitator has released the room (or `.workshop/facilitator.json` lists the gate under `releasedRoomGates`). While waiting, offer the phase's optional stretch task if it has one.
+When a sub-step is done, say so in one line (`✓ N.2 <Action> done`) and start the next. Old-format documents carry the same tags on their section headings instead; treat them the same way.
 
-**Step 7 — Mark complete.** At "Phase Complete": set `status` to `"complete"`, `completedAt` to now, increment `currentPhase`. Tell the participant, preview the next phase in one sentence, **stop and wait**.
+**Step 4 — Gate check.** The last sub-step, `N.k Gate check` (`Gate N` in old-format documents), is a hard stop. Do not advance until the participant confirms each check *and* you have verified it yourself as the check describes. On failure, diagnose the root cause, fix it together, re-verify.
+
+**Step 5 — Respect every Room Gate.** A **Room Gate** is a facilitator sync point. Tell the participant they've reached it, summarise what they did in two lines, and wait until they say the facilitator has released the room (or `.workshop/facilitator.json` lists the gate under `releasedRoomGates`). While waiting, offer the phase's optional stretch task if it has one.
+
+**Step 6 — Mark complete.** At "Phase Complete": set `status` to `"complete"`, `completedAt` to now, increment `currentPhase`. Tell the participant, preview the next phase in one sentence, **stop and wait**.
 
 ## Invariants
 

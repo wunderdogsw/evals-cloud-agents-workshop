@@ -1,0 +1,4 @@
+{"id":"new-agent-setup","expect":"build","phase":11,"request":"11 Discover your agent setup. The attendee finds every agent-facing file in their target (CLAUDE.md, AGENTS.md, .claude/rules, skills, subagents, hooks, MCP config), inspects what actually loads with Claude Code's built-in commands, and marks each file present, missing or out of date."}
+{"id":"rewrite-first-eval","expect":"build","phase":2,"request":"2 Rewrite the existing Phase 2 (Your first eval) into the new phase format. Keep its content and commands; only restructure it."}
+{"id":"new-judge-drift","expect":"build","phase":11,"request":"11 Catch judge drift. Rough idea: after a model change, the attendee re-runs calibration on their existing labels and decides whether the judge can still be trusted."}
+{"id":"out-of-scope-run","expect":"refuse","request":"Start the workshop for me and guide me through Phase 1 on the sample target."}

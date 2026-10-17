@@ -12,7 +12,8 @@
     "agent-evals": "tsx kit/agent-evals/src/cli.ts",
     "workshop": "tsx .agents/assets/workshop.ts",
     "lint:phases": "tsx .agents/assets/lint-phases.ts",
-    "test:phases": "tsx --test .agents/assets/lint-phases.test.ts"
+    "test:phases": "tsx --test .agents/assets/lint-phases.test.ts .agents/assets/eval-build-phase.test.ts",
+    "eval:build-phase": "tsx .agents/assets/eval-build-phase.ts"
   },
   "devDependencies": {
     "tsx": "^4.23.15"
