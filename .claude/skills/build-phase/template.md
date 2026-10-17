@@ -34,7 +34,7 @@
 
 ### [BRANCH]
 
-<Optional. Sub-paths by target profile (host, evalSubject, language). One bullet per path.>
+<Optional. Sub-paths by target profile (host, languages, sample or own repo). One bullet per path.>
 
 ## <N>.2 <Action 2>
 

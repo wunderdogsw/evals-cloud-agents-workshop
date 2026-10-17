@@ -2,9 +2,9 @@
 
 ## What you do
 
-1. **Add a run-and-verify skill** — `/run-skill-generator` records how to build and run the target as `.claude/skills/run-<name>/`.
+1. **Add a run-and-verify skill** — `/run-skill-generator` writes down how to build and run the target, as `.claude/skills/run-<name>/`.
 2. **Enforce one rule with a hook** — add a `PreToolUse` hook with `/update-config`, confirm it in `/hooks`, then break the rule on purpose.
-3. **Set permissions** — `/fewer-permission-prompts`, then review the allow list in `/permissions` and commit everything.
+3. **Set permissions** — run `/fewer-permission-prompts`, then review the allow list in `/permissions` and commit everything.
 
 ## Gate
 
@@ -13,11 +13,11 @@
 
 ## Learning point
 
-A rule that must never break belongs in a hook, not in `CLAUDE.md`. Instructions ask the agent; a hook decides for it.
+If a rule must never be broken, put it in a hook, not in `CLAUDE.md`. An instruction asks the agent to follow a rule, but a hook stops the action that breaks it.
 
 ## Wanted outcome
 
-A complete agent setup committed on the workshop branch, which is the spec that Phases 6–15 measure the agent against.
+A complete agent setup, committed on the workshop branch, that Phases 6–15 use as the standard to measure the agent against.
 
 ---
 
@@ -25,26 +25,26 @@ A complete agent setup committed on the workshop branch, which is the spec that 
 
 ### [LLM]
 
-> Narrate: "Instructions tell the agent what you want. Skills give it a procedure, hooks enforce a rule, and permissions decide what it may do without asking."
+> Narrate: "Instructions tell the agent what you want. A skill gives it steps to follow. A hook blocks actions that break a rule. Permissions decide what it may do without asking you."
 
-Explain: `/run-skill-generator` gets the app running from a clean environment and records what worked (install commands, env vars, launch script) as a project skill. `/run`, `/verify` and other agents in the repo then follow it instead of rediscovering it. Cursor reads `.claude/skills/` too.
+Explain: `/run-skill-generator` starts the app from a clean environment. It writes down what worked (install commands, environment variables, launch script) as a project skill. Then `/run`, `/verify` and other agents in the repo follow that skill, so they don't have to work out the steps again. Cursor reads `.claude/skills/` too.
 
 ### [HUMAN]
 
-In the target session they run `/run-skill-generator` and follow it. Afterwards they read the generated `SKILL.md` and check one thing: do the commands match the ones that worked in Phase 1? They fix any that don't.
+In the target session they run `/run-skill-generator` and follow its steps. Then they read the generated `SKILL.md` and check one thing: do the commands match the ones that worked in Phase 1? They fix any command that doesn't match.
 
 ### [BRANCH]
 
-- **Already good** (a working run or build skill exists) → don't add one. Run `/skill-doctor` in the terminal session (v2.1.252+) and turn off skills that cost context but have never run, at project level only.
-- **The app can't start locally** (needs a cloud service) → let the skill record build and tests only, and note what's missing in the skill.
+- **Already good** (a working run or build skill exists) → don't add one. Run `/skill-doctor` in the terminal session (v2.1.252+). Turn off skills that use context but have never run, at project level only.
+- **The app can't start locally** (it needs a cloud service) → let the skill record only the build and the tests. Write in the skill what is missing.
 
 ## 5.2 Enforce one rule with a hook
 
 ### [LLM]
 
-Help them choose **one** rule from their instruction files that must never break and that a script can check from the tool call alone: a protected directory, a file type nobody hand-edits, a command that must never run. Good candidates block a write or a command; "write good tests" can't be a hook.
+Help them choose **one** rule from their instruction files. The rule must never be broken, and a script must be able to check it from the tool call alone. Examples: a protected directory, a file type nobody edits by hand, or a command that must never run. A good rule for a hook blocks a file write or a command. "Write good tests" can't be a hook.
 
-Explain the contract, from the Claude Code hooks docs: a `PreToolUse` hook gets the tool call as JSON on stdin (`tool_name`, `tool_input`); exit code 2 blocks the call and sends stderr to Claude as the reason. The config goes in the **project** `.claude/settings.json` so it's committed, with the script in `.claude/hooks/`, referenced through `${CLAUDE_PROJECT_DIR}`.
+Explain how a hook works, from the Claude Code hooks docs. A `PreToolUse` hook gets the tool call as JSON on stdin (`tool_name`, `tool_input`). Exit code 2 blocks the call and sends stderr to Claude as the reason. Put the config in the **project** `.claude/settings.json`, so it is committed. Put the script in `.claude/hooks/`, and refer to it through `${CLAUDE_PROJECT_DIR}`.
 
 ### [HUMAN]
 
@@ -54,24 +54,24 @@ They write the request themselves, for example:
 /update-config Add a PreToolUse hook in the project .claude/settings.json for Edit|Write that runs .claude/hooks/protect-data.mjs, and write that script: block any file_path under data/ with exit code 2 and a reason on stderr.
 ```
 
-They read the script before accepting it. Then they restart the target session, check `/hooks` lists it, and **break the rule on purpose**: ask Claude to change a protected file. The hook must block it, and Claude must report the reason.
+They read the script before they accept it. Then they restart the target session and check that `/hooks` lists it. Then they **break the rule on purpose**: they ask Claude to change a protected file. The hook must block the change, and Claude must report the reason.
 
 ### [BRANCH]
 
 - **Target is `sample`** → the rule is "Never edit files under `data/`" from `AGENTS.md`.
-- **Already good** (a blocking hook exists) → don't add one. Trigger the existing hook on purpose and confirm in `/hooks` that it's the project's hook.
-- **They mainly use Cursor** → Cursor's project hooks live in `.cursor/hooks.json` (`"version": 1`), and `preToolUse` can block with exit code 2. Commands run from the project root, so use paths like `.cursor/hooks/protect-data.mjs`. Add it next to the Claude Code hook; one script can serve both if it reads either input.
-- **The hook doesn't fire** → check `claude doctor` for a settings error, the matcher (`Edit|Write`), and that the script is executable or started with `node`.
+- **Already good** (a blocking hook exists) → don't add one. Make the existing hook run on purpose, and confirm in `/hooks` that it is the project's hook.
+- **They mainly use Cursor** → Cursor's project hooks are in `.cursor/hooks.json` (`"version": 1`). A `preToolUse` hook can block with exit code 2. Commands run from the project root, so use paths like `.cursor/hooks/protect-data.mjs`. Add it next to the Claude Code hook. One script can work for both tools if it can read the input from either one.
+- **The hook doesn't run** → check `claude doctor` for a settings error. Check the matcher (`Edit|Write`). Check that the script is executable or is started with `node`.
 
 ## 5.3 Set permissions
 
 ### [LLM]
 
-Explain: `/fewer-permission-prompts` scans past transcripts for common read-only Bash and MCP calls and adds a prioritised allow list to the **project** `.claude/settings.json`. In a repo they've barely used it may find little, and that's fine.
+Explain: `/fewer-permission-prompts` looks through past session transcripts for common read-only Bash and MCP calls. It adds an allow list, sorted by priority, to the **project** `.claude/settings.json`. In a repo they have used only a little, it may find few calls. That is fine.
 
 ### [HUMAN]
 
-In the target session they run `/fewer-permission-prompts`, then `/permissions`, and review every project rule: read-only commands and the test command are fine. Anything that can write outside the repo, push, or run arbitrary code (`Bash(*)`, `Bash(git push:*)`) comes out. If it found nothing, they add the test and typecheck commands themselves.
+In the target session they run `/fewer-permission-prompts`, then `/permissions`. They review every project rule. Read-only commands and the test command are fine. They remove anything that can write outside the repo, push, or run any code (`Bash(*)`, `Bash(git push:*)`). If it found nothing, they add the test and typecheck commands themselves.
 
 Then they commit the setup in the target:
 
@@ -82,7 +82,7 @@ git status --short
 git commit -m "workshop: agent skill, hook and permissions"
 ```
 
-`.claude/settings.local.json` stays uncommitted; it's personal.
+Don't commit `.claude/settings.local.json`. It holds personal settings.
 
 ## 5.4 Gate check
 
@@ -95,4 +95,4 @@ The participant confirms, and you verify:
 
 ## Phase Complete
 
-Mark Phase 5 complete. Preview: "Phase 6 — turn the rules in your new setup into expectations you can check, by code or by a judge."
+Mark Phase 5 complete. Preview: "Phase 6 — turn the rules in your new setup into expectations that code or a judge can check."

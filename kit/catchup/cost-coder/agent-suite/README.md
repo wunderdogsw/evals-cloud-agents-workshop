@@ -9,7 +9,7 @@ The agent evals for this repository: how well a coding agent follows the rules i
 
 The agent never sees this folder: the workshop kit removes it from every task workspace.
 
-Record a run (from the workshop control room, with your own Claude Code or Cursor login):
+Record a run (from the workshop repo, with your own Claude Code or Cursor login):
 
 ```bash
 pnpm agent-evals run targets/<name> --tasks <tasks-file> --agent claude --record targets/<name>/evals/suites/agent

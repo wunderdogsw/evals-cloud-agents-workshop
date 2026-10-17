@@ -1,10 +1,11 @@
 # @workshop/agent-evals
 
-Benchmark coding agents on tasks replayed from a repository's own history.
+Run a coding agent on tasks made from a repository's own merged changes, and grade the result.
 
-For each task: a **history-free snapshot** of the base commit (so the agent can't `git show` the answer) → setup →
-agent → diff → **hidden tests** copied in → test command decides pass/fail. Results use the eval kit's format, so
-`pnpm evals compare` works across agents, models and AGENTS.md versions.
+For each task: a copy of the files at the base commit, **without git history** (so the agent can't look up the real
+solution) → setup → agent → diff → **hidden tests** (the tests from the real change, which the agent never sees) are
+copied in → the test command decides pass or fail. Results use the eval kit's format, so `pnpm evals compare` works
+across agents, models and versions of the agent files.
 
 ```bash
 pnpm agent-evals mine <repo> --test-command "npx vitest run {files}" --since "12 months ago"

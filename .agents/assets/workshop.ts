@@ -252,11 +252,11 @@ function detectCommands(dir: string, files: string[]): Pick<Profile, "languages"
     const pkg = readJson<any>(join(dir, "package.json"), {});
     pm = has("pnpm-lock.yaml") ? "pnpm" : has("yarn.lock") ? "yarn" : has("bun.lockb") || has("bun.lock") ? "bun" : "npm";
     const runner = pm === "npm" ? "npm run" : pm;
-    // pnpm targets without their own workspace file would be swallowed by the control room's workspace.
+    // pnpm targets without their own workspace file would be swallowed by the workshop repo's workspace.
     cmd.install = pm === "pnpm" ? (has("pnpm-workspace.yaml") ? "pnpm install" : "pnpm install --ignore-workspace") : pm === "npm" ? (has("package-lock.json") ? "npm ci" : "npm install") : `${pm} install`;
     if (pkg.scripts?.build) cmd.build = `${runner} build`;
     if (pkg.scripts?.test) cmd.test = pm === "npm" ? "npm test" : `${pm} test`;
-    if (pm === "pnpm" && !has("pnpm-workspace.yaml")) notes.push("pnpm target without pnpm-workspace.yaml: install with --ignore-workspace inside the control room.");
+    if (pm === "pnpm" && !has("pnpm-workspace.yaml")) notes.push("pnpm target without pnpm-workspace.yaml: install with --ignore-workspace inside the workshop repo.");
   }
   if (files.some((f) => f.endsWith(".sln") || f.endsWith(".csproj"))) {
     languages.add("csharp");
@@ -405,7 +405,7 @@ function ensureGitlabInclude(dir: string, localPath: string, p: Profile, stage: 
 /** Agent files the agent-eval recording tracks, when the target has them. */
 const AGENT_TRACK_CANDIDATES = ["CLAUDE.md", "AGENTS.md", ".claude", ".cursor/rules", ".cursor/hooks.json", ".cursor/hooks", ".mcp.json"];
 
-/** Copy the eval runner into <target>/evals/ so CI can run `pnpm verify` without the control room. */
+/** Copy the eval runner into <target>/evals/ so CI can run `pnpm verify` without the workshop repo. */
 function vendorRunner(ev: string, T: string, vars: Record<string, string>, force: boolean, done: string[]) {
   for (const f of ["package.json", "README.md", ".gitignore", "pnpm-workspace.yaml"]) done.push(`evals/${f}: ${copyTemplate(join(T, "evals-folder", f), join(ev, f), vars, force)}`);
   mkdirSync(join(ev, "runner"), { recursive: true });
@@ -607,20 +607,6 @@ function catchup(phase: number, participant?: string) {
     commit("workshop: agent eval threshold (catch-up)");
   }
 
-  // Cloud agents section (Phases 16–19) still builds on the old eval-suite reference work.
-  if (phase > 15) {
-    install(name, ["evals"], { suite: "cost-coder" });
-    const src = join(KIT, "catchup", "cost-coder", "evals", "suites", "cost-coder");
-    const dest = join(dir, "evals", "suites", "cost-coder");
-    cpSync(src, dest, { recursive: true, force: true });
-    writeFileSync(join(dest, "suite.ts"), readFileSync(join(dest, "suite.ts"), "utf8").replace("__CLASSIFY_IMPORT__", "../../../src/classify.ts").replace("__TRACKS__", JSON.stringify(["../../../src/classify.ts", "../../../src/codes.ts", "../../../src/llm"])));
-    commit("workshop: eval suite (catch-up)");
-    // Reference prompt change: tighter rationale rules (v1 → v2 takes the reference suite from ~0% to ~80%).
-    const cls = join(dir, "src", "classify.ts");
-    const v2 = readFileSync(join(KIT, "catchup", "cost-coder", "prompt-v2.txt"), "utf8").replace(/\n+$/, "");
-    writeFileSync(cls, readFileSync(cls, "utf8").replace("Pick the single best cost code for the line.`;", `Pick the single best cost code for the line.${v2}\`;`));
-    commit("feature: rationale rules (prompt v2, catch-up)");
-  }
   if (phase > 18) {
     install(name, ["agents-section", "review-md"], {});
     commit("workshop: agent instructions (catch-up)");
@@ -628,7 +614,7 @@ function catchup(phase: number, participant?: string) {
   run(`git checkout -q -B ${p.workBranch}`, dir);
 
   // CI and cloud-agent files depend on the host, which is unknown until the sample is pushed somewhere.
-  const later = [phase > 14 && "ci-agent-evals", phase > 15 && "ci-evals", phase > 16 && "cursor-env"].filter(Boolean) as string[];
+  const later = [phase > 14 && "ci-agent-evals", phase > 16 && "cursor-env"].filter(Boolean) as string[];
 
   const progress = readJson<any>(PROGRESS, initialProgress());
   const now = new Date().toISOString();
@@ -651,10 +637,6 @@ function catchup(phase: number, participant?: string) {
   if (phase > 14) {
     log(`! The agent gate needs a recording made with your own Claude Code or Cursor login:`);
     log(`    pnpm agent-evals run targets/${name} --tasks .workshop/targets/${name}/agent-tasks/tasks.jsonl --agent claude --setup "pnpm install --ignore-workspace" --record targets/${name}/evals/suites/agent`);
-  }
-  if (phase > 15) {
-    log(`! The CI gate needs a recording made with a real model (your Claude Code or Cursor login):`);
-    log(`    pnpm --dir targets/${name}/evals eval suites/cost-coder/suite.ts --record   # then commit evals/suites/cost-coder/last-run.json on main`);
   }
 }
 
@@ -693,7 +675,7 @@ function lastJson(s: string): any {
   return {};
 }
 
-/** The push guard as a Claude Code hook, for headless runs that start outside the control room. */
+/** The push guard as a Claude Code hook, for headless runs that start outside the workshop repo. */
 const GUARD_SETTINGS = JSON.stringify({
   hooks: { PreToolUse: [{ matcher: "Bash", hooks: [{ type: "command", command: `node ${JSON.stringify(join(ROOT, ".agents", "assets", "push-guard.mjs"))}` }] }] },
 });
@@ -765,7 +747,7 @@ ${body}
 You are working unattended on branch ${branch}; nobody can answer questions, so make reasonable assumptions and list them at the end.
 - Follow AGENTS.md / CLAUDE.md.
 - Run the tests.
-- Before you finish, run the eval gate exactly as CI will: \`pnpm --dir evals verify suites/<suite>/suite.ts\` for each suite in evals/suites/. If it says "stale", re-run that suite with \`--record\` (see evals/README.md), and commit the updated last-run.json. If the recorded run misses the threshold, fix the cause — never edit cases, thresholds or last-run.json by hand.
+- Do not edit evals/suites/agent/ (rule graders, rubrics, thresholds, last-run.json). If evals/suites/agent/last-run.json exists, run the agent eval gate exactly as CI will: \`pnpm --dir evals verify suites/agent\`. If it says "stale" because you changed an agent file (CLAUDE.md, AGENTS.md, .claude/, .cursor/), say so in your summary: a person must record the agent evals again.
 - Commit your work with clear messages. Do not push.
 - Finish with a short summary: what you changed, what you assumed, what you did not do.`;
   log(`… running ${agent} (this can take several minutes)`);

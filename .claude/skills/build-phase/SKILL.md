@@ -22,9 +22,18 @@ Copy the structure of [template.md](template.md) exactly. `pnpm lint:phases` enf
 5. **One sub-step per action**, same label, same order: action 1 is `## N.1 <Action 1>`, and so on. Inside each sub-step:
    - `### [LLM]` (optional, first): guide-only preparation for this action. There are no separate setup sub-steps; setup goes into the sub-step it serves.
    - `### [HUMAN]` (required): the attendee's task.
-   - `### [BRANCH]` (optional): sub-paths by target profile (`host`, `evalSubject`, `language`).
+   - `### [BRANCH]` (optional): sub-paths by target profile (`host`, `languages`, sample or own repo).
 6. **`## N.k Gate check`** is the last sub-step. It repeats every Gate check as `- [ ] <check> — <how the guide verifies it>`.
 7. Optional `## Room Gate`, then `## Phase Complete` with `Mark Phase N complete. Preview: "…"`.
+
+## Plain language
+
+Readers include people who read English as a second language. Write so an 18-year-old who knows basic programming understands every sentence on first read:
+
+- No metaphors, idioms, jokes or hype. Say the literal thing ("only reports numbers", not "is just a dashboard").
+- Short sentences, one idea each. Active voice: "Run X." "They write Y."
+- Explain a technical term the first time a doc uses it, in a few plain words (stale: a tracked file changed after the recording).
+- Commands, paths and flags stay exact.
 
 ## Phases must chain
 

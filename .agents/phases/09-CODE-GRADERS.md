@@ -2,9 +2,9 @@
 
 ## What you do
 
-1. **Write a grader per code rule** — one entry in `evals/suites/agent/rules.mjs` for each picked rule checked by code.
-2. **Prove each grader** — `pnpm agent-evals grade-patch`: a planted violation fails, a clean change passes.
-3. **Re-grade the baseline** — `pnpm agent-evals regrade` scores both Phase 8 runs per rule, without a new agent run.
+1. **Write a grader per code rule** — add one entry in `evals/suites/agent/rules.mjs` for each picked rule that code checks.
+2. **Prove each grader** — run `pnpm agent-evals grade-patch` to show that a planted violation fails and a clean change passes.
+3. **Re-grade the baseline** — run `pnpm agent-evals regrade` to score both Phase 8 runs for each rule, without running the agent again.
 
 ## Gate
 
@@ -14,11 +14,11 @@
 
 ## Learning point
 
-Use code wherever a rule allows it. A code grader is cheap, fast and can't be argued with.
+Use code to check a rule whenever the rule allows it. A code grader costs little, runs fast and always gives the same answer.
 
 ## Wanted outcome
 
-Committed rule graders and a re-graded baseline with a score per code rule, which Phase 12 compares against.
+You have committed rule graders and a re-graded baseline with a score for each code rule, and Phase 12 compares new runs against this baseline.
 
 ---
 
@@ -26,7 +26,7 @@ Committed rule graders and a re-graded baseline with a score per code rule, whic
 
 ### [LLM]
 
-> Narrate: "In Phase 8 you checked the rules by eye. Now code checks them, every run, in seconds."
+> Narrate: "In Phase 8 you checked the rules by reading the diffs. Now code checks them on every run, in a few seconds."
 
 Create the agent suite folder in the target:
 
@@ -34,24 +34,29 @@ Create the agent suite folder in the target:
 pnpm workshop install <name> agent-suite
 ```
 
-It adds `evals/suites/agent/` with `README.md`, `agent-suite.json` and `rules.mjs`. Walk through the header of `rules.mjs`: a grader is `{ name, description, tasks?, grade(ctx) }`, it sees the change and not the agent's words, and it returns `{ pass, reason }`. `ctx.touched("data/**")`, `ctx.added("src/*.ts")` and `ctx.patch` cover most rules; `ctx.run("<command>")` runs a command in the task workspace. The file imports nothing, because the kit loads it from the target.
+It adds `evals/suites/agent/` with `README.md`, `agent-suite.json` and `rules.mjs`. Explain the header of `rules.mjs` with them:
+- A grader is `{ name, description, tasks?, grade(ctx) }`.
+- It sees the code change, not the agent's messages.
+- It returns `{ pass, reason }`.
+- `ctx.touched("data/**")`, `ctx.added("src/*.ts")` and `ctx.patch` are enough for most rules. `ctx.run("<command>")` runs a command in the task workspace.
+- The file imports nothing, because the kit loads it from the target.
 
 ### [HUMAN]
 
-They write one grader per picked **code** rule from `expectations.md`, named by its id (`R3`, `R4`). `tasks` limits a rule to the tasks where it can apply, from the Tasks column. Each `reason` says what broke, so a failing grade explains itself.
+They write one grader for each picked **code** rule from `expectations.md`, named by its id (`R3`, `R4`). `tasks` limits a rule to the tasks where it can apply. They take these from the Tasks column. Each `reason` says what broke, so a failing grade explains itself.
 
-Review each grader for one thing: can it pass on a change that breaks the rule? Ask them for the cheapest violation that would slip through.
+Review each grader for one question: can it pass on a change that breaks the rule? Ask them for the smallest change that breaks the rule but still passes the grader.
 
 ### [BRANCH]
 
-- **Target is `sample`** → expected graders: R1 (no real model client in tests), R3 (each new `src/<m>.ts` has `test/<m>.test.ts`), R4 (nothing under `data/`). Compare with `kit/catchup/cost-coder/agent-suite/rules.mjs` only after theirs work.
-- **A rule needs a command** (lint clean, typecheck) → use `ctx.run`. Warn that a re-grade of an old run can't run commands, because the workspace may be gone; those rules only score on fresh runs.
+- **Target is `sample`** → expected graders: R1 (no real model client in tests), R3 (each new `src/<m>.ts` has `test/<m>.test.ts`), R4 (nothing under `data/`). Compare with `kit/catchup/cost-coder/agent-suite/rules.mjs` only after their graders work.
+- **A rule needs a command** (lint clean, typecheck) → use `ctx.run`. Warn them about one limit. A re-grade of an old run can't run commands, because the workspace may no longer exist. These rules only get a score on new runs.
 
 ## 9.2 Prove each grader
 
 ### [LLM]
 
-Show how to make a planted violation as a patch, without touching the workshop branch:
+A planted violation is a change you make on purpose that breaks the rule. Show how to save one as a patch file without changing the workshop branch:
 
 ```bash
 cd targets/<name>
@@ -63,13 +68,13 @@ pnpm agent-evals grade-patch targets/<name> --tasks <tasks-file> --task <id> --s
   --rules targets/<name>/evals/suites/agent/rules.mjs --patch .workshop/targets/<name>/planted-r4.diff
 ```
 
-`--reference` instead of `--patch` grades the real solution, which should pass every rule it applies to.
+If you use `--reference` instead of `--patch`, the command grades the real solution. The real solution should pass every rule that applies to it.
 
 ### [HUMAN]
 
-For each grader, they plant one violation and run `grade-patch`: the grader must fail with its reason. Then they run `grade-patch --reference` on a task the rule applies to: it must pass. A grader that fails the reference is either wrong or catching a real gap in the reference; they decide which.
+For each grader, they make one planted violation and run `grade-patch`. The grader must fail and give its reason. Then they run `grade-patch --reference` on a task the rule applies to. The grader must pass. If a grader fails the reference, there are two possible causes: the grader is wrong, or the reference breaks the rule. They decide which one it is.
 
-When all graders are proven, they commit:
+When every grader has passed both checks, they commit:
 
 ```bash
 git -C targets/<name> add evals/suites/agent
@@ -80,22 +85,22 @@ git -C targets/<name> commit -m "workshop: rule graders"
 
 ### [LLM]
 
-Re-grade both Phase 8 runs. With two runs, task ids become `baseline-with/<task>` and `baseline-without/<task>`, so one table shows both:
+To regrade a run means to score its stored code changes again with the current graders, without running the agent again. Regrade both Phase 8 runs. With two runs, the task ids become `baseline-with/<task>` and `baseline-without/<task>`, so one table shows both runs:
 
 ```bash
 pnpm agent-evals regrade baseline-with baseline-without --rules targets/<name>/evals/suites/agent/rules.mjs --label graded
 pnpm agent-evals regrade baseline-with --rules targets/<name>/evals/suites/agent/rules.mjs --label baseline-graded
 ```
 
-The second command gives the "with" run its own re-graded copy for Phase 12.
+The second command makes a separate re-graded copy of the "with" run for Phase 12.
 
 ### [HUMAN]
 
-They read the `rule:` rows and compare each failure with their `agent-notes.md` from Phase 8. Where the grader and their notes disagree, one of them is wrong: they find out which and fix the grader or the note.
+They read the `rule:` rows and compare each failure with their `agent-notes.md` from Phase 8. If the grader and their notes disagree, one of them is wrong. They find out which one and fix the grader or the note.
 
 ## 9.4 Gate check
 
-The participant confirms, and you verify:
+The participant confirms each item, and you verify it:
 
 - [ ] Every picked code rule has a grader, committed on the workshop branch. — compare the code rows in `expectations.md` with `rules.mjs`, and `git -C targets/<name> log -1 --stat`
 - [ ] Each grader failed a planted violation and passed a clean change. — the `grade-patch` outputs from 9.2
@@ -105,4 +110,4 @@ The participant confirms, and you verify:
 
 ## Phase Complete
 
-Mark Phase 9 complete. Preview: "Phase 10 — for the rules code can't check, write a rubric and label the baseline by hand before any judge exists."
+Mark Phase 9 complete. Preview: "Phase 10 — for the rules that code can't check, write a rubric and label the baseline by hand before you build a judge."

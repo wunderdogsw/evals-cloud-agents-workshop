@@ -2,49 +2,49 @@
 
 ## Overview
 
-You'll run several cloud agents in parallel on a small backlog, then act as the merge gatekeeper: every MR/PR is judged by the eval gate, tests, the review agent, and your own review. The question isn't "can agents write code" — it's "what would it take for you to merge their work without rewriting it?"
+You run several agents at the same time on a small backlog. Then you decide which MRs/PRs to merge. Each one is checked by the CI pipeline, the tests, your rules, the review agent and your own review. The question is not "can agents write code". The question is: "what would you need to see before you merge their work without rewriting it?"
 
 ---
 
 ## 19.1 [HUMAN] Pick the backlog
 
-3–5 issues. Sample: the remaining `BACKLOG.md` items, including at least one open-ended one (6 or 7). Own repo: real small issues, or the Phase 7 tasks phrased as issues. Each issue gets acceptance criteria.
+They pick 3–5 issues. Sample: the remaining `BACKLOG.md` items, including at least one with an open answer (6 or 7). Own repo: real small issues, or the Phase 7 tasks written as issues. Each issue gets acceptance criteria.
 
 ## 19.2 [HUMAN] Assign and launch
 
-They decide which agent gets which issue and why (one line each in `agent-notes.md`), within the agreed budget — any mix of `pnpm workshop delegate` (Claude Code or Cursor CLI, one terminal each), Cursor cloud agents, and Claude Code cloud sessions for GitHub repos. Every agent starts from the workshop branch and opens its MR/PR into it. Launch them all, then step away from the keyboard for a few minutes. That's the point.
+They decide which agent gets which issue and why, one line each in `agent-notes.md`, within the agreed budget. They can use any mix of `pnpm workshop delegate` (Claude Code or Cursor CLI, one terminal each), Cursor cloud agents, and Claude Code cloud sessions for GitHub repos. Every agent starts from the workshop branch and opens its MR/PR into it. They start all agents, then leave the keyboard for a few minutes. Working on something else while the agents run is the point of this phase.
 
 ## 19.3 [LLM] Collect evidence
 
-When the MRs/PRs are up, run a reviewer on each (`pnpm workshop review <name> <branch>`, or read Bugbot's comments), then build a table in `agent-notes.md` from what you can read (eval gate status — pass / stale / below threshold, review findings, diff size via `git diff --stat`):
+When the MRs/PRs are open, run a reviewer on each (`pnpm workshop review <name> <branch>`, or read Bugbot's comments). Then build a table in `agent-notes.md` from what you can read: CI status (tests, and the agent eval gate: pass or stale), rules broken, review findings, and diff size from `git diff --stat`:
 
-| Issue | Agent + where | Eval gate | Tests | Review findings | Diff size |
+| Issue | Agent + where | CI | Rules broken | Review findings | Diff size |
 |---|---|---|---|---|---|
 
-Do not give a merge recommendation. That's theirs.
+Do not recommend what to merge. That decision is theirs.
 
 ## 19.4 [HUMAN] Triage
 
-For each MR/PR: **merge**, **request changes**, or **close**, with one reason. Merge the ones they'd genuinely merge into the workshop branch (confirm before you do anything); nothing goes to the default branch. Iterate once on a "request changes" via an agent (a follow-up `delegate`, a message to the cloud agent, or their editor's assistant) and see if it converges.
+For each MR/PR they choose **merge**, **request changes** or **close**, with one reason. They merge the ones they would really merge, into the workshop branch only (confirm before you do anything). Nothing goes to the default branch. For one "request changes", they ask an agent for one more round (a follow-up `delegate`, a message to the cloud agent, or their editor's assistant) and check whether the result is now good enough.
 
 ## 19.5 [HUMAN] Retro
 
-Three questions, short answers, in `agent-notes.md`:
+Three questions, with short answers, in `agent-notes.md`:
 
-1. Which kind of task would you delegate to a cloud agent on Monday — and which never?
-2. What's missing from your evals/tests that would let you trust agent MRs more?
-3. One change to your repo (instructions, tests, CI) you'll actually make next week.
+1. Which kind of task would you give to a cloud agent next week, and which kind never?
+2. What is missing from your evals and tests before you could trust agent MRs more?
+3. Which one change to your repo (instructions, tests, CI) will you make next week?
 
 ## Gate 19
 
-- [ ] ≥ 3 agent MRs/PRs triaged with a reason each
-- [ ] Retro answered
+- [ ] At least 3 agent MRs/PRs decided (merge, request changes or close), each with a reason
+- [ ] The three retro questions are answered
 
 ---
 
 ## Phase Complete
 
-Mark Phase 19 complete. Congratulate them briefly. Remind them what they're leaving with in their repo: an eval suite with a calibrated judge, a CI gate, agent instructions, a review agent, and a benchmark of agent tasks from their own history. Everything is still on `dev-days-workshop/*` branches; their default branch hasn't changed. If they want to keep parts, they open an MR into their default branch themselves, through their team's normal review — you don't do it for them.
+Mark Phase 19 complete. Congratulate them briefly. Remind them what is now in their repo: checked agent instructions, a hook, rule graders, judge rubrics checked against their labels, a CI gate for the agent setup, a review agent, and agent tasks from their own history. Everything is still on `dev-days-workshop/*` branches; their default branch hasn't changed. If they want to keep parts, they open an MR into their default branch themselves, through their team's normal review. You don't do it for them.
 
 Then run the cleanup as a dry run and walk through the list with them:
 
@@ -52,4 +52,4 @@ Then run the cleanup as a dry run and walk through the list with them:
 pnpm workshop cleanup <name>
 ```
 
-Run it with `--yes` only when they confirm, and only for what they want gone. Their workshop branches can stay as long as they're useful; the cleanup works any time.
+Run it with `--yes` only when they confirm, and only for what they want removed. Their workshop branches can stay as long as they need them. The cleanup works at any time.

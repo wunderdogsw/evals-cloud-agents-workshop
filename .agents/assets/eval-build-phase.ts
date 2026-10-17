@@ -5,7 +5,7 @@
  *                         [--max-budget-usd 3] [--timeout-min 20] [--keep]
  *
  * For each case in .claude/skills/build-phase/evals/cases.jsonl:
- *   1. copy the control room (tracked + untracked, not ignored files) into a throwaway git repo,
+ *   1. copy the workshop repo (tracked + untracked, not ignored files) into a throwaway git repo,
  *      so uncommitted edits to the skill are what gets evaluated;
  *   2. run the agent headless on the case's request;
  *   3. grade the result with the phase linter (lint-phases.ts) and a few checks on what changed.

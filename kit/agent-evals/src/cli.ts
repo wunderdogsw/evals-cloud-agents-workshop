@@ -39,7 +39,7 @@ const HELP = `agent-evals — benchmark coding agents on your own repo
   agent-evals grade-patch <repo> --tasks tasks.jsonl --task <id> (--patch change.diff | --reference) --rules rules.ts
       Prove a grader: apply a planted violation (or the reference solution) to the task's base and grade it.
 
-Results land in <control-room>/.eval-runs/ in the same format as the eval kit,
+Results land in <workshop-repo>/.eval-runs/ in the same format as the eval kit,
 so "pnpm evals compare <a> <b>" compares two agents or two AGENTS.md versions.`;
 
 async function loadTasks(path: string): Promise<AgentTask[]> {
@@ -119,7 +119,7 @@ async function main() {
   if (!cmd || values.help || cmd === "help") return console.log(HELP);
   const repo = resolve(positionals[0] ?? ".");
   const outDir = join(root, ".eval-runs");
-  // Agent workspaces live OUTSIDE the control room: no parent CLAUDE.md/AGENTS.md from the guide,
+  // Agent workspaces live OUTSIDE the workshop repo: no parent CLAUDE.md/AGENTS.md from the guide,
   // and the hidden tests in .workshop/ are not a `cd ..` away.
   const runsRoot = resolve(process.env.WORKSHOP_RUNS_DIR ?? join(tmpdir(), "workshop-agent-runs"));
 
