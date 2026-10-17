@@ -163,3 +163,30 @@ describe("tag thresholds and regrade", () => {
     expect(again.summary.graders.map((g) => g.name)).toEqual(["exact:a", "shape"]);
   });
 });
+
+describe("providers", () => {
+  it("extracts JSON from Cursor-style free text", async () => {
+    const { extractJsonObject } = await import("../src/llm.ts");
+    expect(extractJsonObject('Sure! ```json\n{"pass": true, "reasoning": "a } inside"}\n```')).toEqual({ pass: true, reasoning: "a } inside" });
+    expect(extractJsonObject('{"a":{"b":1}} trailing')).toEqual({ a: { b: 1 } });
+  });
+
+  it("claude-code client passes schema and model and reads structured_output", async () => {
+    const { mkdtemp, writeFile, readFile } = await import("node:fs/promises");
+    const { tmpdir } = await import("node:os");
+    const { join } = await import("node:path");
+    const dir = await mkdtemp(join(tmpdir(), "cc-"));
+    const argsFile = join(dir, "args.json");
+    const bin = join(dir, "claude");
+    await writeFile(bin, `#!/usr/bin/env node\nrequire("fs").writeFileSync(${JSON.stringify(argsFile)}, JSON.stringify(process.argv.slice(2)));\nconsole.log(JSON.stringify({type:"result",subtype:"success",is_error:false,structured_output:{pass:true,score:1,reasoning:"ok"},total_cost_usd:0.002,usage:{input_tokens:10,output_tokens:3}}));\n`, { mode: 0o755 });
+    const { claudeCodeClient } = await import("../src/llm.ts");
+    const r = await claudeCodeClient(bin).structured<{ pass: boolean }>({ model: "claude-haiku-5-5", prompt: "judge `this` $now", schema: { type: "object" }, system: "be strict" });
+    const argv = JSON.parse(await readFile(argsFile, "utf8"));
+    expect(r.data.pass).toBe(true);
+    expect(r.costUsd).toBe(0.002);
+    expect(argv[1]).toBe("judge `this` $now");
+    expect(argv).toContain("--json-schema");
+    expect(argv[argv.indexOf("--tools") + 1]).toBe("");
+    expect(argv[argv.indexOf("--model") + 1]).toBe("claude-haiku-5-5");
+  });
+});

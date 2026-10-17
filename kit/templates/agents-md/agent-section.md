@@ -12,7 +12,7 @@ You are often running unattended (CI job, cloud agent). There is no one to ask.
 ### Definition of done
 1. The change does what the issue asks — re-read the issue before finishing.
 2. Tests pass. New behaviour has a test next to the code it covers.
-3. If you touched the LLM feature (prompt, model, parsing): run the evals and paste the summary table into the MR/PR description. A regression on any case tagged `critical` blocks the change.
+3. If you touched the LLM feature (prompt, model, parsing): run the evals and paste the summary table into the MR/PR description. A regression on any case tagged `critical` blocks the change. If no model provider is available where you run (no Claude Code / Cursor login), say so in the description — the CI eval gate runs them on the MR/PR anyway.
 4. The MR/PR description says what you changed, what you assumed, and what you did not do.
 
 ### Boundaries

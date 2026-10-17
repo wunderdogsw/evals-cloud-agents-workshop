@@ -4,7 +4,8 @@
 #   include:
 #     - local: .gitlab/ci/workshop-claude-review.yml
 #
-# CI/CD variables: ANTHROPIC_API_KEY (masked), GITLAB_ACCESS_TOKEN (masked, api scope).
+# CI/CD variables: CLAUDE_CODE_OAUTH_TOKEN (masked, from `claude setup-token`; or ANTHROPIC_API_KEY),
+# GITLAB_ACCESS_TOKEN (masked, api scope).
 # Read-only: the agent may read files and run git diff/log, nothing else.
 
 workshop-claude-review:

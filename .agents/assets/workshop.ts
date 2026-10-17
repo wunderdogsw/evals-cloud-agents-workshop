@@ -373,8 +373,9 @@ function installOne(name: string, component: string, opts: { suite?: string; for
       if (!existsSync(join(dir, "evals"))) die("install `evals` first");
       mkdirSync(sub, { recursive: true });
       for (const f of ["classify.ts", "codes.ts"]) cpSync(join(ROOT, "samples", "cost-coder", "src", f), join(sub, f));
+      cpSync(join(ROOT, "samples", "cost-coder", "src", "llm"), join(sub, "llm"), { recursive: true });
       cpSync(join(ROOT, "samples", "cost-coder", "data"), join(sub, "data"), { recursive: true });
-      done.push("evals/subject/cost-coder/: classify.ts, codes.ts, data/ — import from ../../subject/cost-coder/classify.ts");
+      done.push("evals/subject/cost-coder/: classify.ts, codes.ts, llm/, data/ — import from ../../subject/cost-coder/classify.ts");
       break;
     }
     case "ci-evals":

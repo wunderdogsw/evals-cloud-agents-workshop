@@ -1,5 +1,5 @@
-import Anthropic from "@anthropic-ai/sdk";
 import { COST_CODES, isCostCode, type CostCode } from "./codes.ts";
+import { llm } from "./llm/llm.ts";
 
 export interface InvoiceLine {
   /** Free-text line description as it appears on the supplier invoice (often Finnish, often abbreviated). */
@@ -53,22 +53,21 @@ export function formatLine(line: InvoiceLine): string {
   return parts.join("\n");
 }
 
-let client: Anthropic | undefined;
-
+/**
+ * Calls Claude through whichever provider is available (see src/llm/llm.ts):
+ * your Claude Code login (default), the Cursor CLI, or ANTHROPIC_API_KEY.
+ */
 export async function classifyLine(line: InvoiceLine): Promise<Classification> {
   if (process.env.EVALS_MOCK === "1" || process.env.COST_CODER_MOCK === "1") return mockClassify(line);
-  client ??= new Anthropic();
-  const res = await client.messages.create({
+  const res = await llm().structured<Classification>({
     model: MODEL,
-    max_tokens: 400,
     system: SYSTEM_PROMPT,
-    tools: [TOOL],
-    tool_choice: { type: "tool", name: TOOL.name },
-    messages: [{ role: "user", content: formatLine(line) }],
+    prompt: formatLine(line),
+    schema: TOOL.input_schema,
+    toolName: TOOL.name,
+    maxTokens: 400,
   });
-  const block = res.content.find((b) => b.type === "tool_use");
-  if (!block || block.type !== "tool_use") throw new Error("model did not return a classification");
-  return parseClassification(block.input);
+  return parseClassification(res.data);
 }
 
 export function parseClassification(raw: unknown): Classification {

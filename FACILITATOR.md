@@ -6,8 +6,8 @@
 - [ ] **Pick target repos** with the customer. Good targets: builds in < 5 min, has a test suite, has ≥ 20 merged MRs/PRs that touched tests, ideally already calls an LLM somewhere.
 - [ ] **Mirror targets** into a workshop group/org (`<group>/workshop-<repo>`). Agents, CI minutes and messy MRs never touch production projects.
 - [ ] **GitLab tier.** Cursor cloud agents need GitLab Premium/Ultimate (project access tokens). Confirm.
-- [ ] **Cursor**: connect the GitLab/GitHub integration in the Cursor dashboard (needs Cursor admin + GitLab maintainer), sync repos, set a spend limit, add secrets (`ANTHROPIC_API_KEY` if the target needs it at test time).
-- [ ] **Claude**: API keys per participant or per team with spend limits. The templates use the Claude API; Claude Code's GitLab integration also supports Bedrock and Google Cloud (OIDC) — adapt `workshop-claude-agent.yml` from the docs if the customer needs that.
+- [ ] **Cursor**: connect the GitLab/GitHub integration in the Cursor dashboard (needs Cursor admin + GitLab maintainer), sync repos, set a spend limit, add secrets the target needs at test time.
+- [ ] **Claude — no API keys.** Everything runs on participants' Claude subscriptions: locally through their Claude Code login (`claude -p`), in CI through `CLAUDE_CODE_OAUTH_TOKEN` from `claude setup-token`. Confirm with the customer's Claude admin that `claude setup-token` is allowed for their seats and that runners can reach Anthropic. Expect subscription rate limits with 40-case suites × a room — keep `--concurrency` low (2–4). Fallback provider: Cursor CLI (`EVALS_PROVIDER=cursor`, `CURSOR_API_KEY` in CI).
 - [ ] **CI runners** that can build each target and reach `api.anthropic.com`.
 
 ## One week before — dry run (mandatory)
@@ -48,6 +48,6 @@ The guide reads this at start-up and passes `models` on as `EVAL_TASK_MODEL` / `
 
 ## Costs (rough)
 
-- Day 1 evals with Haiku-class models: cents per run.
-- Phase 6 agent evals: a few dollars per participant per full run. Cap with `--max-budget-usd`.
+- Everything draws on participants' Claude (and Cursor) subscriptions — no separate API bill. The "cost" figures the tools print are Claude Code's API-equivalent estimates: useful for comparing runs, not an invoice.
+- Phase 6 agent runs are the heaviest usage; keep `--concurrency 2` and 5–10 tasks.
 - Day 2: set Cursor spend limits and Claude key limits up front.

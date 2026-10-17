@@ -51,10 +51,18 @@ Check `TARGET_INSTALL` in the job: it must install the target's dependencies if 
 
 ## 5.4 [HUMAN] Add the secret
 
-They add `ANTHROPIC_API_KEY`:
+CI has no logged-in user, so the job authenticates Claude Code with a long-lived token from the participant's subscription:
+
+```bash
+claude setup-token      # in their own terminal; approve in the browser; copy the printed token
+```
+
+They add it as `CLAUDE_CODE_OAUTH_TOKEN` (never paste it into chat):
 
 - GitLab: *Settings → CI/CD → Variables* — masked, **not** protected (MR pipelines from unprotected branches must see it). Optional `GITLAB_ACCESS_TOKEN` (project access token, `api` scope) lets the job post the eval summary as an MR note.
 - GitHub: *Settings → Secrets and variables → Actions → New repository secret.*
+
+Say it plainly: CI runs now count against *their* subscription's usage, and anyone who can edit the pipeline in that project could use the token — fine for a workshop mirror, a decision for the team in a real repo. Alternatives: `EVALS_PROVIDER=cursor` + `CURSOR_API_KEY`, or `EVALS_PROVIDER=api` + `ANTHROPIC_API_KEY` where the organisation allows it.
 
 ## 5.5 [LLM] Green run
 
@@ -79,7 +87,7 @@ Verify:
 
 - [ ] Default branch contains `evals/` and the CI job
 - [ ] One MR/PR had a passing eval job; one had a failing eval job that named the failing cases
-- [ ] The secret is configured (job didn't fail on auth)
+- [ ] `CLAUDE_CODE_OAUTH_TOKEN` (or the chosen alternative) is configured — the job didn't fail on auth
 
 ## Room Gate 5
 

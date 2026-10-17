@@ -15,4 +15,4 @@ pnpm calibrate latest --labels suites/<name>/labels.jsonl --grader judge
 - `suites/<name>/suite.ts` — task + graders + threshold.
 - `suites/<name>/cases.jsonl` — the dataset. This is the valuable part.
 
-`ANTHROPIC_API_KEY` is read from the environment or a `.env` in this folder or any parent. `EVALS_MOCK=1` runs offline fakes.
+Model calls go through your Claude Code login by default (`claude -p`, no API key). `EVALS_PROVIDER=cursor` uses the Cursor CLI, `EVALS_PROVIDER=api` uses `ANTHROPIC_API_KEY`. Settings are read from the environment or a `.env` in this folder or any parent. In CI, set `CLAUDE_CODE_OAUTH_TOKEN` (from `claude setup-token`). `EVALS_MOCK=1` runs offline fakes.

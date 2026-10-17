@@ -4,7 +4,7 @@ Classifies construction purchase-invoice lines to cost codes with Claude.
 
 ```bash
 pnpm install
-pnpm classify "Telinevuokra 4 vk"          # needs ANTHROPIC_API_KEY in .env
+pnpm classify "Telinevuokra 4 vk"          # uses your Claude Code login (or Cursor CLI / ANTHROPIC_API_KEY)
 COST_CODER_MOCK=1 pnpm classify "Telinevuokra 4 vk"   # offline keyword fake
 pnpm test
 ```

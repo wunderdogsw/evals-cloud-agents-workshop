@@ -49,7 +49,7 @@ evals-cloud-agents-workshop/       ← open THIS in Cursor / Claude Code
 - Node.js 22+ and pnpm (`corepack enable`)
 - Git
 - Cursor and/or Claude Code
-- An Anthropic API key (provided by facilitators, or your own)
+- A Claude subscription (Claude Code logged in) — the evals call Claude through it, **no API key needed**. Cursor's CLI works as a fallback.
 - For Day 2: a GitLab project (Premium/Ultimate for Cursor cloud agents) **or** a GitHub repo you can push to, with CI enabled
 
 ## From zero to action

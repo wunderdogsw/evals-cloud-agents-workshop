@@ -7,7 +7,8 @@
 #     - local: .gitlab/ci/workshop-claude-agent.yml
 #
 # CI/CD variables:
-#   ANTHROPIC_API_KEY     masked
+#   CLAUDE_CODE_OAUTH_TOKEN  masked — from `claude setup-token` (Claude subscription; no API key needed).
+#                            Or ANTHROPIC_API_KEY if your org uses API keys.
 #   GITLAB_ACCESS_TOKEN   masked — project access token, role Developer+, scopes: api, write_repository
 #
 # Run it: Build → Pipelines → Run pipeline, add ONE of

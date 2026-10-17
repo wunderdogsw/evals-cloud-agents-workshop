@@ -5,8 +5,11 @@
 #     - local: .gitlab/ci/workshop-evals.yml
 #
 # CI/CD variables (Settings → CI/CD → Variables):
-#   ANTHROPIC_API_KEY      masked — needed unless EVALS_MOCK=1 (plus any other keys the feature under test needs)
-#   GITLAB_ACCESS_TOKEN    optional, masked — project access token (api scope) to post the summary as an MR note
+#   CLAUDE_CODE_OAUTH_TOKEN  masked — from `claude setup-token` (uses a Claude Pro/Max/Team/Enterprise subscription,
+#                            no API key). Model calls go through Claude Code on the runner (EVALS_PROVIDER=claude-code).
+#                            Alternatives: EVALS_PROVIDER=api + ANTHROPIC_API_KEY, or EVALS_PROVIDER=cursor + CURSOR_API_KEY.
+#   GITLAB_ACCESS_TOKEN      optional, masked — project access token (api scope) to post the summary as an MR note
+#   (plus any other keys the feature under test needs)
 #
 # The job fails the pipeline when the suite's threshold is not met. Protect the default branch with
 # "Pipelines must succeed" and the eval becomes a merge gate.
@@ -18,6 +21,7 @@ workshop-evals:
     EVAL_SUITE: "suites/__SUITE__/suite.ts"
     # Command that installs the target's own dependencies, if the suite imports target code. Empty = skip.
     TARGET_INSTALL: "__TARGET_INSTALL__"
+    EVALS_PROVIDER: "claude-code"
   # MR pipelines + the default branch. (Not "web": manual pipelines are for the Claude agent job.)
   # If the project also runs branch pipelines you'll get duplicates — consider a workflow:rules block.
   rules:
@@ -30,6 +34,8 @@ workshop-evals:
       - .pnpm-store/
   before_script:
     - corepack enable
+    - if [ "$EVALS_PROVIDER" = "claude-code" ]; then curl -fsSL https://claude.ai/install.sh | bash; export PATH="$HOME/.local/bin:$PATH"; fi
+    - if [ "$EVALS_PROVIDER" = "cursor" ]; then curl -fsS https://cursor.com/install | bash; export PATH="$HOME/.local/bin:$PATH"; fi
     - pnpm config set store-dir "$CI_PROJECT_DIR/.pnpm-store"
     - if [ -n "$TARGET_INSTALL" ]; then sh -c "$TARGET_INSTALL"; fi
     - cd evals && pnpm install

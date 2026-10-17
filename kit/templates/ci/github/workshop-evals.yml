@@ -1,6 +1,8 @@
 # Eval gate — GitHub Actions. Installed at .github/workflows/workshop-evals.yml
 #
-# Secrets: ANTHROPIC_API_KEY (Settings → Secrets and variables → Actions)
+# Secrets (Settings → Secrets and variables → Actions):
+#   CLAUDE_CODE_OAUTH_TOKEN — from `claude setup-token` (Claude subscription; no API key). Model calls go through
+#   Claude Code on the runner. Alternatives: EVALS_PROVIDER=api + ANTHROPIC_API_KEY, or cursor + CURSOR_API_KEY.
 # Make it a merge gate: Settings → Branches → require the "workshop-evals" check.
 
 name: workshop-evals
@@ -15,6 +17,7 @@ env:
   EVAL_SUITE: suites/__SUITE__/suite.ts
   # Command that installs the target's own dependencies, if the suite imports target code. Empty = skip.
   TARGET_INSTALL: "__TARGET_INSTALL__"
+  EVALS_PROVIDER: claude-code
 
 jobs:
   workshop-evals:
@@ -29,6 +32,8 @@ jobs:
         with:
           node-version: 22
       - run: corepack enable
+      - if: env.EVALS_PROVIDER == 'claude-code'
+        run: curl -fsSL https://claude.ai/install.sh | bash && echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - if: env.TARGET_INSTALL != ''
         run: sh -c "$TARGET_INSTALL"
       - working-directory: evals
@@ -36,7 +41,7 @@ jobs:
       - id: eval
         working-directory: evals
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           # Add any other secrets the feature under test needs, e.g. OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
           set -o pipefail

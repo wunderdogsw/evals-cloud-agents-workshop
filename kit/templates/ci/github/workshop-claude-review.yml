@@ -21,7 +21,7 @@ jobs:
           fetch-depth: 0
       - uses: anthropics/claude-code-action@v1
         with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}  # from `claude setup-token`; or anthropic_api_key
           prompt: |
             Review PR #${{ github.event.pull_request.number }} in ${{ github.repository }}.
             Follow REVIEW.md if it exists, otherwise AGENTS.md / CLAUDE.md.

@@ -20,7 +20,7 @@ pnpm workshop install <name> ci-claude
 
 Explain the job in 4 bullets: triggered by a manual/API pipeline with `ISSUE_IID` or `CLAUDE_TASK`; installs Claude Code; runs `claude -p` with `acceptEdits` and a turn + budget cap; pushes a `claude/…` branch and opens an MR with push options. Note: `@claude` comment triggers need a webhook listener — not part of today.
 
-The participant creates a **project access token** (*Settings → Access tokens*, role Developer, scopes `api` + `write_repository`) and stores it as masked CI variable `GITLAB_ACCESS_TOKEN`.
+The participant creates a **project access token** (*Settings → Access tokens*, role Developer, scopes `api` + `write_repository`) and stores it as masked CI variable `GITLAB_ACCESS_TOKEN`. The Claude job authenticates with the `CLAUDE_CODE_OAUTH_TOKEN` from Phase 5.
 
 **GitHub** — two options; do (a), mention (b):
 
@@ -30,7 +30,7 @@ The participant creates a **project access token** (*Settings → Access tokens*
 pnpm workshop install <name> ci-claude
 ```
 
-They install the Claude GitHub App on the repo (or run `/install-github-app` in Claude Code). `ANTHROPIC_API_KEY` secret is already there from Phase 5.
+They install the Claude GitHub App on the repo (or run `/install-github-app` in Claude Code). The `CLAUDE_CODE_OAUTH_TOKEN` secret is already there from Phase 5 — the action uses it via `claude_code_oauth_token`.
 
 (b) Claude Code on the web: a cloud session at claude.ai/code (or `claude --cloud "<task>"`) clones the GitHub repo in an Anthropic-hosted VM and can open the PR. Only GitHub repos can push back this way.
 

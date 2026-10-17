@@ -11,6 +11,6 @@ Instructions for coding agents working in this repository.
 ## Conventions
 
 - TypeScript, ESM, Node 22+. Import local files with the `.ts` extension.
-- Keep `src/classify.ts` free of I/O except the Anthropic call.
+- Keep `src/classify.ts` free of I/O except the model call (via `src/llm/`).
 - New modules get a matching `test/<module>.test.ts`.
 - Amounts are EUR numbers; Finnish decimal commas are parsed at the edges, never inside core logic.

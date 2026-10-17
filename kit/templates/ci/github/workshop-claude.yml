@@ -2,7 +2,7 @@
 # From https://code.claude.com/docs/en/github-actions (anthropics/claude-code-action@v1).
 #
 # Setup: install the Claude GitHub App on the repo (or run /install-github-app in Claude Code),
-# add the ANTHROPIC_API_KEY secret. Then comment "@claude implement this" on an issue or PR.
+# add the CLAUDE_CODE_OAUTH_TOKEN secret (run `claude setup-token`; uses your Claude subscription). Then comment "@claude implement this" on an issue or PR.
 # On an issue, Claude pushes a branch and replies with a "Create PR" link — click it to open the PR.
 #
 # Alternative on GitHub: start a cloud session at claude.ai/code (or `claude --cloud "<task>"`) —
@@ -38,5 +38,5 @@ jobs:
           fetch-depth: 1
       - uses: anthropics/claude-code-action@v1
         with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}  # from `claude setup-token`; or anthropic_api_key
           claude_args: "--model claude-sonnet-5-5 --max-turns 60"

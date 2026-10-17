@@ -8,18 +8,22 @@ You'll pick the repo you want to work in, attach it under `targets/`, and let th
 
 ## 1.1 [LLM] Check the control room
 
-> Narrate: "Quick preflight — Node, pnpm, git, and an API key."
+> Narrate: "Quick preflight — Node, pnpm, git, and a model the evals can call."
 
-Run and report in one compact block:
+The evals call Claude through the participant's **own subscription** — no API key. By default that's Claude Code (`claude -p`, using their normal Claude Code login); the Cursor CLI (`agent -p`) is the fallback. Run and report in one compact block:
 
 ```bash
 node -v && pnpm -v && git --version
-test -f .env && grep -q '^ANTHROPIC_API_KEY=.\+' .env && echo "key: set" || echo "key: missing"
+claude --version 2>/dev/null || echo "claude: not installed"
+claude -p "Reply with: ok" --tools "" --no-session-persistence 2>&1 | tail -1
 ```
 
 - Node < 22.12 or missing pnpm → tell them `corepack enable` (or install Node 22+) and stop until fixed.
 - If `node_modules/` is missing at the root, run `pnpm install`.
-- Key missing → say: "Copy `.env.example` to `.env` and paste the key the facilitators gave you." Never ask them to paste the key into chat.
+- `claude` missing → install Claude Code (`curl -fsSL https://claude.ai/install.sh | bash`), run `claude` once and log in with their work Claude account.
+- `claude -p` prints a login/auth error → they run `claude` in their own terminal and log in, then retry.
+- No Claude Code at all → check `agent --version` (Cursor CLI; install with `curl https://cursor.com/install -fsS | bash`, then `agent login`) and set `EVALS_PROVIDER=cursor` in `.env`.
+- Tell them in one line which provider the evals will use. If their organisation also has API keys, `EVALS_PROVIDER=api` + `ANTHROPIC_API_KEY` in `.env` works too — never ask them to paste a key or token into chat.
 
 ## 1.2 [HUMAN] Choose a target
 

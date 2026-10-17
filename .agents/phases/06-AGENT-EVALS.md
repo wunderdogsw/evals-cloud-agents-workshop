@@ -45,7 +45,7 @@ Every task must **fail at base** (otherwise it measures nothing) and **pass with
 
 ## 6.5 [LLM] Run Claude
 
-Confirm cost first ("≈ $0.20–1 per task with the default agent model; we cap at $2/task"). This takes 10–30 minutes — hand the participant the command to run in their own terminal (or run it in the background):
+Confirm usage first: this runs on their Claude subscription and is the heaviest part of the day (each task is a full agent session; `--max-budget-usd` caps the API-equivalent estimate per task). This takes 10–30 minutes — hand the participant the command to run in their own terminal (or run it in the background):
 
 ```bash
 pnpm agent-evals run targets/<name> --tasks <tasks-file> --agent claude --setup "<install>" \

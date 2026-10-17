@@ -7,5 +7,5 @@ Cursor cloud agents read `.cursor/environment.json` from the repo's **default br
 - `environment.dockerfile.json` + `Dockerfile.example` — anything else (.NET, Java, Python…): build your own image.
 
 Copy the chosen JSON to `<target>/.cursor/environment.json` (and the Dockerfile to `<target>/.cursor/Dockerfile`),
-merge to the default branch, then start a cloud agent. Secrets (e.g. `ANTHROPIC_API_KEY` for evals) go in
+merge to the default branch, then start a cloud agent. Secrets (e.g. `CURSOR_API_KEY` + `EVALS_PROVIDER=cursor` if the agent should run evals) go in
 cursor.com/dashboard → Cloud Agents → Secrets, never in the repo.

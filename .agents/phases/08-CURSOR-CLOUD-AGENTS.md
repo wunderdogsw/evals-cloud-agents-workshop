@@ -12,7 +12,7 @@ Check and report, don't fix silently:
 
 - The repo is connected in the Cursor dashboard (*Integrations → GitLab/GitHub*, synced). For GitLab this needs **Premium/Ultimate** (project access tokens) and was set up by facilitators. Self-hosted GitLab may need extra networking.
 - The participant is on a paid Cursor plan with cloud agents enabled and a spend limit set.
-- Cloud-agent **Secrets** (cursor.com/dashboard → Cloud Agents) contain `ANTHROPIC_API_KEY` if running the evals needs it.
+- If the agent should run the evals inside its VM: add `CURSOR_API_KEY` as a cloud-agent **Secret** (cursor.com/dashboard → Cloud Agents) and set `EVALS_PROVIDER=cursor` there. Otherwise the CI eval gate checks its MR/PR anyway.
 
 If any is missing, tell them who to ask (facilitators) and do 8.2 meanwhile.
 

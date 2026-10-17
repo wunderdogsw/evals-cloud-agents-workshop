@@ -111,7 +111,7 @@ Phase N — <Title>        (target: <name>)
 | Load phase documents on demand | Do not read the next phase document until the current one is complete. |
 | Progress is authoritative | If `progress.json` shows a phase as complete, do not re-run it. |
 | One phase at a time | Never reference content from a future phase document. |
-| Secrets | Never write API keys into files that could be committed. Use `.env` (gitignored) locally and CI variables/secrets remotely. Never echo a key back. |
+| Secrets | Model calls use the participant's subscription (Claude Code login locally, `CLAUDE_CODE_OAUTH_TOKEN` in CI) — no API keys. Never write tokens or keys into files that could be committed, never ask for them in chat, never echo them back. |
 | Target safety | Work on the workshop branch only. No force-push, no pushing to default branches, no deleting branches you didn't create. |
 | Costs are visible | Whenever you run evals or agents against a real model, report the cost/token figures the tools print. |
 | Model IDs | Default models live in `kit/evals/src/models.ts`. Use those (or `facilitator.json` overrides); do not invent model IDs. |
