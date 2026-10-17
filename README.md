@@ -53,8 +53,6 @@ evals-cloud-agents-workshop/       ← open THIS in Cursor / Claude Code
 | Cloud agents | 18 — Guardrails | Review agent and measured agent instructions |
 | Cloud agents | 19 — Capstone | Parallel agents on a backlog, triaged by eval results |
 
-Phases 8–15 are being built; the guide stops there and hands over to a facilitator until they're ready.
-
 ## Prerequisites
 
 - Node.js 22+ and pnpm (`corepack enable`)

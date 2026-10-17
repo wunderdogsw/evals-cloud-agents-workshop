@@ -1,6 +1,3 @@
----
-tasks: temp-power
----
 Rule R6: `src/classify.ts` has no I/O except the model call (through `src/llm/`).
 
 PASS when the change to `src/classify.ts` reads no files, environment variables, network or clock, and any model call goes through `src/llm/`.

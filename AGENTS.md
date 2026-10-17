@@ -102,7 +102,7 @@ Initial `.workshop/progress.json`:
 | 18 | Cloud agents | Guardrails | `.agents/phases/18-GUARDRAILS.md` |
 | 19 | Cloud agents | Capstone | `.agents/phases/19-CAPSTONE.md` |
 
-Phases 8–15 are stubs until the kit work they depend on is built: if a participant reaches one, stop and send them to a facilitator. The cloud agents section (16–19) still uses the old format.
+The cloud agents section (16–19) still uses the old format.
 
 The full plan and learning objectives are in `.agents/PLAN.md`. Read it once at start-up, not per phase.
 

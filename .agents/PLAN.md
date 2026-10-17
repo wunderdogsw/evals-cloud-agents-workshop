@@ -49,7 +49,7 @@ About 28 minutes per phase, including Room Gates.
 | D. Protect | 14 Record evals for CI | No model or secret in CI | Recording and CI job on the branch |
 | D. Protect | 15 Make the gate block | An eval that blocks nothing is a dashboard | A working merge gate |
 
-Phases 8–15 are stubs until the kit supports them (`--safe-mode` runs, per-rule graders, a judge over diffs, agent-run recordings).
+Phases 8–15 use `pnpm agent-evals` for runs with and without the setup (`--without-setup`), rule graders (`--rules`), judges over diffs (`--judge`, `label`, `regrade`) and CI recordings (`--record`).
 
 ## Cloud agents section (Day 2)
 
