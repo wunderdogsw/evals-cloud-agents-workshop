@@ -6,11 +6,13 @@
   "engines": { "node": ">=22.12" },
   "scripts": {
     "postinstall": "pnpm --dir samples/cost-coder install --silent",
-    "test": "pnpm -r --if-present test && pnpm --dir samples/cost-coder test",
+    "test": "pnpm -r --if-present test && pnpm --dir samples/cost-coder test && pnpm test:phases",
     "typecheck": "pnpm -r --if-present typecheck && pnpm --dir samples/cost-coder typecheck",
     "evals": "tsx kit/evals/src/cli.ts",
     "agent-evals": "tsx kit/agent-evals/src/cli.ts",
-    "workshop": "tsx .agents/assets/workshop.ts"
+    "workshop": "tsx .agents/assets/workshop.ts",
+    "lint:phases": "tsx .agents/assets/lint-phases.ts",
+    "test:phases": "tsx --test .agents/assets/lint-phases.test.ts"
   },
   "devDependencies": {
     "tsx": "^4.23.15"
