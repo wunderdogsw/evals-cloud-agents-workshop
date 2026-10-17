@@ -9,3 +9,4 @@ targets/*
 .agent-runs/
 *.log
 .DS_Store
+.fallow
