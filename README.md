@@ -96,7 +96,3 @@ The guide generates boilerplate. A few things **you** write, because they are th
 - the task prompts you hand to cloud agents.
 
 It's easy to cheat. Don't — the dataset is the product.
-
-## For facilitators
-
-See [`FACILITATOR.md`](FACILITATOR.md) for prep, room gates, catch-up scripts and the dry-run checklist.
