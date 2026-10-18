@@ -13,6 +13,7 @@ pnpm test
 - `src/codes.ts` — the cost-code catalogue (simplified, synthetic).
 - `data/invoice-lines.jsonl` — unlabelled synthetic invoice lines to build eval cases from.
 - `data/seed-cases.jsonl` — a few labelled examples showing the case format.
+- `CHANGELOG.md` — one line per change, under `## Unreleased`.
 - `BACKLOG.md` — issues for Day 2 cloud agents.
 - `CLAUDE.md`, `AGENTS.md` — agent instructions with problems added on purpose, for the workshop's Phases 2–4 to find and fix.
 

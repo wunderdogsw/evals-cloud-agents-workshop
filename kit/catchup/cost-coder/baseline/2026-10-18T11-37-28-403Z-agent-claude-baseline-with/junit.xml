@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="agent-claude" tests="5" failures="0" errors="0">
+    <testcase classname="agent-claude" name="code-lookup" time="27.799"/>
+    <testcase classname="agent-claude" name="credit-note" time="22.330"/>
+    <testcase classname="agent-claude" name="csv-import" time="26.683"/>
+    <testcase classname="agent-claude" name="temp-power" time="26.375"/>
+    <testcase classname="agent-claude" name="vat-split" time="20.331"/>
+  </testsuite>
+</testsuites>

@@ -8,6 +8,7 @@
       "rule:R1": 1,
       "rule:R3": 0.75,
       "rule:R4": 1,
+      "rule:R8": 0.8,
       "judge:R5": 0.5,
       "judge:R6": 1
     }

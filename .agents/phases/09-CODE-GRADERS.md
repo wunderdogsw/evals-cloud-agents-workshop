@@ -49,7 +49,7 @@ Review each grader for one question: can it pass on a change that breaks the rul
 
 ### [BRANCH]
 
-- **Target is `sample`** → expected graders: R1 (no real model client in tests), R3 (each new `src/<m>.ts` has `test/<m>.test.ts`), R4 (nothing under `data/`). Compare with `kit/catchup/cost-coder/agent-suite/rules.mjs` only after their graders work.
+- **Target is `sample`** → expected graders: R1 (no real model client in tests), R3 (each new `src/<m>.ts` has `test/<m>.test.ts`), R4 (nothing under `data/`), R8 (a line added to `CHANGELOG.md`). Compare with `kit/catchup/cost-coder/agent-suite/rules.mjs` only after their graders work.
 - **A rule needs a command** (lint clean, typecheck) → use `ctx.run`. Warn them about one limit. A re-grade of an old run can't run commands, because the workspace may no longer exist. These rules only get a score on new runs.
 
 ## 9.2 Prove each grader

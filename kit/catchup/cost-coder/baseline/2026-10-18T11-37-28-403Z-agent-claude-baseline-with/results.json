@@ -1,0 +1,308 @@
+{
+  "summary": {
+    "suite": "agent-claude",
+    "startedAt": "2026-10-18T11:37:28.403Z",
+    "finishedAt": "2026-10-18T11:38:41.801Z",
+    "cases": 5,
+    "trials": 1,
+    "passRate": 1,
+    "graders": [
+      {
+        "name": "hidden-tests",
+        "meanScore": 1,
+        "passRate": 1
+      },
+      {
+        "name": "agent-finished",
+        "meanScore": 1,
+        "passRate": 1
+      }
+    ],
+    "byTag": {},
+    "errors": 0,
+    "totalCostUsd": 0.367774,
+    "label": "baseline-with"
+  },
+  "runs": [
+    {
+      "caseId": "code-lookup",
+      "trial": 1,
+      "tags": [],
+      "input": {
+        "prompt": "Add `describeCode(code: string): string` (returns the label, throws on unknown code) and `searchCodes(query: string): CostCode[]` (case-insensitive substring match on the label) in `src/lookup.ts`.",
+        "base": "HEAD"
+      },
+      "grades": [
+        {
+          "name": "hidden-tests",
+          "pass": true,
+          "score": 1
+        },
+        {
+          "name": "agent-finished",
+          "pass": true,
+          "score": 1
+        }
+      ],
+      "pass": true,
+      "durationMs": 27799,
+      "costUsd": 0.0833203,
+      "output": {
+        "agentOk": true,
+        "turns": 5,
+        "summary": "I added `describeCode` and `searchCodes` in `src/lookup.ts`, with tests in `test/lookup.test.ts` and a line under `## Unreleased` in `CHANGELOG.md`. `pnpm test` passes (9 tests) and `pnpm typecheck` is clean.\n\n- **`searchCodes` returns codes:** it returns the matching code keys (e.g. `[\"1500\"]`), because `CostCode` in `src/codes.ts` is the key type and there is no code-plus-label object type.\n- **`describeCode` doesn't use `isCostCode`:** it checks with `Object.hasOwn`. The existing `isCostCode` uses `in`, so it accepts inherited property names like `\"toString\"`. I left `isCostCode` alone, but that is a small bug you may want to fix separately.",
+        "setup": "with",
+        "diff": {
+          "files": 3,
+          "added": 35,
+          "removed": 0
+        },
+        "changes": [
+          {
+            "status": "M",
+            "path": "CHANGELOG.md"
+          },
+          {
+            "status": "A",
+            "path": "src/lookup.ts"
+          },
+          {
+            "status": "A",
+            "path": "test/lookup.test.ts"
+          }
+        ],
+        "patch": "diff --git a/CHANGELOG.md b/CHANGELOG.md\nindex 038b1fc..4b94354 100644\n--- a/CHANGELOG.md\n+++ b/CHANGELOG.md\n@@ -2,6 +2,8 @@\n \n ## Unreleased\n \n+- Look up a cost code's label or search codes by label text.\n+\n ## 0.1.0\n \n - Classify invoice lines to cost codes with Claude, with an offline keyword fake for tests.\ndiff --git a/src/lookup.ts b/src/lookup.ts\nnew file mode 100644\nindex 0000000..a34f61a\n--- /dev/null\n+++ b/src/lookup.ts\n@@ -0,0 +1,11 @@\n+import { COST_CODES, type CostCode } from \"./codes.ts\";\n+\n+export function describeCode(code: string): string {\n+  if (!Object.hasOwn(COST_CODES, code)) throw new Error(`unknown cost code: ${JSON.stringify(code)}`);\n+  return COST_CODES[code as CostCode];\n+}\n+\n+export function searchCodes(query: string): CostCode[] {\n+  const q = query.toLowerCase();\n+  return (Object.keys(COST_CODES) as CostCode[]).filter((code) => COST_CODES[code].toLowerCase().includes(q));\n+}\ndiff --git a/test/lookup.test.ts b/test/lookup.test.ts\nnew file mode 100644\nindex 0000000..9b3e82b\n--- /dev/null\n+++ b/test/lookup.test.ts\n@@ -0,0 +1,22 @@\n+import { describe, expect, it } from \"vitest\";\n+import { describeCode, searchCodes } from \"../src/lookup.ts\";\n+\n+describe(\"describeCode\", () => {\n+  it(\"returns the label for a known code\", () => {\n+    expect(describeCode(\"1300\")).toBe(\"Structural steel\");\n+  });\n+  it(\"throws on unknown codes\", () => {\n+    expect(() => describeCode(\"7777\")).toThrow(/unknown cost code/);\n+    expect(() => describeCode(\"toString\")).toThrow(/unknown cost code/);\n+  });\n+});\n+\n+describe(\"searchCodes\", () => {\n+  it(\"matches case-insensitively on the label\", () => {\n+    expect(searchCodes(\"ROOFING\")).toEqual([\"1500\"]);\n+  });\n+  it(\"returns several matches and none when nothing matches\", () => {\n+    expect(searchCodes(\"site\")).toEqual([\"1100\", \"3100\", \"3200\"]);\n+    expect(searchCodes(\"zzz\")).toEqual([]);\n+  });\n+});\n",
+        "hiddenTests": [
+          "test/hidden/code-lookup.test.ts"
+        ],
+        "testExit": 0,
+        "testTail": "\n RUN  v5.0.5 /tmp/workshop-agent-runs/baseline-with/code-lookup-claude\n\n\n Test Files  1 passed (1)\n      Tests  4 passed (4)\n   Start at  14:38:17\n   Duration  466ms (transform 46%, import 25%, tests 18%, worker 11%)\n\n",
+        "workspace": "/tmp/workshop-agent-runs/baseline-with/code-lookup-claude"
+      }
+    },
+    {
+      "caseId": "credit-note",
+      "trial": 1,
+      "tags": [],
+      "input": {
+        "prompt": "Add `isCreditNote(line: InvoiceLine): boolean` in `src/credit.ts`. True when `amount < 0`, `quantity < 0`, or the description starts with \"Hyvitys\" or \"Credit\" (case-insensitive).",
+        "base": "HEAD"
+      },
+      "grades": [
+        {
+          "name": "hidden-tests",
+          "pass": true,
+          "score": 1
+        },
+        {
+          "name": "agent-finished",
+          "pass": true,
+          "score": 1
+        }
+      ],
+      "pass": true,
+      "durationMs": 22330,
+      "costUsd": 0.06683950000000001,
+      "output": {
+        "agentOk": true,
+        "turns": 4,
+        "summary": "I added `isCreditNote` in `src/credit.ts`. It returns true when `amount < 0`, `quantity < 0`, or the description starts with \"Hyvitys\" or \"Credit\" (case-insensitive). Missing `amount` and `quantity` are treated as not negative. The new `test/credit.test.ts` and the CHANGELOG line under `## Unreleased` follow the repo conventions. `pnpm test` passes (9 tests) and `pnpm typecheck` ran clean.",
+        "setup": "with",
+        "diff": {
+          "files": 3,
+          "added": 28,
+          "removed": 0
+        },
+        "changes": [
+          {
+            "status": "M",
+            "path": "CHANGELOG.md"
+          },
+          {
+            "status": "A",
+            "path": "src/credit.ts"
+          },
+          {
+            "status": "A",
+            "path": "test/credit.test.ts"
+          }
+        ],
+        "patch": "diff --git a/CHANGELOG.md b/CHANGELOG.md\nindex 038b1fc..f862018 100644\n--- a/CHANGELOG.md\n+++ b/CHANGELOG.md\n@@ -2,6 +2,8 @@\n \n ## Unreleased\n \n+- Credit notes can now be detected from a negative amount or quantity, or a \"Hyvitys\"/\"Credit\" description.\n+\n ## 0.1.0\n \n - Classify invoice lines to cost codes with Claude, with an offline keyword fake for tests.\ndiff --git a/src/credit.ts b/src/credit.ts\nnew file mode 100644\nindex 0000000..f6c4435\n--- /dev/null\n+++ b/src/credit.ts\n@@ -0,0 +1,7 @@\n+import type { InvoiceLine } from \"./classify.ts\";\n+\n+export function isCreditNote(line: InvoiceLine): boolean {\n+  if (line.amount !== undefined && line.amount < 0) return true;\n+  if (line.quantity !== undefined && line.quantity < 0) return true;\n+  return /^(hyvitys|credit)/i.test(line.description);\n+}\ndiff --git a/test/credit.test.ts b/test/credit.test.ts\nnew file mode 100644\nindex 0000000..06fd387\n--- /dev/null\n+++ b/test/credit.test.ts\n@@ -0,0 +1,19 @@\n+import { describe, expect, it } from \"vitest\";\n+import { isCreditNote } from \"../src/credit.ts\";\n+\n+describe(\"isCreditNote\", () => {\n+  it(\"is true for a negative amount\", () => {\n+    expect(isCreditNote({ description: \"Betoni\", amount: -10 })).toBe(true);\n+  });\n+  it(\"is true for a negative quantity\", () => {\n+    expect(isCreditNote({ description: \"Betoni\", quantity: -1, amount: 10 })).toBe(true);\n+  });\n+  it(\"is true for Hyvitys / Credit prefixes, case-insensitive\", () => {\n+    expect(isCreditNote({ description: \"hyvitys betonista\" })).toBe(true);\n+    expect(isCreditNote({ description: \"CREDIT note\" })).toBe(true);\n+  });\n+  it(\"is false for ordinary lines\", () => {\n+    expect(isCreditNote({ description: \"Betoni\", quantity: 2, amount: 100 })).toBe(false);\n+    expect(isCreditNote({ description: \"Betoni, ei hyvitys\", amount: 0 })).toBe(false);\n+  });\n+});\n",
+        "hiddenTests": [
+          "test/hidden/credit-note.test.ts"
+        ],
+        "testExit": 0,
+        "testTail": "\n RUN  v5.0.5 /tmp/workshop-agent-runs/baseline-with/credit-note-claude\n\n\n Test Files  1 passed (1)\n      Tests  6 passed (6)\n   Start at  14:37:50\n   Duration  366ms (transform 64%, import 23%, tests 7%, worker 6%)\n\n",
+        "workspace": "/tmp/workshop-agent-runs/baseline-with/credit-note-claude"
+      }
+    },
+    {
+      "caseId": "csv-import",
+      "trial": 1,
+      "tags": [],
+      "input": {
+        "prompt": "Add `parseInvoiceCsv(text: string): InvoiceLine[]` in `src/csv.ts`. Semicolon-separated, header row `description;supplier;quantity;unit;amount`, Finnish decimal commas with optional space thousands separators (e.g. `1 840,00`), empty cells mean the field is omitted. Skip blank lines. Throw if the header has a column that isn't one of those five, or if a number cell can't be parsed.",
+        "base": "HEAD"
+      },
+      "grades": [
+        {
+          "name": "hidden-tests",
+          "pass": true,
+          "score": 1
+        },
+        {
+          "name": "agent-finished",
+          "pass": true,
+          "score": 1
+        }
+      ],
+      "pass": true,
+      "durationMs": 26683,
+      "costUsd": 0.0777966,
+      "output": {
+        "agentOk": true,
+        "turns": 4,
+        "summary": "I added `parseInvoiceCsv` in `src/csv.ts`, with tests in `test/csv.test.ts` and a line under `## Unreleased` in `CHANGELOG.md`. `pnpm test` passes (9 tests) and `pnpm typecheck` reports no errors.\n\nIt does what you specified. It also tolerates CRLF line endings and non-breaking-space thousands separators.\n\nI made a few choices you didn't specify:\n- **Missing description:** a row with an empty description throws, because `InvoiceLine.description` is required.\n- **Extra cells:** a row with more cells than the header throws.\n- **Short rows:** a row with fewer cells treats the missing ones as empty.\n- **Empty or header-only input:** this returns `[]`.\n\nI did not touch `data/`.",
+        "setup": "with",
+        "diff": {
+          "files": 3,
+          "added": 60,
+          "removed": 0
+        },
+        "changes": [
+          {
+            "status": "M",
+            "path": "CHANGELOG.md"
+          },
+          {
+            "status": "A",
+            "path": "src/csv.ts"
+          },
+          {
+            "status": "A",
+            "path": "test/csv.test.ts"
+          }
+        ],
+        "patch": "diff --git a/CHANGELOG.md b/CHANGELOG.md\nindex 038b1fc..d3fd8a6 100644\n--- a/CHANGELOG.md\n+++ b/CHANGELOG.md\n@@ -2,6 +2,8 @@\n \n ## Unreleased\n \n+- Import invoice lines from semicolon-separated CSV files, including Finnish decimal commas like `1 840,00`.\n+\n ## 0.1.0\n \n - Classify invoice lines to cost codes with Claude, with an offline keyword fake for tests.\ndiff --git a/src/csv.ts b/src/csv.ts\nnew file mode 100644\nindex 0000000..ab1f87b\n--- /dev/null\n+++ b/src/csv.ts\n@@ -0,0 +1,37 @@\n+import type { InvoiceLine } from \"./classify.ts\";\n+\n+const COLUMNS = [\"description\", \"supplier\", \"quantity\", \"unit\", \"amount\"] as const;\n+type Column = (typeof COLUMNS)[number];\n+\n+function parseNumber(cell: string, column: Column, row: number): number {\n+  const normalized = cell.replace(/[\\s ]/g, \"\").replace(\",\", \".\");\n+  if (!/^-?\\d+(\\.\\d+)?$/.test(normalized)) {\n+    throw new Error(`row ${row}: cannot parse ${column} \"${cell}\"`);\n+  }\n+  return Number(normalized);\n+}\n+\n+export function parseInvoiceCsv(text: string): InvoiceLine[] {\n+  const rows = text.split(/\\r?\\n/).map((raw, i) => ({ raw, row: i + 1 })).filter(({ raw }) => raw.trim() !== \"\");\n+  if (rows.length === 0) return [];\n+\n+  const header = rows[0].raw.split(\";\").map((h) => h.trim());\n+  for (const h of header) {\n+    if (!(COLUMNS as readonly string[]).includes(h)) throw new Error(`unknown column \"${h}\"`);\n+  }\n+  const columns = header as Column[];\n+\n+  return rows.slice(1).map(({ raw, row }) => {\n+    const cells = raw.split(\";\").map((c) => c.trim());\n+    if (cells.length > columns.length) throw new Error(`row ${row}: ${cells.length} cells, header has ${columns.length}`);\n+    const line: Partial<InvoiceLine> = {};\n+    columns.forEach((column, i) => {\n+      const cell = cells[i] ?? \"\";\n+      if (cell === \"\") return;\n+      if (column === \"quantity\" || column === \"amount\") line[column] = parseNumber(cell, column, row);\n+      else line[column] = cell;\n+    });\n+    if (line.description === undefined) throw new Error(`row ${row}: missing description`);\n+    return line as InvoiceLine;\n+  });\n+}\ndiff --git a/test/csv.test.ts b/test/csv.test.ts\nnew file mode 100644\nindex 0000000..4fada88\n--- /dev/null\n+++ b/test/csv.test.ts\n@@ -0,0 +1,21 @@\n+import { describe, expect, it } from \"vitest\";\n+import { parseInvoiceCsv } from \"../src/csv.ts\";\n+\n+const HEADER = \"description;supplier;quantity;unit;amount\";\n+\n+describe(\"parseInvoiceCsv\", () => {\n+  it(\"parses Finnish decimals and space thousands separators\", () => {\n+    expect(parseInvoiceCsv(`${HEADER}\\nValmisbetoni C30/37;Betoni Oy;12,5;m3;1 840,00`)).toEqual([\n+      { description: \"Valmisbetoni C30/37\", supplier: \"Betoni Oy\", quantity: 12.5, unit: \"m3\", amount: 1840 },\n+    ]);\n+  });\n+  it(\"omits empty cells and skips blank lines\", () => {\n+    expect(parseInvoiceCsv(`${HEADER}\\r\\n\\r\\nVuokra;;;;-20,50\\r\\n\\r\\n`)).toEqual([{ description: \"Vuokra\", amount: -20.5 }]);\n+  });\n+  it(\"throws on unknown header columns\", () => {\n+    expect(() => parseInvoiceCsv(\"description;price\\nx;1\")).toThrow(/unknown column \"price\"/);\n+  });\n+  it(\"throws on unparseable numbers\", () => {\n+    expect(() => parseInvoiceCsv(`${HEADER}\\nx;;abc;;`)).toThrow(/cannot parse quantity/);\n+  });\n+});\n",
+        "hiddenTests": [
+          "test/hidden/csv-import.test.ts"
+        ],
+        "testExit": 0,
+        "testTail": "\n RUN  v5.0.5 /tmp/workshop-agent-runs/baseline-with/csv-import-claude\n\n\n Test Files  1 passed (1)\n      Tests  4 passed (4)\n   Start at  14:38:14\n   Duration  432ms (transform 53%, import 24%, tests 14%, worker 9%)\n\n",
+        "workspace": "/tmp/workshop-agent-runs/baseline-with/csv-import-claude"
+      }
+    },
+    {
+      "caseId": "temp-power",
+      "trial": 1,
+      "tags": [],
+      "input": {
+        "prompt": "`mockClassify` sends \"Sähköliittymä työmaalle, väliaikainen\" to 2300 (electrical). Temporary site power and water belong to 3200 (site facilities). Fix the rules without breaking existing behaviour for normal electrical items. Also add a seed case for temporary water to `data/seed-cases.jsonl`, so the evals cover it.",
+        "base": "HEAD"
+      },
+      "grades": [
+        {
+          "name": "hidden-tests",
+          "pass": true,
+          "score": 1
+        },
+        {
+          "name": "agent-finished",
+          "pass": true,
+          "score": 1
+        }
+      ],
+      "pass": true,
+      "durationMs": 26375,
+      "costUsd": 0.0815825,
+      "output": {
+        "agentOk": true,
+        "turns": 6,
+        "summary": "`mockClassify` now sends \"Sähköliittymä työmaalle, väliaikainen\" to 3200, but I did not add the temporary-water seed case. `pnpm test` passes, and `pnpm typecheck` printed nothing.\n\n- **Fix:** I added a rule at the top of the rules list in `src/classify.ts`. It matches a temporary word (`väliaikai` or `temporar`) together with a power or water word (`sähkö`, `electr`, `power`, `vesi`, `water`), in either order. Ordinary electrical lines like \"Sähkökaapeli MMJ 5x16\" still go to 2300.\n- **Tests and changelog:** I added tests in `test/classify.test.ts` for temporary power, temporary water and a normal cable line. I also added a line under `## Unreleased` in `CHANGELOG.md`.\n- **Seed case:** `AGENTS.md` says never to edit `data/`, so I left `data/seed-cases.jsonl` alone. The temporary-power case (`temp-site-power`, expected 3200) is already in it. A person should add this line for temporary water:\n  `{\"id\":\"temp-site-water\",\"input\":{\"description\":\"Väliaikainen vesiliittymä työmaalle\",\"supplier\":\"Helsingin Vesi\",\"amount\":640},\"expected\":{\"costCode\":\"3200\"},\"tags\":[\"ambiguous\",\"finnish\"],\"note\":\"Temporary water is a site facility.\"}`\n\nI made up the supplier and amount in that line, so adjust them if you have real values.",
+        "setup": "with",
+        "diff": {
+          "files": 3,
+          "added": 10,
+          "removed": 0
+        },
+        "changes": [
+          {
+            "status": "M",
+            "path": "CHANGELOG.md"
+          },
+          {
+            "status": "M",
+            "path": "src/classify.ts"
+          },
+          {
+            "status": "M",
+            "path": "test/classify.test.ts"
+          }
+        ],
+        "patch": "diff --git a/CHANGELOG.md b/CHANGELOG.md\nindex 038b1fc..bf739aa 100644\n--- a/CHANGELOG.md\n+++ b/CHANGELOG.md\n@@ -2,6 +2,8 @@\n \n ## Unreleased\n \n+- Temporary site power and water lines now go to 3200 (site facilities) in the offline classifier instead of electrical.\n+\n ## 0.1.0\n \n - Classify invoice lines to cost codes with Claude, with an offline keyword fake for tests.\ndiff --git a/src/classify.ts b/src/classify.ts\nindex 901b19f..e9a7560 100644\n--- a/src/classify.ts\n+++ b/src/classify.ts\n@@ -81,6 +81,7 @@ export function parseClassification(raw: unknown): Classification {\n export function mockClassify(line: InvoiceLine): Classification {\n   const d = `${line.description} ${line.supplier ?? \"\"}`.toLowerCase();\n   const rules: [RegExp, CostCode][] = [\n+    [/(väliaikai|temporar).*(sähkö|electr|power|vesi|water)|(sähkö|electr|power|vesi|water).*(väliaikai|temporar)/, \"3200\"],\n     [/teline|scaffold/, \"3100\"],\n     [/vuokra|rental|nosturi|crane|henkilönostin|lift/, \"3100\"],\n     [/kaivu|excavat|maa-aines|sora|gravel/, \"1100\"],\ndiff --git a/test/classify.test.ts b/test/classify.test.ts\nindex a851e86..26e067d 100644\n--- a/test/classify.test.ts\n+++ b/test/classify.test.ts\n@@ -22,6 +22,13 @@ describe(\"mockClassify\", () => {\n   it(\"routes scaffolding rental to 3100\", () => {\n     expect(mockClassify({ description: \"Telinevuokra 4 vk\" }).costCode).toBe(\"3100\");\n   });\n+  it(\"routes temporary site power and water to 3200\", () => {\n+    expect(mockClassify({ description: \"Sähköliittymä työmaalle, väliaikainen\" }).costCode).toBe(\"3200\");\n+    expect(mockClassify({ description: \"Väliaikainen vesiliittymä työmaalle\" }).costCode).toBe(\"3200\");\n+  });\n+  it(\"keeps normal electrical items in 2300\", () => {\n+    expect(mockClassify({ description: \"Sähkökaapeli MMJ 5x16\" }).costCode).toBe(\"2300\");\n+  });\n   it(\"falls back to 9000\", () => {\n     expect(mockClassify({ description: \"Sekalaista\" }).costCode).toBe(\"9000\");\n   });\n",
+        "hiddenTests": [
+          "test/hidden/temp-power.test.ts"
+        ],
+        "testExit": 0,
+        "testTail": "\n RUN  v5.0.5 /tmp/workshop-agent-runs/baseline-with/temp-power-claude\n\n\n Test Files  1 passed (1)\n      Tests  4 passed (4)\n   Start at  14:38:41\n   Duration  211ms (transform 53%, import 29%, tests 9%, worker 9%)\n\n",
+        "workspace": "/tmp/workshop-agent-runs/baseline-with/temp-power-claude"
+      }
+    },
+    {
+      "caseId": "vat-split",
+      "trial": 1,
+      "tags": [],
+      "input": {
+        "prompt": "Add `splitVat(gross: number, ratePercent = 25.5): { net: number; vat: number }` in `src/vat.ts`. Round both to cents. `net + vat` must equal `gross` exactly after rounding (put any rounding difference into `vat`). Throw on negative rates.",
+        "base": "HEAD"
+      },
+      "grades": [
+        {
+          "name": "hidden-tests",
+          "pass": true,
+          "score": 1
+        },
+        {
+          "name": "agent-finished",
+          "pass": true,
+          "score": 1
+        }
+      ],
+      "pass": true,
+      "durationMs": 20331,
+      "costUsd": 0.0582351,
+      "output": {
+        "agentOk": true,
+        "turns": 3,
+        "summary": "I added `splitVat` in `src/vat.ts`. It rounds the gross amount to cents, computes net by dividing by `1 + rate/100` and rounding, and sets `vat` to `gross − net`. That way `net + vat` equals `gross` in cents, and it throws on negative rates. I also added `test/vat.test.ts` and a line under `## Unreleased` in `CHANGELOG.md`. `pnpm test` passes (9 tests), and `pnpm typecheck` printed no errors.\n\nI assumed `gross` is always a non-negative EUR number. Only negative rates throw, as you asked, so a negative gross, such as a credit note, still returns a split.",
+        "setup": "with",
+        "diff": {
+          "files": 3,
+          "added": 29,
+          "removed": 0
+        },
+        "changes": [
+          {
+            "status": "M",
+            "path": "CHANGELOG.md"
+          },
+          {
+            "status": "A",
+            "path": "src/vat.ts"
+          },
+          {
+            "status": "A",
+            "path": "test/vat.test.ts"
+          }
+        ],
+        "patch": "diff --git a/CHANGELOG.md b/CHANGELOG.md\nindex 038b1fc..8caa008 100644\n--- a/CHANGELOG.md\n+++ b/CHANGELOG.md\n@@ -2,6 +2,8 @@\n \n ## Unreleased\n \n+- Added VAT splitting: a gross amount divides into net and VAT in whole cents, with the default rate at 25.5%.\n+\n ## 0.1.0\n \n - Classify invoice lines to cost codes with Claude, with an offline keyword fake for tests.\ndiff --git a/src/vat.ts b/src/vat.ts\nnew file mode 100644\nindex 0000000..4498862\n--- /dev/null\n+++ b/src/vat.ts\n@@ -0,0 +1,7 @@\n+/** Split a gross EUR amount into net and VAT, both rounded to cents. Any rounding difference goes into vat. */\n+export function splitVat(gross: number, ratePercent = 25.5): { net: number; vat: number } {\n+  if (ratePercent < 0) throw new Error(`VAT rate must not be negative: ${ratePercent}`);\n+  const grossCents = Math.round(gross * 100);\n+  const netCents = Math.round(grossCents / (1 + ratePercent / 100));\n+  return { net: netCents / 100, vat: (grossCents - netCents) / 100 };\n+}\ndiff --git a/test/vat.test.ts b/test/vat.test.ts\nnew file mode 100644\nindex 0000000..2311021\n--- /dev/null\n+++ b/test/vat.test.ts\n@@ -0,0 +1,20 @@\n+import { describe, expect, it } from \"vitest\";\n+import { splitVat } from \"../src/vat.ts\";\n+\n+describe(\"splitVat\", () => {\n+  it(\"splits at the default 25.5% rate\", () => {\n+    expect(splitVat(125.5)).toEqual({ net: 100, vat: 25.5 });\n+  });\n+  it(\"puts rounding differences into vat so net + vat equals gross\", () => {\n+    for (const gross of [0.01, 9.99, 19.99, 100, 1234.56]) {\n+      const { net, vat } = splitVat(gross);\n+      expect(Math.round((net + vat) * 100)).toBe(Math.round(gross * 100));\n+    }\n+  });\n+  it(\"handles a zero rate\", () => {\n+    expect(splitVat(10, 0)).toEqual({ net: 10, vat: 0 });\n+  });\n+  it(\"throws on negative rates\", () => {\n+    expect(() => splitVat(10, -1)).toThrow(/negative/);\n+  });\n+});\n",
+        "hiddenTests": [
+          "test/hidden/vat-split.test.ts"
+        ],
+        "testExit": 0,
+        "testTail": "\n RUN  v5.0.5 /tmp/workshop-agent-runs/baseline-with/vat-split-claude\n\n\n Test Files  1 passed (1)\n      Tests  4 passed (4)\n   Start at  14:37:48\n   Duration  238ms (transform 54%, import 24%, tests 13%, worker 8%)\n\n",
+        "workspace": "/tmp/workshop-agent-runs/baseline-with/vat-split-claude"
+      }
+    }
+  ]
+}

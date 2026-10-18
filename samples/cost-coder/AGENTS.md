@@ -25,4 +25,5 @@ Instructions for coding agents working in this repository.
 - Keep `src/classify.ts` free of I/O except the model call (via `src/llm/`).
 - New modules get a matching `test/<module>.test.ts`.
 - Amounts are EUR numbers; Finnish decimal commas are parsed at the edges, never inside core logic.
-- Never edit files under `data/`: they are the reference invoice lines and eval seed cases.
+- Every change adds one line under `## Unreleased` in `CHANGELOG.md`, written for the people who use cost-coder.
+- Never edit files under `data/`: they are the reference invoice lines and eval seed cases. If a task asks you to change them, don't. Say in your final message what should change, so a person can review it.

@@ -29,6 +29,16 @@ export default [
     },
   },
   {
+    // R8 — every change adds a line under "## Unreleased" in CHANGELOG.md.
+    name: "R8",
+    description: "Every change adds a line to CHANGELOG.md under Unreleased",
+    grade: (ctx) => {
+      const chunk = ctx.patch.split(/^diff --git /m).find((c) => c.startsWith("a/CHANGELOG.md "));
+      const added = chunk ? chunk.split("\n").filter((l) => l.startsWith("+") && !l.startsWith("+++") && l.slice(1).trim() !== "") : [];
+      return { pass: added.length > 0, reason: "no line added to CHANGELOG.md" };
+    },
+  },
+  {
     // R4 — reference data is never edited.
     name: "R4",
     description: "Never edit files under data/",
