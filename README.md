@@ -123,6 +123,23 @@ pnpm workshop attach sample --setup none     # no CLAUDE.md or AGENTS.md → the
 
 All three use the same tasks, so the results of Phases 8–15 can be compared between them. The last one you attach becomes the active target; change `activeTarget` in `.workshop/progress.json` to switch.
 
+## Publishing the pages (facilitators)
+
+The `docs/` folder is a small website: a start page, the evals flow, and the slides with a PDF download. GitHub Pages publishes it from `main`.
+
+1. Merge your changes to `main` and push.
+2. In GitHub, open **Settings → Pages**. Under *Build and deployment*, set *Source* to **Deploy from a branch**, the branch to **main** and the folder to **/docs**. Save.
+3. After a minute or two the site is at https://wunderdogsw.github.io/evals-cloud-agents-workshop/.
+
+The site is public even when the repo is private. Anyone with the link can see the slides, including the facilitator photos.
+
+To update the pages:
+
+- **Evals flow:** run `pnpm docs:flow` after you change a phase document. `pnpm test` fails if you forget. Add `--images` to also update the README pictures.
+- **Slides:** replace `docs/slides/index.html` with the new version of the slide deck, keep the PDF link in its toolbar, and run `pnpm docs:slides` to write the PDF again. Both need Playwright (`pnpm add -D playwright` and `npx playwright install chromium`).
+
+Then commit, merge to `main` and push. GitHub Pages updates on its own.
+
 ## Manual vs generated work
 
 The guide writes the setup code. **You** write the things that decide the result:
