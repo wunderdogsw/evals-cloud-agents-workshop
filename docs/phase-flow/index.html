@@ -38,6 +38,8 @@ body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--sa
   display: flex; flex-direction: column; gap: 20px;
 }
 header { display: flex; flex-direction: column; gap: 4px; }
+.links { margin: 4px 0 0; font-size: 14px; display: flex; flex-wrap: wrap; gap: 4px 16px; }
+.links a { color: var(--accent); }
 .eyebrow { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
 h1 { margin: 0; font-size: 26px; line-height: 1.2; font-weight: 600; text-wrap: balance; }
 .lede { margin: 0; color: var(--muted); max-width: 65ch; }
@@ -127,6 +129,7 @@ code { font-family: var(--mono); font-size: .88em; }
     <span class="eyebrow">Admicom workshop · Evals section · Draft</span>
     <h1>How the 15 evals phases move</h1>
     <p class="lede">Each phase gives its wanted outcome to the next phase. After Phase 3, the repo's agent setup decides the path: create, fix or already good. Click a phase, or use Previous and Next, to see what the attendee does, the gate, and what the phase gives to the next one.</p>
+    <p class="links"><a href="../">All workshop pages</a><a href="../slides/">Slides</a><a href="../slides/evals-cloud-agents.pdf" download>Slides as PDF</a></p>
   </header>
 
   <div class="controls">

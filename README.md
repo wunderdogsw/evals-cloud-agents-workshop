@@ -26,6 +26,7 @@ evals-cloud-agents-workshop/       ← open THIS in Cursor / Claude Code
 ├── kit/templates/                 ← CI jobs (GitLab + GitHub), agent suite folder, Cursor env, AGENTS.md snippets
 ├── kit/catchup/                   ← reference work for `pnpm workshop catchup`
 ├── docs/phase-flow/               ← interactive evals flow (GitHub Pages), built from the phase docs
+├── docs/slides/                   ← workshop slides and their PDF (GitHub Pages)
 ├── samples/cost-coder/            ← sample target (TypeScript) with an agent setup that has problems on purpose
 ├── targets/                       ← gitignored — your attached repo(s) land here
 └── .workshop/                     ← gitignored — progress, repo profile, notes, labels
@@ -41,6 +42,8 @@ evals-cloud-agents-workshop/       ← open THIS in Cursor / Claude Code
 </a>
 
 **[Open the interactive flow](https://wunderdogsw.github.io/evals-cloud-agents-workshop/phase-flow/)**: click a phase to see its steps, Gate, learning point and wanted outcome, with a link to the phase document. The page is built from the phase documents with `pnpm docs:flow`, and `pnpm test` fails if it is out of date. To view it without GitHub Pages, open `docs/phase-flow/index.html` in a browser.
+
+**[Open the slides](https://wunderdogsw.github.io/evals-cloud-agents-workshop/slides/)** · **[Download the slides as PDF](https://wunderdogsw.github.io/evals-cloud-agents-workshop/slides/evals-cloud-agents.pdf)**. The slides in `docs/slides/index.html` are a copy of the slide deck. After you replace that file with a new version, run `pnpm docs:slides` to write the PDF again (needs Playwright).
 
 ## What you do
 

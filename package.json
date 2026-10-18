@@ -16,7 +16,8 @@
     "lint:phases": "tsx .agents/assets/lint-phases.ts",
     "test:assets": "tsx --test .agents/assets/lint-phases.test.ts .agents/assets/eval-build-phase.test.ts .agents/assets/push-guard.test.ts",
     "eval:build-phase": "tsx .agents/assets/eval-build-phase.ts",
-    "docs:flow": "tsx .agents/assets/build-phase-flow.ts"
+    "docs:flow": "tsx .agents/assets/build-phase-flow.ts",
+    "docs:slides": "tsx .agents/assets/build-slides-pdf.ts"
   },
   "devDependencies": {
     "tsx": "^4.23.15"
