@@ -27,6 +27,7 @@ evals-cloud-agents-workshop/       ← open THIS in Cursor / Claude Code
 ├── kit/catchup/                   ← reference work for `pnpm workshop catchup`
 ├── docs/phase-flow/               ← interactive evals flow (GitHub Pages), built from the phase docs
 ├── docs/slides/                   ← workshop slides, speaker notes and the PDF (GitHub Pages)
+├── docs/assets/                   ← Wunderdog logo (from wunderdog.fi) and the shared look of the pages (site.css)
 ├── samples/cost-coder/            ← sample target (TypeScript) with an agent setup that has problems on purpose
 ├── targets/                       ← gitignored — your attached repo(s) land here
 └── .workshop/                     ← gitignored — progress, repo profile, notes, labels

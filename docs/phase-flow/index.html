@@ -4,34 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Evals Phase Flow</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=DM+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="../assets/site.css">
 <style>
 /* Layout: controls on top; flowchart (vertical, scrollable) on the left, sticky phase detail on the right; stacks on phones with the detail first. */
-:root {
-  --bg: #f4f6f4;
-  --surface: #ffffff;
-  --fg: #1c2420;
-  --muted: #5a6760;
-  --line: #9aa69f;
-  --band: #e9eeea;
-  --accent: #2f6f55;
-  --accent-soft: #d7ebe1;
-  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #111714; --surface: #18201c; --fg: #e2e9e5; --muted: #98a69e; --line: #5f6d65;
-    --band: #1a231e; --accent: #7fd1a8; --accent-soft: #1f3b2e; color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
-  --bg: #111714; --surface: #18201c; --fg: #e2e9e5; --muted: #98a69e; --line: #5f6d65;
-  --band: #1a231e; --accent: #7fd1a8; --accent-soft: #1f3b2e; color-scheme: dark;
-}
+/* Colours, fonts and the nav bar come from ../assets/site.css (Wunderdog look). */
 body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--sans); font-size: 15px; line-height: 1.5; }
 .wrap {
-  max-width: 1120px; margin: 0 auto;
+  max-width: 1120px; margin: 0 auto; box-sizing: border-box;
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
   padding-block: 32px 56px;
@@ -39,9 +21,9 @@ body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--sa
 }
 header { display: flex; flex-direction: column; gap: 4px; }
 .links { margin: 4px 0 0; font-size: 14px; display: flex; flex-wrap: wrap; gap: 4px 16px; }
-.links a { color: var(--accent); }
+.links a { color: var(--accent-text); }
 .eyebrow { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
-h1 { margin: 0; font-size: 26px; line-height: 1.2; font-weight: 600; text-wrap: balance; }
+h1 { margin: 0; font-size: 34px; line-height: 1.15; font-weight: 500; letter-spacing: -.005em; text-wrap: balance; }
 .lede { margin: 0; color: var(--muted); max-width: 65ch; }
 
 .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; }
@@ -68,7 +50,7 @@ button:focus-visible, .node:focus-visible { outline: 2px solid var(--accent); ou
 .edge.dashed { stroke-dasharray: 5 4; }
 .edge.next { stroke: var(--accent); stroke-width: 2.2; }
 .edge-label { fill: var(--muted); font: 11px var(--sans); }
-.edge-label.next { fill: var(--accent); font-weight: 600; }
+.edge-label.next { fill: var(--accent-text); font-weight: 600; }
 .node { cursor: pointer; }
 .node rect, .node polygon { fill: var(--surface); stroke: var(--line); stroke-width: 1.2; }
 .node .num { fill: var(--muted); font: 500 10.5px var(--mono); }
@@ -76,7 +58,7 @@ button:focus-visible, .node:focus-visible { outline: 2px solid var(--accent); ou
 .node:hover rect { stroke: var(--accent); }
 .node.done rect { fill: var(--accent-soft); }
 .node.current rect { stroke: var(--accent); stroke-width: 2.5; }
-.node.current .num { fill: var(--accent); }
+.node.current .num { fill: var(--accent-text); }
 .ghost rect { fill: none; stroke: var(--line); stroke-dasharray: 5 4; }
 .ghost text { fill: var(--muted); font: 12px var(--sans); }
 .side rect { fill: var(--bg); stroke: var(--line); stroke-dasharray: 5 4; }
@@ -93,7 +75,7 @@ button:focus-visible, .node:focus-visible { outline: 2px solid var(--accent); ou
 }
 .panel .part { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
 .panel h2 { margin: 0; font-size: 20px; line-height: 1.25; font-weight: 600; text-wrap: balance; }
-.panel h3 { margin: 0 0 6px; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+.panel h3 { margin: 0 0 6px; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--accent-text); font-weight: 600; }
 .panel section { display: flex; flex-direction: column; }
 .panel p { margin: 0; max-width: 65ch; }
 .steps, .gate { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
@@ -105,10 +87,10 @@ button:focus-visible, .node:focus-visible { outline: 2px solid var(--accent); ou
 .gate li { padding-left: 22px; position: relative; }
 .gate li::before { content: ""; position: absolute; left: 2px; top: .45em; width: 10px; height: 10px; border: 1.5px solid var(--line); border-radius: 2px; }
 .branch { background: var(--bg); border-radius: 6px; padding: 10px 12px; font-size: 14px; }
-.branch strong { color: var(--accent); }
+.branch strong { color: var(--accent-text); }
 .handoff { font-size: 14px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 12px; }
 .handoff strong { color: var(--fg); font-weight: 500; }
-.doclink { font-size: 14px; color: var(--accent); font-weight: 500; }
+.doclink { font-size: 14px; color: var(--accent-text); font-weight: 500; }
 .doclink:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 code { font-family: var(--mono); font-size: .88em; }
 
@@ -124,12 +106,22 @@ code { font-family: var(--mono); font-size: .88em; }
 
 </head>
 <body>
+<nav class="site-nav" aria-label="Workshop pages">
+  <div class="inner">
+    <a class="brand" href="../" aria-label="Workshop home"><span class="wd-logo" role="img" aria-label="Wunderdog"></span></a>
+    <ul>
+      <li><a class="link" href="./" aria-current="page">Evals phase flow</a></li>
+      <li><a class="link" href="../slides/">Slides</a></li>
+      <li><a class="link" href="../slides/evals-cloud-agents.pdf" download>Slides PDF with speaker notes</a></li>
+      <li><a class="link" href="https://github.com/wunderdogsw/evals-cloud-agents-workshop">Repository</a></li>
+    </ul>
+  </div>
+</nav>
 <div class="wrap">
   <header>
     <span class="eyebrow">Admicom workshop · Evals section · Draft</span>
     <h1>How the 15 evals phases move</h1>
     <p class="lede">Each phase gives its wanted outcome to the next phase. After Phase 3, the repo's agent setup decides the path: create, fix or already good. Click a phase, or use Previous and Next, to see what the attendee does, the gate, and what the phase gives to the next one.</p>
-    <p class="links"><a href="../">All workshop pages</a><a href="../slides/">Slides</a><a href="../slides/evals-cloud-agents.pdf" download>Slides PDF with speaker notes</a></p>
   </header>
 
   <div class="controls">

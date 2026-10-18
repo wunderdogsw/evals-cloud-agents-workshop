@@ -2,58 +2,76 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Evals & Cloud Agents Workshop</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=DM+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="assets/site.css">
 <style>
-:root {
-  --bg: #f4f6f4; --surface: #ffffff; --fg: #1c2420; --muted: #5a6760; --line: #9aa69f; --accent: #2f6f55;
-  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
-}
-@media (prefers-color-scheme: dark) {
-  :root { --bg: #111714; --surface: #18201c; --fg: #e2e9e5; --muted: #98a69e; --line: #5f6d65; --accent: #7fd1a8; color-scheme: dark; }
-}
-body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--sans); font-size: 16px; line-height: 1.5; }
-nav { background: var(--surface); border-bottom: 1px solid var(--line); }
-nav ul { max-width: 760px; margin: 0 auto; padding: 0 16px; list-style: none; display: flex; flex-wrap: wrap; gap: 0 24px; }
-nav a { display: block; padding: 14px 0; color: var(--fg); font-weight: 500; font-size: 15px; text-decoration: none; }
-nav a:hover, nav a:focus-visible { color: var(--accent); text-decoration: underline; }
-main { max-width: 760px; margin: 0 auto; padding: 48px 16px; }
-.eyebrow { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
-h1 { margin: 4px 0 8px; font-size: 28px; line-height: 1.2; font-weight: 600; }
-p { margin: 0; color: var(--muted); }
-main ul { list-style: none; padding: 0; margin: 32px 0 0; display: grid; gap: 12px; }
-main li { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 16px 18px; }
-main li a { color: var(--fg); font-weight: 600; font-size: 18px; text-decoration: none; }
-main li a:hover, main li a:focus-visible { color: var(--accent); text-decoration: underline; }
-main li p { margin-top: 4px; }
-.extra { margin-top: 8px; font-size: 14px; }
-.extra a { color: var(--accent); }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--sans); font-size: 16px; line-height: 1.55; }
+.hero { background: var(--wd-navy); color: var(--wd-offwhite); border-bottom: 1px solid var(--hair); }
+.hero .inner { max-width: 1120px; margin: 0 auto; box-sizing: border-box; padding: 72px 16px 80px; }
+.eyebrow { margin: 0 0 16px; font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: var(--wd-light-blue); font-weight: 500; }
+h1 { margin: 0; max-width: 14ch; font-size: clamp(40px, 7vw, 72px); line-height: 1.05; font-weight: 500; letter-spacing: -.01em; color: var(--wd-sand); }
+.hero p.lede { margin: 24px 0 0; max-width: 52ch; font-size: 18px; color: #d5dde8; }
+.cards { max-width: 1120px; margin: 0 auto; box-sizing: border-box; padding: 48px 16px 72px; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+.card { background: var(--surface); border: 1px solid var(--hair); border-radius: 16px; padding: 28px; display: flex; flex-direction: column; gap: 10px; }
+.card .num { font-family: var(--mono); font-size: 14px; color: var(--muted); }
+.card h2 { margin: 0; font-size: 30px; line-height: 1.15; font-weight: 500; }
+.card p { margin: 0; color: var(--muted); }
+.card .actions { margin-top: auto; padding-top: 14px; display: flex; flex-wrap: wrap; gap: 10px; }
+.btn { display: inline-block; padding: 10px 20px; border-radius: 999px; font-size: 15px; font-weight: 500; text-decoration: none; border: 1px solid var(--fg); }
+.btn.primary { background: var(--fg); color: var(--bg); }
+.btn.secondary { background: transparent; color: var(--fg); }
+.btn:hover { opacity: .85; }
+.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+footer { border-top: 1px solid var(--hair); }
+footer .inner { max-width: 1120px; margin: 0 auto; box-sizing: border-box; padding: 20px 16px 32px; font-size: 14px; color: var(--muted); }
+footer a { color: var(--fg); }
 </style>
 </head>
 <body>
-<nav aria-label="Workshop pages">
-  <ul>
-    <li><a href="phase-flow/">Evals phase flow</a></li>
-    <li><a href="slides/">Slides</a></li>
-    <li><a href="slides/evals-cloud-agents.pdf" download>Slides PDF with speaker notes</a></li>
-    <li><a href="https://github.com/wunderdogsw/evals-cloud-agents-workshop">Repository</a></li>
-  </ul>
+<nav class="site-nav" aria-label="Workshop pages">
+  <div class="inner">
+    <a class="brand" href="./" aria-label="Workshop home"><span class="wd-logo" role="img" aria-label="Wunderdog"></span></a>
+    <ul>
+      <li><a class="link" href="phase-flow/">Evals phase flow</a></li>
+      <li><a class="link" href="slides/">Slides</a></li>
+      <li><a class="link" href="slides/evals-cloud-agents.pdf" download>Slides PDF with speaker notes</a></li>
+      <li><a class="link" href="https://github.com/wunderdogsw/evals-cloud-agents-workshop">Repository</a></li>
+    </ul>
+  </div>
 </nav>
-<main>
-  <span class="eyebrow">Admicom × Wunderdog</span>
-  <h1>Evals & Cloud Agents Workshop</h1>
-  <p>Pages for the 1.5-day workshop.</p>
-  <ul>
-    <li>
-      <a href="phase-flow/">Evals phase flow</a>
-      <p>The 15 evals phases. Click a phase to see what you do, the gate, the learning point and the wanted outcome.</p>
-    </li>
-    <li>
-      <a href="slides/">Slides</a>
-      <p>The workshop slides. Use the arrow keys to move between slides. Press N or the Notes button to see the speaker notes.</p>
-      <p class="extra"><a href="slides/evals-cloud-agents.pdf" download>Download the slides as PDF, with the speaker notes after each slide</a></p>
-    </li>
-  </ul>
+
+<header class="hero">
+  <div class="inner">
+    <p class="eyebrow">Admicom × Wunderdog · DevDays workshop</p>
+    <h1>Evals & Cloud Agents</h1>
+    <p class="lede">A 1.5-day workshop. Day 1: measure how well a coding agent follows your repo's rules. Day 2: hand real work to agents and use that measurement to decide what to merge.</p>
+  </div>
+</header>
+
+<main class="cards">
+  <section class="card">
+    <span class="num">01</span>
+    <h2>Evals phase flow</h2>
+    <p>The 15 evals phases. Click a phase to see what you do, the gate, the learning point and the wanted outcome.</p>
+    <div class="actions"><a class="btn primary" href="phase-flow/">Open the flow</a></div>
+  </section>
+  <section class="card">
+    <span class="num">02</span>
+    <h2>Slides</h2>
+    <p>The workshop slides. Use the arrow keys to move between slides. Press N or the Notes button to see the speaker notes.</p>
+    <div class="actions">
+      <a class="btn primary" href="slides/">Open the slides</a>
+      <a class="btn secondary" href="slides/evals-cloud-agents.pdf" download>PDF with speaker notes</a>
+    </div>
+  </section>
 </main>
+
+<footer>
+  <div class="inner">Workshop material by Wunderdog. Source and phase documents: <a href="https://github.com/wunderdogsw/evals-cloud-agents-workshop">GitHub repository</a>.</div>
+</footer>
 </body>
 </html>

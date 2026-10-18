@@ -1,0 +1,59 @@
+/* Wunderdog look for the workshop pages: colours and fonts from wunderdog.fi, and the shared nav bar.
+   Brand colours: navy #08203D, blue #1E79E6, light blue #8BB8F0, orange #F77C00, sand #EBE0D5, off-white #FAF6F0.
+   Brand blue on off-white is below 4.5:1, so small text uses navy (light theme) and blue only marks lines and states. */
+:root {
+  --wd-navy: #08203d;
+  --wd-blue: #1e79e6;
+  --wd-light-blue: #8bb8f0;
+  --wd-orange: #f77c00;
+  --wd-sand: #ebe0d5;
+  --wd-offwhite: #faf6f0;
+
+  --bg: var(--wd-offwhite);
+  --surface: #ffffff;
+  --fg: var(--wd-navy);
+  --muted: #4a5b70;
+  --line: #7d8ba0;
+  --hair: var(--wd-light-blue);
+  --band: var(--wd-sand);
+  --accent: var(--wd-blue);
+  --accent-text: var(--wd-navy);
+  --accent-soft: #dce9fb;
+  --sans: "DM Sans", "Helvetica Neue", Arial, sans-serif;
+  --mono: "DM Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: var(--wd-navy); --surface: #0f2b4d; --fg: var(--wd-offwhite); --muted: #b7c3d3; --line: #6a80a0;
+    --hair: #2c4a70; --band: #0b2645; --accent: var(--wd-light-blue); --accent-text: var(--wd-light-blue);
+    --accent-soft: #1a3a63; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: var(--wd-navy); --surface: #0f2b4d; --fg: var(--wd-offwhite); --muted: #b7c3d3; --line: #6a80a0;
+  --hair: #2c4a70; --band: #0b2645; --accent: var(--wd-light-blue); --accent-text: var(--wd-light-blue);
+  --accent-soft: #1a3a63; color-scheme: dark;
+}
+
+/* Nav bar */
+.site-nav { background: var(--bg); border-bottom: 1px solid var(--hair); font-family: var(--sans); }
+.site-nav .inner {
+  max-width: 1120px; margin: 0 auto; box-sizing: border-box;
+  padding: 0 max(16px, env(safe-area-inset-left, 0px));
+  display: flex; flex-wrap: wrap; align-items: center; gap: 4px 28px; min-height: 64px;
+}
+.site-nav .brand { display: inline-flex; align-items: center; padding: 12px 0; margin-right: auto; }
+.wd-logo {
+  display: block; width: 156px; aspect-ratio: 3843 / 222; background: var(--fg);
+  -webkit-mask: url("wunderdog-logo-rbg-black.png") center / contain no-repeat; mask: url("wunderdog-logo-rbg-black.png") center / contain no-repeat;
+}
+.site-nav ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0 24px; }
+.site-nav a.link { display: block; padding: 10px 0; color: var(--fg); font-size: 15px; font-weight: 500; text-decoration: none; }
+.site-nav a.link:hover, .site-nav a.link:focus-visible { text-decoration: underline; text-underline-offset: 4px; }
+.site-nav a.link[aria-current="page"] { text-decoration: underline; text-decoration-color: var(--accent); text-decoration-thickness: 2px; text-underline-offset: 6px; }
+.site-nav a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (max-width: 640px) {
+  .site-nav .inner { padding-block: 8px; }
+  .site-nav ul { gap: 0 18px; }
+  .site-nav a.link { font-size: 14px; padding: 6px 0; }
+}
