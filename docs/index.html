@@ -26,7 +26,9 @@ h1 { margin: 0; max-width: 14ch; font-size: clamp(40px, 7vw, 72px); line-height:
 .stop .step { font-family: var(--mono); font-size: 13px; letter-spacing: .04em; color: var(--wd-light-blue); }
 .stop h2 { margin: 0; font-size: 28px; line-height: 1.15; font-weight: 500; color: var(--wd-offwhite); }
 .stop p { margin: 0; max-width: 30ch; color: var(--muted); }
-.stop .actions { margin-top: 12px; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+.stop p a { color: var(--wd-offwhite); font-weight: 500; text-decoration: underline; text-decoration-color: var(--wd-light-blue); text-underline-offset: 3px; }
+.stop p a:hover { text-decoration-thickness: 2px; }
+.stop p a:focus-visible { outline: 2px solid var(--wd-light-blue); outline-offset: 2px; border-radius: 2px; }
 /* The path: a line under the three icons, and a small agent that walks it from stop to stop. */
 .path { position: absolute; z-index: 2; left: calc(28px + (100% - 56px - 48px) / 6); right: calc(28px + (100% - 56px - 48px) / 6); top: calc(36px + var(--icon) + 52px); height: 0; border-top: 2px dashed rgba(139, 184, 240, .55); }
 .walker { position: absolute; left: 0; bottom: 0; width: 34px; height: 42px; margin-left: -17px; animation: walk 12s ease-in-out infinite; }
@@ -42,18 +44,12 @@ h1 { margin: 0; max-width: 14ch; font-size: clamp(40px, 7vw, 72px); line-height:
   .stop { display: grid; grid-template-columns: var(--icon) 1fr; column-gap: 20px; align-items: start; text-align: left; }
   .stop .badge { grid-row: span 4; margin-bottom: 0; }
   .stop .badge svg { width: 42px; height: 42px; }
-  .stop .actions { justify-content: flex-start; }
   /* --s2 and --s3: where stops 2 and 3 are on the line, set by the script at the end of the page. */
   .path { left: calc(20px + var(--icon) / 2); right: auto; top: calc(28px + var(--icon) + 6px); height: calc(var(--s3, 600px) + 46px); border-top: 0; border-left: 2px dashed rgba(139, 184, 240, .55); }
   .walker { left: 0; bottom: auto; top: 0; margin-left: -17px; animation-name: walk-down; }
   .stop .badge { position: relative; z-index: 3; }
   @keyframes walk-down { 0%, 12% { top: 0; } 42%, 56% { top: var(--s2, 300px); } 86%, 100% { top: var(--s3, 600px); } }
 }
-.btn { display: inline-block; white-space: nowrap; padding: 10px 20px; border-radius: 999px; font-size: 15px; font-weight: 500; text-decoration: none; border: 1px solid var(--fg); }
-.btn.primary { background: var(--fg); color: var(--bg); }
-.btn.secondary { background: transparent; color: var(--fg); }
-.btn:hover { opacity: .85; }
-.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 footer { margin-top: auto; border-top: 1px solid rgba(139, 184, 240, .25); background: rgba(3, 6, 13, .35); }
 footer .inner { max-width: 1120px; margin: 0 auto; box-sizing: border-box; padding: 20px 16px 32px; font-size: 14px; color: var(--muted); }
 footer a { color: var(--fg); }
@@ -86,25 +82,19 @@ footer a { color: var(--fg); }
       <span class="badge"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="24" cy="15" r="6"/><path d="M13 38v-3a11 11 0 0 1 22 0v3"/><circle cx="10" cy="19" r="4.2"/><path d="M3 36v-2a7.5 7.5 0 0 1 9.5-7.2"/><circle cx="38" cy="19" r="4.2"/><path d="M45 36v-2a7.5 7.5 0 0 0-9.5-7.2"/></svg></span>
       <span class="step">01 · Kickoff talk</span>
       <h2>Slides</h2>
-      <p>The talk that starts the workshop: why evals, and what cloud agents can do. Press N for the speaker notes.</p>
-      <div class="actions">
-        <a class="btn primary" href="slides/">Open the slides</a>
-        <a class="btn secondary" href="slides/evals-cloud-agents.pdf" download>Download PDF</a>
-      </div>
+      <p>The talk that starts the workshop: why evals, and what cloud agents can do. <a href="slides/">Open the slides</a> or <a href="slides/evals-cloud-agents.pdf" download>download the PDF</a> with the speaker notes.</p>
     </li>
     <li class="stop">
       <span class="badge"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="7" width="30" height="36" rx="4"/><path d="M18 7V5h12v2"/><path d="m15 18 3 3 5-6"/><path d="M27 18h7"/><path d="m15 28 3 3 5-6"/><path d="M27 28h7"/><path d="m15.5 35.5 6 6m0-6-6 6" stroke="#f77c00"/><path d="M27 38h7"/></svg></span>
       <span class="step">02 · Day 1</span>
       <h2>Evals</h2>
       <p>15 phases. Measure how well a coding agent follows your repo's rules, and make CI block when it gets worse.</p>
-      <div class="actions"><a class="btn primary" href="phase-flow/">Workshop phases</a></div>
     </li>
     <li class="stop">
       <span class="badge"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 27h22a8 8 0 0 0 .6-16 11 11 0 0 0-21-1.5A8.8 8.8 0 0 0 14 27Z"/><path d="M24 27v6M24 33l-11 4M24 33l11 4M24 33v4"/><circle cx="12" cy="40" r="3"/><circle cx="24" cy="40" r="3"/><circle cx="36" cy="40" r="3"/></svg></span>
       <span class="step">03 · Day 2</span>
       <h2>Cloud agents</h2>
       <p>4 phases. Hand real issues to agents that run in the cloud, and use your evals to decide what to merge.</p>
-      <div class="actions"><a class="btn secondary" href="https://github.com/wunderdogsw/evals-cloud-agents-workshop/tree/main/.agents/phases">Phase documents</a></div>
     </li>
   </ol>
 </main>
