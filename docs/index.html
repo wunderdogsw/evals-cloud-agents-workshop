@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -8,14 +8,17 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=DM+Mono:wght@400;500&display=swap">
 <link rel="stylesheet" href="assets/site.css">
+<link rel="stylesheet" href="assets/nav.css">
 <style>
-body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--sans); font-size: 16px; line-height: 1.55; }
-.hero { background: var(--wd-navy); color: var(--wd-offwhite); border-bottom: 1px solid var(--hair); }
-.hero .inner { max-width: 1120px; margin: 0 auto; box-sizing: border-box; padding: 72px 16px 80px; }
-.eyebrow { margin: 0 0 16px; font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: var(--wd-light-blue); font-weight: 500; }
+/* The start page is always dark, on the Wunderdog light-streak gradient (assets/streaks.js). */
+body { margin: 0; min-height: 100vh; background: #03060d; color: var(--fg); font-family: var(--sans); font-size: 16px; line-height: 1.55; display: flex; flex-direction: column; }
+canvas.wd-streaks { position: fixed; inset: 0; width: 100%; height: 100%; z-index: -1; display: block; }
+.site-nav { --n-bg: rgba(3, 6, 13, .35); --n-line: rgba(139, 184, 240, .25); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+.hero { color: var(--wd-offwhite); }
+.hero .inner { max-width: 1120px; margin: 0 auto; box-sizing: border-box; padding: 96px 16px 56px; }
 h1 { margin: 0; max-width: 14ch; font-size: clamp(40px, 7vw, 72px); line-height: 1.05; font-weight: 500; letter-spacing: -.01em; color: var(--wd-sand); }
-.cards { max-width: 1120px; margin: 0 auto; box-sizing: border-box; padding: 48px 16px 72px; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
-.card { background: var(--surface); border: 1px solid var(--hair); border-radius: 16px; padding: 28px; display: flex; flex-direction: column; gap: 10px; }
+.cards { width: 100%; max-width: 1120px; margin: 0 auto; box-sizing: border-box; padding: 24px 16px 72px; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+.card { background: rgba(8, 32, 61, .72); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(139, 184, 240, .3); border-radius: 16px; padding: 28px; display: flex; flex-direction: column; gap: 10px; }
 .card .num { font-family: var(--mono); font-size: 14px; color: var(--muted); }
 .card h2 { margin: 0; font-size: 30px; line-height: 1.15; font-weight: 500; }
 .card p { margin: 0; color: var(--muted); }
@@ -25,13 +28,14 @@ h1 { margin: 0; max-width: 14ch; font-size: clamp(40px, 7vw, 72px); line-height:
 .btn.secondary { background: transparent; color: var(--fg); }
 .btn:hover { opacity: .85; }
 .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-footer { border-top: 1px solid var(--hair); }
+footer { margin-top: auto; border-top: 1px solid rgba(139, 184, 240, .25); background: rgba(3, 6, 13, .35); }
 footer .inner { max-width: 1120px; margin: 0 auto; box-sizing: border-box; padding: 20px 16px 32px; font-size: 14px; color: var(--muted); }
 footer a { color: var(--fg); }
 </style>
 </head>
 <body>
-<nav class="site-nav" aria-label="Workshop pages">
+<canvas class="wd-streaks" data-o="0.8,0.42" aria-hidden="true"></canvas>
+<nav class="site-nav on-dark" aria-label="Workshop pages">
   <div class="inner">
     <a class="brand" href="./" aria-label="Workshop home"><span class="wd-logo" role="img" aria-label="Wunderdog"></span></a>
     <ul>
@@ -45,7 +49,6 @@ footer a { color: var(--fg); }
 
 <header class="hero">
   <div class="inner">
-    <p class="eyebrow">Admicom × Wunderdog · DevDays workshop</p>
     <h1>Evals & Cloud Agents</h1>
   </div>
 </header>
@@ -69,7 +72,8 @@ footer a { color: var(--fg); }
 </main>
 
 <footer>
-  <div class="inner">Workshop material by Wunderdog. Source and phase documents: <a href="https://github.com/wunderdogsw/evals-cloud-agents-workshop">GitHub repository</a>.</div>
+  <div class="inner">Workshop copyright Wunderdog.</div>
 </footer>
+<script src="assets/streaks.js"></script>
 </body>
 </html>

@@ -27,7 +27,7 @@ evals-cloud-agents-workshop/       ← open THIS in Cursor / Claude Code
 ├── kit/catchup/                   ← reference work for `pnpm workshop catchup`
 ├── docs/phase-flow/               ← interactive evals flow (GitHub Pages), built from the phase docs
 ├── docs/slides/                   ← workshop slides, speaker notes and the PDF (GitHub Pages)
-├── docs/assets/                   ← Wunderdog logo (from wunderdog.fi) and the shared look of the pages (site.css)
+├── docs/assets/                   ← Wunderdog logo (from wunderdog.fi), colours and fonts (site.css), the nav bar (nav.css) and the light-streak background (streaks.js)
 ├── samples/cost-coder/            ← sample target (TypeScript) with an agent setup that has problems on purpose
 ├── targets/                       ← gitignored — your attached repo(s) land here
 └── .workshop/                     ← gitignored — progress, repo profile, notes, labels
@@ -137,7 +137,7 @@ The site is public even when the repo is private. Anyone with the link can see t
 To update the pages:
 
 - **Evals flow:** run `pnpm docs:flow` after you change a phase document. `pnpm test` fails if you forget. Add `--images` to also update the README pictures.
-- **Slides:** `docs/slides/index.html` is a copy of the slide deck, and `docs/slides/notes.json` is a copy of its speaker notes (one entry per slide). After you update either one, run `pnpm docs:slides`. It puts the notes into the page and writes the PDF again. When you replace `index.html` with a new version of the deck, keep its local changes: the PDF link in the toolbar, the `static-notes` script tag and `useStaticNotes()`. `pnpm test` fails if the page doesn't have the notes from `notes.json`.
+- **Slides:** `docs/slides/index.html` is a copy of the slide deck, and `docs/slides/notes.json` is a copy of its speaker notes (one entry per slide). After you update either one, run `pnpm docs:slides`. It puts the notes into the page and writes the PDF again. When you replace `index.html` with a new version of the deck, keep its local changes: the nav bar (with `../assets/nav.css` and the nav height in `fit()`), the PDF link in the toolbar, the `static-notes` script tag and `useStaticNotes()`. `pnpm test` fails if the page doesn't have the notes from `notes.json`.
 - Both scripts need Playwright for the PDF and the pictures (`pnpm add -D playwright` and `npx playwright install chromium`).
 
 Then commit, merge to `main` and push. GitHub Pages updates on its own.

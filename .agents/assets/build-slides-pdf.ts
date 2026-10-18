@@ -10,8 +10,8 @@
  *
  * docs/slides/index.html is a copy of the "Evals & Cloud Agents" Claude artifact, and notes.json is a copy of
  * the notes saved in that artifact (one entry per slide, keyed by the slide title as a slug). To update the
- * slides, replace index.html with the artifact's HTML and keep its local changes: the PDF link in the toolbar,
- * the #static-notes script tag and useStaticNotes(). Then update notes.json and run this script.
+ * slides, replace index.html with the artifact's HTML and keep its local changes: the nav bar (with ../assets/nav.css
+ * and the nav height in fit()), the PDF link in the toolbar, the #static-notes script tag and useStaticNotes(). Then update notes.json and run this script.
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
