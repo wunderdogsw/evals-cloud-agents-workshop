@@ -48,6 +48,11 @@ Hypothesis: the agent breaks <rule> because <reason seen in the diffs>. Changing
 
 The reason must come from something they saw in a diff. It must not be a guess about how models behave.
 
+### [BRANCH]
+
+- **The agent broke no rule in the baseline** (common with a setup that was already good) → they test a change that makes the setup smaller instead: remove a section, a rule file or a skill that seems unneeded. The hypothesis is "the agent still follows every rule without <part>". A smaller setup uses less context in every session. If no grader gets worse in 12.3, they keep the smaller setup.
+- **The agent broke many rules** → they pick the rule that broke in the most tasks in the run with the setup.
+
 ## 12.2 Change one agent file
 
 ### [HUMAN]

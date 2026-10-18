@@ -58,7 +58,7 @@ They read the script before they accept it. Then they restart the target session
 
 ### [BRANCH]
 
-- **Target is `sample`** → the rule is "Never edit files under `data/`" from `AGENTS.md`.
+- **Target is `sample` (default `--setup broken`)** → the rule is "Never edit files under `data/`" from `AGENTS.md`.
 - **Already good** (a blocking hook exists) → don't add one. Make the existing hook run on purpose, and confirm in `/hooks` that it is the project's hook.
 - **They mainly use Cursor** → Cursor's project hooks are in `.cursor/hooks.json` (`"version": 1`). A `preToolUse` hook can block with exit code 2. Commands run from the project root, so use paths like `.cursor/hooks/protect-data.mjs`. Add it next to the Claude Code hook. One script can work for both tools if it can read the input from either one.
 - **The hook doesn't run** → check `claude doctor` for a settings error. Check the matcher (`Edit|Write`). Check that the script is executable or is started with `node`.

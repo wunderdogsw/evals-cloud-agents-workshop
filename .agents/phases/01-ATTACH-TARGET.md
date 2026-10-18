@@ -48,7 +48,7 @@ Show the three options and ask which one they want:
 
 1. **A GitLab or GitHub URL** — if the repo has code in production, use the workshop mirror your facilitators set up. The repo is cloned as a new copy into `targets/`.
 2. **A local checkout** — a path like `~/code/my-service`. It is added as a git worktree on a new branch, so their own checkout does not change.
-3. **`sample`** — the included `cost-coder` app. It is written in TypeScript, has an LLM feature, and has an agent setup with problems added on purpose. This option always works.
+3. **`sample`** — the included `cost-coder` app. It is written in TypeScript, has an LLM feature, and has an agent setup with problems added on purpose. This option always works. Facilitators can choose a different agent setup with `--setup good` (no problems) or `--setup none` (no `CLAUDE.md` or `AGENTS.md`), to try the other paths of Phases 3–5.
 
 Also ask for a short participant name to use in the branch name. The default is their git user name.
 

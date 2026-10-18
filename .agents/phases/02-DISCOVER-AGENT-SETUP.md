@@ -67,7 +67,7 @@ In the target session they run `/hooks`, `/mcp` and `/permissions`. They say wha
 
 ### [BRANCH]
 
-- **Target is `sample`** → expect `AGENTS.md` on disk but not loaded, because `CLAUDE.md` only says "Read AGENTS.md". Expect no rules, skills or hooks. Let them find this themselves. Confirm it only after they name it.
+- **Target is `sample` (default `--setup broken`)** → expect `AGENTS.md` on disk but not loaded, because `CLAUDE.md` only says "Read AGENTS.md". Expect no rules, skills or hooks. Let them find this themselves. Confirm it only after they name it.
 - **Repo has `.cursor/rules/*.mdc`** → Claude Code doesn't read these files. Note which rules exist only there. In Phase 4 they decide whether to share them through `AGENTS.md` or `.claude/rules/`.
 - **They mainly use Cursor** → Cursor reads `AGENTS.md`, `.cursor/rules/` and `.claude/skills/`. Add a column for Cursor and fill it by reading the files. Claude Code's commands are still the fastest way to see what one agent loads.
 - **No agent files at all** → that is a valid list: every row is "missing". Phase 4 creates the files.

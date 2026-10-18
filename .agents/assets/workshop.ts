@@ -1,7 +1,8 @@
 /**
  * Workshop helper used by the guide. Run via:  pnpm workshop <command> …
  *
- *   attach <git-url | local-path | sample> [--name n] [--participant p]
+ *   attach <git-url | local-path | sample> [--name n] [--participant p] [--setup broken|good|none]
+ *       --setup (sample only): the sample's agent setup — broken (default), good (reference fix) or none
  *   profile <name> [--redetect]          (keeps manually corrected commands unless --redetect)
  *   install <name> <component…> [--suite s] [--force]
  *       components: evals | subject-cost-coder | ci-evals | cursor-env | agents-section | review-md | agent-tasks | agent-suite | ci-agent-evals
@@ -24,7 +25,7 @@
  */
 import { execSync, spawnSync } from "node:child_process";
 import { homedir, tmpdir } from "node:os";
-import { copyFileSync, cpSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { copyFileSync, cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
@@ -115,7 +116,7 @@ function slug(s: string) {
   return s.toLowerCase().replace(/\.git$/, "").replace(/[^a-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "") || "target";
 }
 
-function attach(src: string, opts: { name?: string; participant?: string }) {
+function attach(src: string, opts: { name?: string; participant?: string; setup?: string }) {
   mkdirSync(TARGETS, { recursive: true });
   const participant = slug(opts.participant ?? (tryRun("git config user.name") || process.env.USER || "me"));
   const branch = `${BRANCH_PREFIX}${participant}`;
@@ -128,7 +129,11 @@ function attach(src: string, opts: { name?: string; participant?: string }) {
   let source: Profile["source"];
 
   if (src === "sample") {
-    name = opts.name ?? "cost-coder";
+    // Three agent setups, so each path of Phases 2–5 can be tried on the sample:
+    //   broken (default) — problems added on purpose; good — the reference fix; none — no CLAUDE.md or AGENTS.md.
+    const setup = opts.setup ?? "broken";
+    if (!["broken", "good", "none"].includes(setup)) die(`--setup must be broken, good or none (got "${setup}")`);
+    name = opts.name ?? (setup === "broken" ? "cost-coder" : `cost-coder-${setup}`);
     source = "sample";
     const dest = join(TARGETS, name);
     if (existsSync(dest)) die(`targets/${name} already exists. Pick another --name or remove it.`);
@@ -136,6 +141,9 @@ function attach(src: string, opts: { name?: string; participant?: string }) {
       recursive: true,
       filter: (p) => !/(^|\/)(node_modules|\.eval-runs|\.agent-runs)(\/|$)/.test(relative(join(ROOT, "samples"), p)),
     });
+    if (setup === "good") cpSync(join(KIT, "catchup", "cost-coder", "agent-setup"), dest, { recursive: true, force: true });
+    if (setup === "none") for (const f of ["CLAUDE.md", "AGENTS.md"]) rmSync(join(dest, f), { force: true });
+    if (setup !== "broken") log(`✓ sample agent setup: ${setup}`);
     run(`git init -q -b main`, dest);
     run(`git add -A && git -c user.email=workshop@example.invalid -c user.name=workshop commit -qm "Initial commit: cost-coder sample"`, dest);
     tagStart(dest, "HEAD");
@@ -932,6 +940,7 @@ const { values, positionals } = parseArgs({
   options: {
     name: { type: "string" },
     participant: { type: "string" },
+    setup: { type: "string" },
     suite: { type: "string" },
     force: { type: "boolean" },
     redetect: { type: "boolean" },
@@ -949,7 +958,7 @@ try {
   switch (cmd) {
     case "attach":
       if (!positionals[0]) die("attach <git-url | local-path | sample>");
-      attach(positionals[0]!, { name: values.name, participant: values.participant });
+      attach(positionals[0]!, { name: values.name, participant: values.participant, setup: values.setup });
       break;
     case "profile":
       profile(positionals[0] ?? readJson<any>(PROGRESS, {}).activeTarget ?? die("profile <name>"), {}, Boolean(values.redetect));

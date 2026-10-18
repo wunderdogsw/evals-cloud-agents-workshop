@@ -96,6 +96,18 @@ Both are fully supported. The guide detects the host from your target's remote a
 
 Extra templates for organisations that *do* allow a model credential in CI (`ci-evals-live`, `ci-claude`, `ci-review`) are in `kit/templates/ci/`. The workshop doesn't use them.
 
+## Dry runs (facilitators)
+
+Each path of Phases 3–5 can be tried on the sample, with a different agent setup:
+
+```bash
+pnpm workshop attach sample --setup broken   # default: problems added on purpose → the "fix" path
+pnpm workshop attach sample --setup good     # the reference fix → the "already good" path (targets/cost-coder-good)
+pnpm workshop attach sample --setup none     # no CLAUDE.md or AGENTS.md → the "create" path (targets/cost-coder-none)
+```
+
+All three use the same tasks, so the results of Phases 8–15 can be compared between them. The last one you attach becomes the active target; change `activeTarget` in `.workshop/progress.json` to switch.
+
 ## Manual vs generated work
 
 The guide writes the setup code. **You** write the things that decide the result:

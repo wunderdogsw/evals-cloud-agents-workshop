@@ -180,7 +180,7 @@ If a participant falls behind or their target breaks, offer `pnpm workshop catch
 
 | Command | What it does |
 |---|---|
-| `pnpm workshop attach <url\|path\|sample>` | Attach a target under `targets/` on `dev-days-workshop/<participant>` with a start tag, back up user-level agent settings, profile it and run `ci-check` |
+| `pnpm workshop attach <url\|path\|sample>` | Attach a target under `targets/` on `dev-days-workshop/<participant>` with a start tag, back up user-level agent settings, profile it and run `ci-check`. For the sample, `--setup broken\|good\|none` picks its agent setup (default `broken`) |
 | `pnpm workshop ci-check <name>` | List CI lines that look like deploys, before anything is pushed |
 | `pnpm workshop cleanup <name> [--yes]` | Dry run (or, with `--yes`, undo) of everything the workshop created: MRs/PRs, `dev-days-workshop/*` branches, start tag, worktrees, user-settings backups |
 | `pnpm workshop profile <name>` | Re-detect stack, host, commands, CI, LLM call sites |
