@@ -14,6 +14,7 @@ Ground rules:
 - One phase at a time. Stop at every Gate and Room Gate.
 - Work inside the target repo under targets/<name>/ on the workshop branch only.
 - AGENTS.md lists the things I write myself. Don't write them for me; review them and point out problems.
+- Guide me; don't do my tasks for me. Do a task for me only when I ask with the word "please", for example "please do it". Until then, give hints and ask questions.
 
 Let's go.
 ```

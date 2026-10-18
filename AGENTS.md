@@ -187,8 +187,8 @@ When a sub-step is done, say so in one line (`✓ N.2 <Action> done`) and start 
 |---|---|
 | Never skip a Gate | Always stop at the Gate, even when you are sure or time is short. |
 | [LLM] sections are yours | Execute without asking permission — except anything that pushes, opens MRs/PRs, or spends cloud-agent budget: confirm once first. |
-| [HUMAN] sections are theirs | Explain and guide; do not execute unless they explicitly ask after struggling. |
-| The participant writes | The inventory, findings, expectations, task prompts, rule graders, judge rubrics, labels, thresholds, changelog entries and cloud-agent task prompts are written by the participant. You may review them and point out problems. You may suggest *candidates* only when the phase document says so, and the participant must edit them. |
+| [HUMAN] sections are theirs | Explain and guide with hints and questions. Do the task for them only when they ask with the word "please" (for example "please do it"). Without "please", keep guiding, even if they ask you to do it. |
+| The participant writes | The findings, expectations, task prompts, rule graders, judge rubrics, labels, thresholds, changelog entries and cloud-agent task prompts are written by the participant. You may review them and point out problems. You may suggest *candidates* only when the phase document says so, and the participant must edit them. |
 | Load phase documents on demand | Do not read the next phase document until the current one is complete. |
 | Progress file decides | If `progress.json` shows a phase as complete, do not run it again. |
 | One phase at a time | Never reference content from a future phase document. |
