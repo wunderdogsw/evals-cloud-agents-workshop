@@ -3,12 +3,14 @@
 ## What you do
 
 1. **Add a run-and-verify skill** — `/run-skill-generator` writes down how to build and run the target, as `.claude/skills/run-<name>/`.
-2. **Enforce one rule with a hook** — add a `PreToolUse` hook with `/update-config`, confirm it in `/hooks`, then break the rule on purpose.
-3. **Set permissions** — run `/fewer-permission-prompts`, then review the allow list in `/permissions` and commit everything.
+2. **Test the skill with an eval** — write one eval case for the skill and run it with `claude plugin eval`, with and without the skill.
+3. **Enforce one rule with a hook** — add a `PreToolUse` hook with `/update-config`, confirm it in `/hooks`, then break the rule on purpose.
+4. **Set permissions** — run `/fewer-permission-prompts`, then review the allow list in `/permissions` and commit everything.
 
 ## Gate
 
 - [ ] The skill, the hook and the permissions are committed on the workshop branch.
+- [ ] The skill eval ran with and without the skill, and `findings.md` records the result and what they changed because of it.
 - [ ] A hook (new or existing) blocked a deliberate violation in this session.
 
 ## Learning point
@@ -38,7 +40,56 @@ In the target session they run `/run-skill-generator` and follow its steps. Then
 - **Already good** (a working run or build skill exists) → don't add one. Run `/skill-doctor` in the terminal session (v2.1.252+). Turn off skills that use context but have never run, at project level only.
 - **The app can't start locally** (it needs a cloud service) → let the skill record only the build and the tests. Write in the skill what is missing.
 
-## 5.2 Enforce one rule with a hook
+## 5.2 Test the skill with an eval
+
+### [LLM]
+
+> Narrate: "Before we build our own evals, try the one Claude Code ships. It answers one question: does this skill change what Claude does?"
+
+Explain in three lines, from the Claude Code plugin evals docs (Claude Code v2.1.269 or later):
+
+- `claude plugin eval` runs a test case (a prompt plus graders) several times with a plugin and several times without it. The difference is `Δ`.
+- A grader is a pass/fail check. `regex` and `tool_used` graders cost nothing. An `llm` grader asks a judge model.
+- Each run starts in an empty folder, with no `CLAUDE.md`, no project `.claude/` and no user settings. So this tests the skill on its own, not the repo's instructions. Phases 8–15 test those.
+
+It works on plugins, so wrap the skill in a throwaway plugin outside the target. Nothing here is committed:
+
+```bash
+d=.workshop/targets/<name>/skill-eval
+mkdir -p "$d/.claude-plugin" "$d/skills"
+echo '{"name": "skill-eval"}' > "$d/.claude-plugin/plugin.json"
+cp -R targets/<name>/.claude/skills/run-<name> "$d/skills/"
+cd "$d" && claude plugin eval init --bare run-skill
+```
+
+This writes `evals/run-skill/prompt.md` and `evals/run-skill/graders/criteria.md` with placeholders.
+
+### [HUMAN]
+
+They write the case themselves:
+
+1. **`prompt.md`** — a question a new teammate would type, without naming the skill. For example: "How do I start this app locally and check that it works?" In the frontmatter, set `allowed_tools: [Read, Skill]`.
+2. **`graders/criteria.md`** — change it to a `regex` grader (`type: regex`, with a `pattern`) that matches the exact start or test command from the skill. Without the skill, Claude can't know that command, so this grader shows what the skill adds.
+3. **`graders/skill-fired.md`** — a `tool_used` grader with `tool: Skill` and `input_match` set to the skill's name. It shows whether Claude chose the skill.
+
+Then they run it from the plugin folder (one case, 3 runs with and 3 without, about 6 short runs):
+
+```bash
+claude plugin eval . --no-publish
+```
+
+They read `WITH`, `W/OUT` and `Δ`, and write one line in `findings.md` under `## Skill eval`. If `skill-fired` failed, Claude didn't pick the skill from a normal question. They improve the `description` in the skill's `SKILL.md` in the target, copy the skill again, and run again. Then the line also says what they changed.
+
+Ask before they run: "What `Δ` do you expect?" Compare after.
+
+### [BRANCH]
+
+- **Already good** (they kept an existing skill in 5.1) → test that skill instead.
+- **Claude Code older than v2.1.269** → run `claude update`. If they can't, they pair with someone who can, and still write their own case.
+- **They mainly use Cursor** → `claude plugin eval` needs the Claude Code CLI. If they have no Claude Code login, they pair with someone who has one, and still write their own case and graders.
+- **`Δ` is near zero and `skill-fired` passes** → the regex probably matches text Claude can guess without the skill. Make it match something only the skill knows, such as a script name or a port.
+
+## 5.3 Enforce one rule with a hook
 
 ### [LLM]
 
@@ -63,7 +114,7 @@ They read the script before they accept it. Then they restart the target session
 - **They mainly use Cursor** → Cursor's project hooks are in `.cursor/hooks.json` (`"version": 1`). A `preToolUse` hook can block with exit code 2. Commands run from the project root, so use paths like `.cursor/hooks/protect-data.mjs`. Add it next to the Claude Code hook. One script can work for both tools if it can read the input from either one.
 - **The hook doesn't run** → check `claude doctor` for a settings error. Check the matcher (`Edit|Write`). Check that the script is executable or is started with `node`.
 
-## 5.3 Set permissions
+## 5.4 Set permissions
 
 ### [LLM]
 
@@ -84,11 +135,12 @@ git commit -m "workshop: agent skill, hook and permissions"
 
 Don't commit `.claude/settings.local.json`. It holds personal settings.
 
-## 5.4 Gate check
+## 5.5 Gate check
 
 The participant confirms, and you verify:
 
 - [ ] The skill, the hook and the permissions are committed on the workshop branch. — `git -C targets/<name> log --stat -1` and `cat targets/<name>/.claude/settings.json`
+- [ ] The skill eval ran with and without the skill, and `findings.md` records the result and what they changed because of it. — read `## Skill eval` in `.workshop/targets/<name>/findings.md` and the latest report under `.workshop/targets/<name>/skill-eval/evals/results/`
 - [ ] A hook (new or existing) blocked a deliberate violation in this session. — they paste the blocked tool call and its reason from the target session
 
 ---

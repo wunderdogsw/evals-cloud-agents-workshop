@@ -169,16 +169,17 @@ const PHASES = [
   "title": "Discover your agent setup",
   "file": ".agents/phases/02-DISCOVER-AGENT-SETUP.md",
   "do": [
-   "<strong>See what loads</strong>: open Claude Code in the target and read <code>/context</code> and <code>/memory</code>: these show the instruction files, rules, skills, subagents and MCP tools that the session loaded.",
-   "<strong>Find what doesn't load</strong>: compare that with the files on disk (<code>CLAUDE.md</code>, <code>AGENTS.md</code>, <code>.claude/</code>, <code>.mcp.json</code>, <code>.cursor/</code>), and check <code>/hooks</code>, <code>/mcp</code> and <code>/permissions</code>.",
-   "<strong>Mark each file's status</strong>: loaded, not loaded, missing or out of date, with one row for each file type in <code>agent-inventory.md</code>."
+   "<strong>Predict what loads</strong>: the guide lists the agent files in the target as lettered options. You reply with the letters you think Claude Code loads at start.",
+   "<strong>Check your prediction</strong>: in a second terminal, run <code>/memory</code>, <code>/context all</code> and <code>/mcp</code> in the target. Reply with the letters you got wrong and why, and with the MCP servers a teammate would also get.",
+   "<strong>Decide on each gap</strong>: for each file that doesn't load, reply <strong>fix</strong> or <strong>leave</strong>, with one reason."
   ],
   "gate": [
-   "<code>agent-inventory.md</code> has a row for every file type, each with a status.",
-   "Every file on disk that doesn't load has a reason."
+   "Every wrong prediction has a one-line explanation.",
+   "Every MCP server, skill and agent they saw is named as project or personal.",
+   "Every agent file that doesn't load has a fix-or-leave decision in <code>findings.md</code>."
   ],
-  "lp": "The agent does not get every file that is on disk. If a repo has both <code>CLAUDE.md</code> and <code>AGENTS.md</code>, Claude Code ignores <code>AGENTS.md</code> unless <code>CLAUDE.md</code> imports it.",
-  "out": "A list in <code>.workshop/targets/&lt;name&gt;/agent-inventory.md</code> of the instructions the agent gets about this repo."
+  "lp": "The agent does not get every file on disk, and part of what it gets is your personal setup, which a teammate doesn't have.",
+  "out": "<code>.workshop/targets/&lt;name&gt;/findings.md</code> with an \"Agent files\" list and a \"Loading gaps\" section, which Phase 3 adds to and Phase 4 fixes."
  },
  {
   "n": 3,
@@ -234,11 +235,13 @@ const PHASES = [
   "file": ".agents/phases/05-SKILLS-HOOKS-PERMISSIONS.md",
   "do": [
    "<strong>Add a run-and-verify skill</strong>: <code>/run-skill-generator</code> writes down how to build and run the target, as <code>.claude/skills/run-&lt;name&gt;/</code>.",
+   "<strong>Test the skill with an eval</strong>: write one eval case for the skill and run it with <code>claude plugin eval</code>, with and without the skill.",
    "<strong>Enforce one rule with a hook</strong>: add a <code>PreToolUse</code> hook with <code>/update-config</code>, confirm it in <code>/hooks</code>, then break the rule on purpose.",
    "<strong>Set permissions</strong>: run <code>/fewer-permission-prompts</code>, then review the allow list in <code>/permissions</code> and commit everything."
   ],
   "gate": [
    "The skill, the hook and the permissions are committed on the workshop branch.",
+   "The skill eval ran with and without the skill, and <code>findings.md</code> records the result and what they changed because of it.",
    "A hook (new or existing) blocked a deliberate violation in this session."
   ],
   "lp": "If a rule must never be broken, put it in a hook, not in <code>CLAUDE.md</code>. An instruction asks the agent to follow a rule, but a hook stops the action that breaks it.",
@@ -434,7 +437,7 @@ const PHASES = [
 ];
 /* PHASES:END */
 const REPO = "https://github.com/wunderdogsw/evals-cloud-agents-workshop";
-const HANDOFF = { 1: "target that runs", 2: "inventory", 3: "findings + path", 4: "working instructions", 5: "committed agent setup", 6: "5 picked rules", 7: "validated tasks", 8: "two baseline runs", 9: "score per code rule", 10: "rubrics + labels", 11: "checked judge", 12: "compared run", 13: "per-rule reading", 14: "recording + CI job", 15: "merge gate" };
+const HANDOFF = { 1: "target that runs", 2: "loading gaps", 3: "findings + path", 4: "working instructions", 5: "committed agent setup", 6: "5 picked rules", 7: "validated tasks", 8: "two baseline runs", 9: "score per code rule", 10: "rubrics + labels", 11: "checked judge", 12: "compared run", 13: "per-rule reading", 14: "recording + CI job", 15: "merge gate" };
 
 const NS = "http://www.w3.org/2000/svg";
 const svg = document.getElementById("flow");
