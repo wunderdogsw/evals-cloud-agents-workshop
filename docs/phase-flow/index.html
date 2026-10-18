@@ -1,0 +1,621 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Evals Phase Flow</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: controls on top; flowchart (vertical, scrollable) on the left, sticky phase detail on the right; stacks on phones with the detail first. */
+:root {
+  --bg: #f4f6f4;
+  --surface: #ffffff;
+  --fg: #1c2420;
+  --muted: #5a6760;
+  --line: #9aa69f;
+  --band: #e9eeea;
+  --accent: #2f6f55;
+  --accent-soft: #d7ebe1;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111714; --surface: #18201c; --fg: #e2e9e5; --muted: #98a69e; --line: #5f6d65;
+    --band: #1a231e; --accent: #7fd1a8; --accent-soft: #1f3b2e; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111714; --surface: #18201c; --fg: #e2e9e5; --muted: #98a69e; --line: #5f6d65;
+  --band: #1a231e; --accent: #7fd1a8; --accent-soft: #1f3b2e; color-scheme: dark;
+}
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--sans); font-size: 15px; line-height: 1.5; }
+.wrap {
+  max-width: 1120px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 32px 56px;
+  display: flex; flex-direction: column; gap: 20px;
+}
+header { display: flex; flex-direction: column; gap: 4px; }
+.eyebrow { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+h1 { margin: 0; font-size: 26px; line-height: 1.2; font-weight: 600; text-wrap: balance; }
+.lede { margin: 0; color: var(--muted); max-width: 65ch; }
+
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; }
+.controls button {
+  font: inherit; font-size: 14px; font-weight: 500; color: var(--fg);
+  background: var(--surface); border: 1px solid var(--line); border-radius: 6px;
+  padding: 6px 14px; cursor: pointer;
+}
+.controls button:hover { border-color: var(--accent); }
+.controls button:disabled { opacity: .45; cursor: default; border-color: var(--line); }
+button:focus-visible, .node:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pos { font-family: var(--mono); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; margin-left: auto; font-size: 13px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend svg { width: 28px; height: 8px; color: var(--line); }
+
+.layout { display: grid; grid-template-columns: minmax(0, 580px) minmax(0, 1fr); gap: 24px; align-items: start; }
+.chart { overflow-x: auto; min-width: 0; }
+.chart svg { display: block; width: 100%; min-width: 420px; height: auto; color: var(--line); }
+
+.band { fill: var(--band); }
+.band-label { fill: var(--muted); font: 600 11px var(--sans); letter-spacing: .06em; text-transform: uppercase; }
+.edge { fill: none; stroke: currentColor; stroke-width: 1.5; }
+.edge.dashed { stroke-dasharray: 5 4; }
+.edge.next { stroke: var(--accent); stroke-width: 2.2; }
+.edge-label { fill: var(--muted); font: 11px var(--sans); }
+.edge-label.next { fill: var(--accent); font-weight: 600; }
+.node { cursor: pointer; }
+.node rect, .node polygon { fill: var(--surface); stroke: var(--line); stroke-width: 1.2; }
+.node .num { fill: var(--muted); font: 500 10.5px var(--mono); }
+.node .ttl { fill: var(--fg); font: 500 12.5px var(--sans); }
+.node:hover rect { stroke: var(--accent); }
+.node.done rect { fill: var(--accent-soft); }
+.node.current rect { stroke: var(--accent); stroke-width: 2.5; }
+.node.current .num { fill: var(--accent); }
+.ghost rect { fill: none; stroke: var(--line); stroke-dasharray: 5 4; }
+.ghost text { fill: var(--muted); font: 12px var(--sans); }
+.side rect { fill: var(--bg); stroke: var(--line); stroke-dasharray: 5 4; }
+.side text { fill: var(--muted); font: 11.5px var(--sans); }
+.diamond { fill: var(--surface); stroke: var(--line); stroke-width: 1.2; }
+.diamond-text { fill: var(--fg); font: 500 10.5px var(--sans); }
+.dot { fill: var(--line); }
+.loop-label { fill: var(--muted); font: 11px var(--sans); }
+
+.panel {
+  position: sticky; top: calc(env(safe-area-inset-top, 0px) + 16px);
+  background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
+  padding: 20px 22px; display: flex; flex-direction: column; gap: 14px; min-width: 0;
+}
+.panel .part { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+.panel h2 { margin: 0; font-size: 20px; line-height: 1.25; font-weight: 600; text-wrap: balance; }
+.panel h3 { margin: 0 0 6px; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+.panel section { display: flex; flex-direction: column; }
+.panel p { margin: 0; max-width: 65ch; }
+.steps, .gate { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.steps li { display: grid; grid-template-columns: 44px 1fr; gap: 8px; }
+.panel .branches { display: flex; flex-direction: column; gap: 8px; }
+.steps li > * { min-width: 0; }
+.steps .sn { font-family: var(--mono); font-size: 13px; color: var(--muted); padding-top: 1px; font-variant-numeric: tabular-nums; }
+.steps li.check .sn, .steps li.check span { color: var(--muted); }
+.gate li { padding-left: 22px; position: relative; }
+.gate li::before { content: ""; position: absolute; left: 2px; top: .45em; width: 10px; height: 10px; border: 1.5px solid var(--line); border-radius: 2px; }
+.branch { background: var(--bg); border-radius: 6px; padding: 10px 12px; font-size: 14px; }
+.branch strong { color: var(--accent); }
+.handoff { font-size: 14px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 12px; }
+.handoff strong { color: var(--fg); font-weight: 500; }
+.doclink { font-size: 14px; color: var(--accent); font-weight: 500; }
+.doclink:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+code { font-family: var(--mono); font-size: .88em; }
+
+@media (max-width: 860px) {
+  .layout { grid-template-columns: minmax(0, 1fr); }
+  .panel { position: static; order: -1; }
+  .legend { margin-left: 0; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .edge, .node rect { transition: stroke .15s, fill .15s; }
+}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Admicom workshop · Evals section · Draft</span>
+    <h1>How the 15 evals phases move</h1>
+    <p class="lede">Each phase gives its wanted outcome to the next phase. After Phase 3, the repo's agent setup decides the path: create, fix or already good. Click a phase, or use Previous and Next, to see what the attendee does, the gate, and what the phase gives to the next one.</p>
+  </header>
+
+  <div class="controls">
+    <button type="button" id="prev">← Previous</button>
+    <button type="button" id="next">Next →</button>
+    <span class="pos" id="pos" aria-live="polite">Phase 1 of 15</span>
+    <div class="legend" aria-hidden="true">
+      <span><svg viewBox="0 0 28 8"><line x1="0" y1="4" x2="28" y2="4" stroke="currentColor" stroke-width="1.5"/></svg>gives its outcome to the next phase</span>
+      <span><svg viewBox="0 0 28 8"><line x1="0" y1="4" x2="28" y2="4" stroke="currentColor" stroke-width="1.5" stroke-dasharray="5 4"/></svg>side path or loop</span>
+    </div>
+  </div>
+
+  <div class="layout">
+    <figure class="chart" style="margin:0">
+      <svg id="flow" viewBox="0 0 560 1545" role="img" aria-label="Flowchart of the 15 evals phases in four parts. After Phase 3, Phases 4 and 5 split into three paths: create (no agent files), fix (findings) and already good (no findings). The paths join into a committed agent setup. Phase 8 runs the agent in the background, with a recorded baseline from catch-up if a run fails. Phase 12 goes back to change one agent file. Phase 15 gives a merge gate to the cloud agents section."></svg>
+    </figure>
+    <aside class="panel" id="panel" aria-live="polite"></aside>
+  </div>
+</div>
+
+<script>
+/* PHASES:BEGIN — generated from .agents/phases by `pnpm docs:flow`; do not edit by hand */
+const PHASES = [
+ {
+  "n": 1,
+  "part": "A · Foundation",
+  "title": "Attach your target",
+  "file": ".agents/phases/01-ATTACH-TARGET.md",
+  "do": [
+   "<strong>Choose a target</strong>: a GitLab/GitHub URL (for production repos, a mirror the facilitators set up), a local checkout, or <code>sample</code>.",
+   "<strong>Prove it runs</strong>: install the target and run its own tests from the workshop repo, then decide on the result of the CI check."
+  ],
+  "gate": [
+   "The target is on <code>dev-days-workshop/&lt;participant&gt;</code>, with a <code>dev-days-workshop/&lt;participant&gt;-start</code> tag.",
+   "Its tests passed in this session, or you switched to <code>sample</code>.",
+   "The CI check found no deploy lines, or the participant confirmed its deploy lines are safe, or you switched to a mirror."
+  ],
+  "lp": "If you can't run a repo, you can't measure anything in it. Don't experiment in a repo where a push could reach production.",
+  "out": "A target that runs, on its <code>dev-days-workshop</code> branch, with a start tag, a backup of the settings files and a CI check."
+ },
+ {
+  "n": 2,
+  "part": "A · Foundation",
+  "title": "Discover your agent setup",
+  "file": ".agents/phases/02-DISCOVER-AGENT-SETUP.md",
+  "do": [
+   "<strong>See what loads</strong>: open Claude Code in the target and read <code>/context</code> and <code>/memory</code>: these show the instruction files, rules, skills, subagents and MCP tools that the session loaded.",
+   "<strong>Find what doesn't load</strong>: compare that with the files on disk (<code>CLAUDE.md</code>, <code>AGENTS.md</code>, <code>.claude/</code>, <code>.mcp.json</code>, <code>.cursor/</code>), and check <code>/hooks</code>, <code>/mcp</code> and <code>/permissions</code>.",
+   "<strong>Mark each file's status</strong>: loaded, not loaded, missing or out of date, with one row for each file type in <code>agent-inventory.md</code>."
+  ],
+  "gate": [
+   "<code>agent-inventory.md</code> has a row for every file type, each with a status.",
+   "Every file on disk that doesn't load has a reason."
+  ],
+  "lp": "The agent does not get every file that is on disk. If a repo has both <code>CLAUDE.md</code> and <code>AGENTS.md</code>, Claude Code ignores <code>AGENTS.md</code> unless <code>CLAUDE.md</code> imports it.",
+  "out": "A list in <code>.workshop/targets/&lt;name&gt;/agent-inventory.md</code> of the instructions the agent gets about this repo."
+ },
+ {
+  "n": 3,
+  "part": "A · Foundation",
+  "title": "Check the setup with Claude Code",
+  "file": ".agents/phases/03-CHECK-SETUP.md",
+  "do": [
+   "<strong>Check the installation</strong>: run <code>claude doctor</code> in a terminal. It checks the installation and settings and changes nothing.",
+   "<strong>Run the setup checkup</strong>: run <code>/doctor</code> in the target session. It reports unused extensions compared with how much context they use, slow hooks, and <code>CLAUDE.md</code> content the agent could work out from the code. Write down the findings, but don't apply any fixes yet.",
+   "<strong>Audit the instructions</strong>: run <code>/doctor prompt-audit</code>. It finds outdated, conflicting or broken instructions in <code>CLAUDE.md</code>, <code>AGENTS.md</code>, rules, skills and subagents.",
+   "<strong>Rank the findings</strong>: write the top 3 into <code>findings.md</code>, and choose the path for Phases 4–5: <strong>create</strong>, <strong>fix</strong> or <strong>already good</strong>."
+  ],
+  "gate": [
+   "<code>findings.md</code> holds the results of all three checks.",
+   "It ranks a top 3 with a reason each, or says \"no findings\" with the reports as evidence.",
+   "It names the path for Phases 4–5, and no user-level change was applied."
+  ],
+  "lp": "Claude Code can check its own setup for problems. If nobody has checked an instruction file, you don't know whether it works.",
+  "out": "A ranked list of findings in <code>.workshop/targets/&lt;name&gt;/findings.md</code> that decides how Phases 4 and 5 run."
+ },
+ {
+  "n": 4,
+  "part": "A · Foundation",
+  "title": "Fix the instruction files",
+  "file": ".agents/phases/04-FIX-INSTRUCTIONS.md",
+  "do": [
+   "<strong>Fix how instructions load</strong>: if there is no instruction file, run <code>/init</code>. If there is an <code>AGENTS.md</code> next to a <code>CLAUDE.md</code>, import it with <code>@AGENTS.md</code>.",
+   "<strong>Apply the audit's edits</strong>: accept or reject each edit from <code>/doctor prompt-audit</code>. Move rules that apply only to some files to <code>.claude/rules/</code>, with <code>paths</code> in the frontmatter.",
+   "<strong>Re-run the audit</strong>: run <code>/doctor prompt-audit</code> again, compare it with Phase 3, then commit on the workshop branch."
+  ],
+  "gate": [
+   "Each top-3 finding is fixed or explained, or the files are shortened on the \"already good\" path, or the new files are created and audited on the \"create\" path.",
+   "The re-audit is recorded in <code>findings.md</code>, next to Phase 3's results.",
+   "The changes are committed on <code>dev-days-workshop/&lt;participant&gt;</code>."
+  ],
+  "lp": "Instructions are text the agent reads, and they can't force it to do anything. If a rule is short, specific and loads, the agent follows it more often than a long rule that doesn't load.",
+  "out": "Instruction files that load, don't contradict each other, and are committed on the workshop branch.",
+  "branches": [
+   {
+    "label": "Create",
+    "text": "There are no agent files. <code>/init</code> writes <code>CLAUDE.md</code>, they audit the new file, and they add 3–5 rules their reviewers enforce."
+   },
+   {
+    "label": "Already good",
+    "text": "There are no instruction findings. They shorten the files instead of fixing them, keep each <code>CLAUDE.md</code> under about 200 lines, and move file-specific rules into <code>.claude/rules/</code>."
+   }
+  ]
+ },
+ {
+  "n": 5,
+  "part": "A · Foundation",
+  "title": "Add skills, hooks and permissions",
+  "file": ".agents/phases/05-SKILLS-HOOKS-PERMISSIONS.md",
+  "do": [
+   "<strong>Add a run-and-verify skill</strong>: <code>/run-skill-generator</code> writes down how to build and run the target, as <code>.claude/skills/run-&lt;name&gt;/</code>.",
+   "<strong>Enforce one rule with a hook</strong>: add a <code>PreToolUse</code> hook with <code>/update-config</code>, confirm it in <code>/hooks</code>, then break the rule on purpose.",
+   "<strong>Set permissions</strong>: run <code>/fewer-permission-prompts</code>, then review the allow list in <code>/permissions</code> and commit everything."
+  ],
+  "gate": [
+   "The skill, the hook and the permissions are committed on the workshop branch.",
+   "A hook (new or existing) blocked a deliberate violation in this session."
+  ],
+  "lp": "If a rule must never be broken, put it in a hook, not in <code>CLAUDE.md</code>. An instruction asks the agent to follow a rule, but a hook stops the action that breaks it.",
+  "out": "A complete agent setup, committed on the workshop branch, that Phases 6–15 use as the standard to measure the agent against.",
+  "branches": [
+   {
+    "label": "Already good",
+    "text": "A blocking hook or a run skill already exists. They don't add one. They trigger the existing hook on purpose, and turn off unused skills found with <code>/skill-doctor</code>."
+   }
+  ]
+ },
+ {
+  "n": 6,
+  "part": "B · Measure",
+  "title": "Turn your rules into expectations",
+  "file": ".agents/phases/06-RULES-TO-EXPECTATIONS.md",
+  "do": [
+   "<strong>List the rules</strong>: write every rule from the instruction files, <code>.claude/rules/</code> and hooks as one row in <code>expectations.md</code>.",
+   "<strong>Mark how each is checked</strong>: by code (files touched, tests added, a command passes) or by a judge (placement, naming, quality of explanation).",
+   "<strong>Pick five</strong>: choose the five rules that cause the most damage when broken, at least two of each kind, each with a reason."
+  ],
+  "gate": [
+   "Every rule in <code>expectations.md</code> has a check type and a one-line \"how\".",
+   "Five rules are picked, at least two code and two judge, each with a reason."
+  ],
+  "lp": "If you can't check a rule, you can't tell whether the agent follows it. When you decide how to check each rule, you see which rules are specific enough to check.",
+  "out": "You have an <code>expectations.md</code> with five picked rules, each marked as checkable by code or by a judge, and Phases 7–11 build the agent tasks and graders from these rules."
+ },
+ {
+  "n": 7,
+  "part": "B · Measure",
+  "title": "Build agent tasks from your history",
+  "file": ".agents/phases/07-AGENT-TASKS.md",
+  "do": [
+   "<strong>Mine candidates</strong>: <code>pnpm agent-evals mine</code> searches git history for merged changes that touched tests and lists them as tasks the agent can repeat.",
+   "<strong>Curate 5–10 tasks</strong>: choose tasks that test your five rules, and write each task prompt yourself, in the form of an issue.",
+   "<strong>Validate the tasks</strong>: <code>pnpm agent-evals validate</code> checks that the hidden tests fail before the change and pass with it."
+  ],
+  "gate": [
+   "At least 5 tasks pass validation.",
+   "Each task is mapped to at least one picked rule in <code>expectations.md</code>."
+  ],
+  "lp": "Tasks from your own merged changes measure the agent better than a public benchmark (a shared, standard set of test tasks). The tests in each change already define what \"done\" meant in this repo.",
+  "out": "You have a tasks file with 5–10 validated tasks, each mapped to the rules it tests, and Phase 8 uses it for the baseline runs."
+ },
+ {
+  "n": 8,
+  "part": "B · Measure",
+  "title": "Baseline the agent",
+  "file": ".agents/phases/08-BASELINE-AGENT.md",
+  "do": [
+   "<strong>Run the agent with your setup</strong>: run <code>pnpm agent-evals run</code> on your tasks with Claude Code or Cursor, in the background.",
+   "<strong>Run it again without</strong>: run the same tasks with every agent file removed and Claude Code in <code>--safe-mode</code>.",
+   "<strong>Read what it did</strong>: for each task, read both diffs and write the rules each run broke, one line per task in <code>agent-notes.md</code>."
+  ],
+  "gate": [
+   "Two completed runs, with and without the setup, each with a pass rate.",
+   "<code>agent-notes.md</code> has a line per task naming the rules each run broke."
+  ],
+  "lp": "The hidden tests show whether the code works. The run without the setup shows how much your setup changes what the agent does.",
+  "out": "You have two baseline runs (first measurements to compare later results with), <code>baseline-with</code> and <code>baseline-without</code>, and notes for each task that Phases 9–11 grade and label."
+ },
+ {
+  "n": 9,
+  "part": "B · Measure",
+  "title": "Grade rules with code",
+  "file": ".agents/phases/09-CODE-GRADERS.md",
+  "do": [
+   "<strong>Write a grader per code rule</strong>: add one entry in <code>evals/suites/agent/rules.mjs</code> for each picked rule that code checks.",
+   "<strong>Prove each grader</strong>: run <code>pnpm agent-evals grade-patch</code> to show that a planted violation fails and a clean change passes.",
+   "<strong>Re-grade the baseline</strong>: run <code>pnpm agent-evals regrade</code> to score both Phase 8 runs for each rule, without running the agent again."
+  ],
+  "gate": [
+   "Every picked code rule has a grader, committed on the workshop branch.",
+   "Each grader failed a planted violation and passed a clean change.",
+   "Both baseline runs are re-graded with a score per rule."
+  ],
+  "lp": "Use code to check a rule whenever the rule allows it. A code grader costs little, runs fast and always gives the same answer.",
+  "out": "You have committed rule graders and a re-graded baseline with a score for each code rule, and Phase 12 compares new runs against this baseline."
+ },
+ {
+  "n": 10,
+  "part": "B · Measure",
+  "title": "Write the judge rubric",
+  "file": ".agents/phases/10-JUDGE-RUBRIC.md",
+  "do": [
+   "<strong>Write the rubric</strong>: write one <code>rubric-&lt;rule&gt;.md</code> for each picked judge rule, with PASS and FAIL criteria and one example of each.",
+   "<strong>Label blind</strong>: run <code>pnpm agent-evals label</code> on both baseline runs and mark each diff PASS or FAIL by hand, before any judge runs."
+  ],
+  "gate": [
+   "A committed rubric per picked judge rule, each with a PASS and a FAIL example.",
+   "At least 15 labels in total, at least 5 per judge rule, made before any judge ran."
+  ],
+  "lp": "If you can't label a rule the same way each time, a judge can't either. When you label first, you find the parts of the rubric that are unclear.",
+  "out": "You have a rubric for each judge rule and a set of labelled baseline diffs, and in Phase 11 you check the judge against these labels."
+ },
+ {
+  "n": 11,
+  "part": "B · Measure",
+  "title": "Calibrate the judge",
+  "file": ".agents/phases/11-CALIBRATE-JUDGE.md",
+  "do": [
+   "<strong>Run the judge</strong>: <code>pnpm agent-evals regrade</code> with your rubrics on both baseline runs. This starts no new agent run.",
+   "<strong>Compare with your labels</strong>: <code>pnpm evals calibrate</code> for each judge rule shows agreement, Cohen's kappa and every disagreement.",
+   "<strong>Fix the rubric or your label</strong>: for each disagreement, decide which one is wrong, fix it, and run again."
+  ],
+  "gate": [
+   "Each judge reaches at least 80 % agreement, or two iterations are done and the remaining gaps are explained.",
+   "<code>judge-notes.md</code> says whether each judge is too lenient or too strict, with the counts.",
+   "The final rubrics are committed on the workshop branch."
+  ],
+  "lp": "A judge you haven't checked against your own labels can give confident but wrong verdicts. You can trust its score only when it agrees with your labels.",
+  "out": "For each judgement rule, you have a judge whose agreement with your labels is known, and you know whether it is too lenient or too strict, so it can grade the runs in Phases 12–14."
+ },
+ {
+  "n": 12,
+  "part": "C · Improve",
+  "title": "Change one agent file, measure it",
+  "file": ".agents/phases/12-CHANGE-AND-MEASURE.md",
+  "do": [
+   "<strong>Form a hypothesis</strong>: use <code>agent-notes.md</code> and the scores for each rule to pick one rule the agent breaks, say why, and name the one change that should fix it.",
+   "<strong>Change one agent file</strong>: make one edit to an instruction file, rule, skill or hook, and commit it on the workshop branch.",
+   "<strong>Re-run and compare</strong>: start a new agent run with your graders and judges, and compare it with the baseline rule by rule."
+  ],
+  "gate": [
+   "A new run exists, compared with the graded baseline.",
+   "<code>CHANGELOG.md</code> records the hypothesis, the numbers and a keep-or-revert decision.",
+   "The decision is applied: the change is kept, or reverted with a commit."
+  ],
+  "lp": "If you don't measure agent instructions, you can't know whether the agent follows them. Make one change per run, because only then do you know which change caused the result.",
+  "out": "A compared run and a recorded keep-or-revert decision in <code>evals/suites/agent/CHANGELOG.md</code>.",
+  "branches": [
+   {
+    "label": "Agent broke no rule",
+    "text": "They test a change that makes the setup smaller, and keep it if no grader gets worse."
+   }
+  ]
+ },
+ {
+  "n": 13,
+  "part": "C · Improve",
+  "title": "Catch a regression",
+  "file": ".agents/phases/13-CATCH-REGRESSION.md",
+  "do": [
+   "<strong>Read the comparison by rule</strong>: read the section for each grader in <code>pnpm evals compare</code>, not only the overall pass rate.",
+   "<strong>Make a regression on purpose</strong>: remove one rule or hook in a commit, then run the agent again.",
+   "<strong>Explain and record it</strong>: write in <code>CHANGELOG.md</code> what broke and why, then revert the removal."
+  ],
+  "gate": [
+   "A regression for one grader is found and explained, or you explain why there is none and name the task that would show it.",
+   "<code>CHANGELOG.md</code> records the removed rule or hook, the numbers and the explanation.",
+   "The removal is reverted with a commit."
+  ],
+  "lp": "The pass rate can go up while the rule you care about breaks. Read the comparison for each rule, every time.",
+  "out": "You have recorded a regression, or a missing kind of task, and you read comparisons rule by rule before Phase 14 uses them to block merges."
+ },
+ {
+  "n": 14,
+  "part": "D · Protect",
+  "title": "Record evals for CI",
+  "file": ".agents/phases/14-RECORD-FOR-CI.md",
+  "do": [
+   "<strong>Choose thresholds</strong>: set a minimum score for each grader and list the agent files the recording tracks, in <code>agent-suite.json</code>.",
+   "<strong>Record the run</strong>: do a full agent run with <code>--record</code> on your own Claude Code or Cursor login, and commit it as <code>last-run.json</code>.",
+   "<strong>Install the CI job</strong>: run <code>pnpm workshop install &lt;name&gt; ci-agent-evals</code>, verify locally, then push the workshop branch."
+  ],
+  "gate": [
+   "<code>agent-suite.json</code> is committed, has a threshold for each grader in the gate, and tracks every agent file.",
+   "<code>last-run.json</code> is committed and <code>pnpm verify suites/agent</code> passes locally.",
+   "The CI job runs on the pushed workshop branch and passes."
+  ],
+  "lp": "CI checks a recording that stores a SHA-256 hash of each tracked file, so CI needs no model and no secret. If you change an agent file and don't record again, the gate sees that the recording is stale and fails.",
+  "out": "A recording and a CI job on the workshop branch that check the agent against your rules on every push and every MR/PR."
+ },
+ {
+  "n": 15,
+  "part": "D · Protect",
+  "title": "Make the gate block",
+  "file": ".agents/phases/15-MERGE-GATE.md",
+  "do": [
+   "<strong>Open a passing MR/PR</strong>: make a harmless change on a new <code>dev-days-workshop</code> branch and open an MR/PR to your workshop branch. The gate passes.",
+   "<strong>Make the gate fail twice</strong>: on a second branch, change an agent file without recording, so the recording is stale. Then record a setup that misses the threshold.",
+   "<strong>Merge the passing one</strong>: merge it into your workshop branch, never into the default branch."
+  ],
+  "gate": [
+   "One MR/PR passed the gate and is merged into the workshop branch.",
+   "One MR/PR was blocked twice: first as stale, then on the threshold.",
+   "Nothing was pushed or merged outside <code>dev-days-workshop/*</code>."
+  ],
+  "lp": "An eval that never blocks a merge only reports numbers; it doesn't protect anything. You can trust the gate after you have seen it block a merge for both reasons.",
+  "out": "You have a merge gate on the workshop branch that you have seen pass, block a stale recording and block a weaker setup, and the cloud agents section uses this gate to check agent work."
+ }
+];
+/* PHASES:END */
+const REPO = "https://github.com/wunderdogsw/evals-cloud-agents-workshop";
+const HANDOFF = { 1: "target that runs", 2: "inventory", 3: "findings + path", 4: "working instructions", 5: "committed agent setup", 6: "5 picked rules", 7: "validated tasks", 8: "two baseline runs", 9: "score per code rule", 10: "rubrics + labels", 11: "checked judge", 12: "compared run", 13: "per-rule reading", 14: "recording + CI job", 15: "merge gate" };
+
+const NS = "http://www.w3.org/2000/svg";
+const svg = document.getElementById("flow");
+function el(tag, attrs, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  (parent || svg).appendChild(e);
+  return e;
+}
+function text(x, y, str, cls, parent, anchor) {
+  const t = el("text", { x, y, class: cls, "text-anchor": anchor || "start" }, parent);
+  t.textContent = str;
+  return t;
+}
+
+const defs = el("defs", {});
+function marker(id, color) {
+  const m = el("marker", { id, viewBox: "0 0 10 10", refX: "9", refY: "5", markerWidth: "9", markerHeight: "9", markerUnits: "userSpaceOnUse", orient: "auto-start-reverse" }, defs);
+  el("path", { d: "M0,0 L10,5 L0,10 z", fill: color }, m);
+}
+marker("arr", "currentColor");
+marker("arr-next", "var(--accent)");
+
+// Part bands
+const BANDS = [
+  ["A · Foundation", 15, 540],
+  ["B · Measure", 555, 1065],
+  ["C · Improve", 1075, 1255],
+  ["D · Protect", 1265, 1445],
+];
+for (const [label, y0, y1] of BANDS) {
+  el("rect", { x: 10, y: y0, width: 540, height: y1 - y0, rx: 8, class: "band" });
+  text(48, y0 + 22, label, "band-label");
+}
+
+// Edges: [phase it leaves, points, label, labelX, labelY, dashed, anchor]
+const EDGES = [];
+function edge(from, pts, label, lx, ly, dashed, anchor) { EDGES.push({ from, pts, label, lx, ly, dashed, anchor }); }
+const C = 200;
+edge(1, [[C,100],[C,130]], HANDOFF[1], 212, 119);
+edge(2, [[C,180],[C,210]], HANDOFF[2], 212, 199);
+edge(3, [[C,260],[C,278]], HANDOFF[3], 212, 273);
+edge(3, [[178,300],[100,300],[100,350]], "no files", 92, 332, false, "end");
+edge(3, [[222,300],[280,300],[280,350]], "findings", 288, 332);
+edge(3, [[280,300],[460,300],[460,350]], "no findings", 468, 332, true);
+edge(4, [[100,400],[100,430]]);
+edge(4, [[280,400],[280,430]]);
+edge(4, [[460,400],[460,430]], null, 0, 0, true);
+edge(5, [[100,480],[100,520],[194,520]]);
+edge(5, [[280,480],[280,520],[206,520]]);
+edge(5, [[460,480],[460,520],[206,520]], null, 0, 0, true);
+edge(5, [[C,526],[C,590]], HANDOFF[5], 212, 548);
+edge(6, [[C,640],[C,670]], HANDOFF[6], 212, 659);
+edge(7, [[C,720],[C,750]], HANDOFF[7], 212, 739);
+edge(8, [[320,766],[360,766]], "starts", 340, 759, true, "middle");
+edge(8, [[360,834],[340,834],[340,790],[320,790]], null, 0, 0, true);
+edge(8, [[C,800],[C,830]], HANDOFF[8], 212, 819);
+edge(9, [[C,880],[C,910]], HANDOFF[9], 212, 899);
+edge(10, [[C,960],[C,990]], HANDOFF[10], 212, 979);
+edge(11, [[C,1040],[C,1110]], HANDOFF[11], 212, 1062);
+edge(12, [[80,1135],[36,1135],[36,500],[200,500],[200,514]], null, 0, 0, true);
+edge(12, [[C,1160],[C,1190]], HANDOFF[12], 212, 1179);
+edge(13, [[C,1240],[C,1300]], HANDOFF[13], 212, 1262);
+edge(14, [[C,1350],[C,1380]], HANDOFF[14], 212, 1369);
+edge(15, [[C,1430],[C,1475]], "merge gate", 212, 1456);
+
+const edgeEls = EDGES.map((e) => {
+  const p = el("polyline", { points: e.pts.map((q) => q.join(",")).join(" "), class: "edge" + (e.dashed ? " dashed" : ""), "marker-end": "url(#arr)" });
+  let t = null;
+  if (e.label) t = text(e.lx, e.ly, e.label, "edge-label", null, e.anchor);
+  return { e, p, t };
+});
+
+// Loop label (vertical, beside the Phase 12 loop)
+const loop = text(0, 0, "Phase 12 edits one agent file and re-measures", "loop-label", null, "middle");
+loop.setAttribute("transform", "translate(28 830) rotate(-90)");
+
+// Decision diamond and merge dot
+el("polygon", { points: "200,278 222,300 200,322 178,300", class: "diamond" });
+el("circle", { cx: 200, cy: 520, r: 5, class: "dot" });
+
+// Side nodes
+function side(x, y, w, h, lines) {
+  const g = el("g", { class: "side" });
+  el("rect", { x, y, width: w, height: h, rx: 6 }, g);
+  lines.forEach((l, i) => text(x + w / 2, y + h / 2 + (i - (lines.length - 1) / 2) * 14 + 4, l, "", g, "middle"));
+}
+side(360, 744, 180, 44, ["Agent runs", "in the background"]);
+side(360, 812, 180, 44, ["Recorded baseline", "from catch-up"]);
+text(450, 873, "if a run fails or takes too long", "edge-label", null, "middle");
+const ghost = el("g", { class: "ghost" });
+el("rect", { x: 80, y: 1475, width: 240, height: 50, rx: 6 }, ghost);
+text(200, 1496, "Cloud agents section", "", ghost, "middle");
+text(200, 1513, "Phases 16–19", "", ghost, "middle");
+
+// Phase nodes
+const NODES = [
+  { n: 1, x: 80, y: 50, w: 240, sub: "Phase 1", t: "Attach your target" },
+  { n: 2, x: 80, y: 130, w: 240, sub: "Phase 2", t: "Discover your agent setup" },
+  { n: 3, x: 80, y: 210, w: 240, sub: "Phase 3", t: "Check the setup with Claude Code" },
+  { n: 4, x: 28, y: 350, w: 144, sub: "4 · create", t: "/init + audit" },
+  { n: 4, x: 208, y: 350, w: 144, sub: "4 · fix", t: "Fix instructions" },
+  { n: 4, x: 388, y: 350, w: 144, sub: "4 · already good", t: "Shorten files" },
+  { n: 5, x: 28, y: 430, w: 144, sub: "5 · create", t: "Add hook, skill" },
+  { n: 5, x: 208, y: 430, w: 144, sub: "5 · fix", t: "Add hook, skill" },
+  { n: 5, x: 388, y: 430, w: 144, sub: "5 · already good", t: "Test existing hook" },
+  { n: 6, x: 80, y: 590, w: 240, sub: "Phase 6", t: "Turn your rules into expectations" },
+  { n: 7, x: 80, y: 670, w: 240, sub: "Phase 7", t: "Build agent tasks from history" },
+  { n: 8, x: 80, y: 750, w: 240, sub: "Phase 8", t: "Baseline the agent" },
+  { n: 9, x: 80, y: 830, w: 240, sub: "Phase 9", t: "Grade rules with code" },
+  { n: 10, x: 80, y: 910, w: 240, sub: "Phase 10", t: "Write the judge rubric" },
+  { n: 11, x: 80, y: 990, w: 240, sub: "Phase 11", t: "Calibrate the judge" },
+  { n: 12, x: 80, y: 1110, w: 240, sub: "Phase 12", t: "Change one agent file, measure it" },
+  { n: 13, x: 80, y: 1190, w: 240, sub: "Phase 13", t: "Catch a regression" },
+  { n: 14, x: 80, y: 1300, w: 240, sub: "Phase 14", t: "Record evals for CI" },
+  { n: 15, x: 80, y: 1380, w: 240, sub: "Phase 15", t: "Make the gate block" },
+];
+const nodeEls = NODES.map((d) => {
+  const g = el("g", { class: "node", tabindex: "0", role: "button", "aria-label": `${d.sub}: ${d.t}` });
+  el("rect", { x: d.x, y: d.y, width: d.w, height: 50, rx: 6 }, g);
+  text(d.x + 12, d.y + 19, d.sub, "num", g);
+  text(d.x + 12, d.y + 37, d.t, "ttl", g);
+  g.addEventListener("click", () => show(d.n));
+  g.addEventListener("keydown", (ev) => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); show(d.n); } });
+  return { d, g };
+});
+
+// Panel
+const panel = document.getElementById("panel");
+const pos = document.getElementById("pos");
+const prevBtn = document.getElementById("prev");
+const nextBtn = document.getElementById("next");
+let current = 1;
+
+function render(p) {
+  const steps = p.do.map((s, i) => `<li><span class="sn">${p.n}.${i + 1}</span><span>${s}</span></li>`).join("")
+    + `<li class="check"><span class="sn">${p.n}.${p.do.length + 1}</span><span>Gate check: verify every gate item</span></li>`;
+  const branch = (p.branches || []).map((b) => `<div class="branch"><strong>${b.label}</strong>: ${b.text}</div>`).join("");
+  const next = p.n < 15 ? `Gives <strong>${HANDOFF[p.n]}</strong> to Phase ${p.n + 1}.` : `Gives the <strong>merge gate</strong> to the cloud agents section (Phases 16–19).`;
+  panel.innerHTML = `
+    <span class="part">Part ${p.part}</span>
+    <h2>Phase ${p.n} · ${p.title}</h2>
+    <section><h3>What you do</h3><ol class="steps">${steps}</ol></section>
+    ${branch}
+    <section><h3>Gate</h3><ul class="gate">${p.gate.map((g) => `<li>${g}</li>`).join("")}</ul></section>
+    <section><h3>Learning point</h3><p>${p.lp}</p></section>
+    <section><h3>Wanted outcome</h3><p>${p.out}</p></section>
+    <p class="handoff">${next}</p>
+    <a class="doclink" href="${REPO}/blob/main/${p.file}">Open the phase document on GitHub →</a>`;
+}
+
+function show(n) {
+  current = n;
+  render(PHASES[n - 1]);
+  for (const { d, g } of nodeEls) {
+    g.classList.toggle("current", d.n === n);
+    g.classList.toggle("done", d.n < n);
+  }
+  for (const { e, p, t } of edgeEls) {
+    const on = e.from === n;
+    p.classList.toggle("next", on);
+    p.setAttribute("marker-end", on ? "url(#arr-next)" : "url(#arr)");
+    if (t) t.classList.toggle("next", on);
+  }
+  pos.textContent = `Phase ${n} of 15`;
+  prevBtn.disabled = n === 1;
+  nextBtn.disabled = n === 15;
+}
+prevBtn.addEventListener("click", () => { if (current > 1) show(current - 1); });
+nextBtn.addEventListener("click", () => { if (current < 15) show(current + 1); });
+document.addEventListener("keydown", (ev) => {
+  if (ev.target.closest && ev.target.closest("button, .node")) return;
+  if (ev.key === "ArrowRight" && current < 15) show(current + 1);
+  if (ev.key === "ArrowLeft" && current > 1) show(current - 1);
+});
+show(1);
+</script>
+
+</body>
+</html>

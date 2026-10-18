@@ -25,34 +25,46 @@ evals-cloud-agents-workshop/       ← open THIS in Cursor / Claude Code
 ├── kit/agent-evals/               ← runs a coding agent on tasks from your own git history and grades it per rule
 ├── kit/templates/                 ← CI jobs (GitLab + GitHub), agent suite folder, Cursor env, AGENTS.md snippets
 ├── kit/catchup/                   ← reference work for `pnpm workshop catchup`
+├── docs/phase-flow/               ← interactive evals flow (GitHub Pages), built from the phase docs
 ├── samples/cost-coder/            ← sample target (TypeScript) with an agent setup that has problems on purpose
 ├── targets/                       ← gitignored — your attached repo(s) land here
 └── .workshop/                     ← gitignored — progress, repo profile, notes, labels
 ```
 
+## The evals flow
+
+<a href="https://wunderdogsw.github.io/evals-cloud-agents-workshop/phase-flow/">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/phase-flow/flow-dark.png">
+    <img alt="The 15 evals phases: Phase 3 splits into create, fix and already-good paths, which join into a committed agent setup that Phases 6–15 measure against. Click to open the interactive version." src="docs/phase-flow/flow-light.png" width="720">
+  </picture>
+</a>
+
+**[Open the interactive flow](https://wunderdogsw.github.io/evals-cloud-agents-workshop/phase-flow/)**: click a phase to see its steps, Gate, learning point and wanted outcome, with a link to the phase document. The page is built from the phase documents with `pnpm docs:flow`, and `pnpm test` fails if it is out of date. To view it without GitHub Pages, open `docs/phase-flow/index.html` in a browser.
+
 ## What you do
 
 | Section | Phase | What you do |
 |---|---|---|
-| Evals | 1 — Attach your target | Attach a repo on a `dev-days-workshop` branch and prove its tests run |
-| Evals | 2 — Discover your agent setup | List what the agent really loads: instructions, rules, skills, hooks, MCP |
-| Evals | 3 — Check the setup with Claude Code | `claude doctor`, `/doctor` and `/doctor prompt-audit`; rank the findings |
-| Evals | 4 — Fix the instruction files | Make sure the instructions load, don't contradict each other and stay short; audit again |
-| Evals | 5 — Add skills, hooks and permissions | A skill that runs the app, a hook that blocks a broken rule, a checked list of allowed commands |
-| Evals | 6 — Turn your rules into expectations | Mark each rule checkable by code or by a judge; pick five |
-| Evals | 7 — Build agent tasks from your history | Turn merged changes into agent tasks, graded by the tests from the real change |
-| Evals | 8 — Baseline the agent | Run the tasks with and without your setup |
-| Evals | 9 — Grade rules with code | Code that checks each code rule on the agent's diff |
-| Evals | 10 — Write the judge rubric | A rubric for each judge rule, and your own labels before any judge runs |
-| Evals | 11 — Calibrate the judge | Check the judge against your labels; find out if it is too lenient or too strict |
-| Evals | 12 — Change one agent file, measure it | One change, a compared run, a keep-or-revert decision |
-| Evals | 13 — Catch a regression | Read the scores per rule and explain a rule that got worse |
-| Evals | 14 — Record evals for CI | Record a run with a hash of each tracked file; CI checks it without a model |
-| Evals | 15 — Make the gate block | One MR/PR passes the gate, one is blocked |
-| Cloud agents | 16 — Delegate | Give an issue to Claude Code or Cursor in headless mode; an MR/PR comes back |
-| Cloud agents | 17 — Cloud agents | The same task handover, in a cloud VM |
-| Cloud agents | 18 — Guardrails | A review agent, and an agent section in AGENTS.md, measured |
-| Cloud agents | 19 — Capstone | Several agents on a backlog; you decide what to merge from the evidence |
+| Evals | [1 — Attach your target](.agents/phases/01-ATTACH-TARGET.md) | Attach a repo on a `dev-days-workshop` branch and prove its tests run |
+| Evals | [2 — Discover your agent setup](.agents/phases/02-DISCOVER-AGENT-SETUP.md) | List what the agent really loads: instructions, rules, skills, hooks, MCP |
+| Evals | [3 — Check the setup with Claude Code](.agents/phases/03-CHECK-SETUP.md) | `claude doctor`, `/doctor` and `/doctor prompt-audit`; rank the findings |
+| Evals | [4 — Fix the instruction files](.agents/phases/04-FIX-INSTRUCTIONS.md) | Make sure the instructions load, don't contradict each other and stay short; audit again |
+| Evals | [5 — Add skills, hooks and permissions](.agents/phases/05-SKILLS-HOOKS-PERMISSIONS.md) | A skill that runs the app, a hook that blocks a broken rule, a checked list of allowed commands |
+| Evals | [6 — Turn your rules into expectations](.agents/phases/06-RULES-TO-EXPECTATIONS.md) | Mark each rule checkable by code or by a judge; pick five |
+| Evals | [7 — Build agent tasks from your history](.agents/phases/07-AGENT-TASKS.md) | Turn merged changes into agent tasks, graded by the tests from the real change |
+| Evals | [8 — Baseline the agent](.agents/phases/08-BASELINE-AGENT.md) | Run the tasks with and without your setup |
+| Evals | [9 — Grade rules with code](.agents/phases/09-CODE-GRADERS.md) | Code that checks each code rule on the agent's diff |
+| Evals | [10 — Write the judge rubric](.agents/phases/10-JUDGE-RUBRIC.md) | A rubric for each judge rule, and your own labels before any judge runs |
+| Evals | [11 — Calibrate the judge](.agents/phases/11-CALIBRATE-JUDGE.md) | Check the judge against your labels; find out if it is too lenient or too strict |
+| Evals | [12 — Change one agent file, measure it](.agents/phases/12-CHANGE-AND-MEASURE.md) | One change, a compared run, a keep-or-revert decision |
+| Evals | [13 — Catch a regression](.agents/phases/13-CATCH-REGRESSION.md) | Read the scores per rule and explain a rule that got worse |
+| Evals | [14 — Record evals for CI](.agents/phases/14-RECORD-FOR-CI.md) | Record a run with a hash of each tracked file; CI checks it without a model |
+| Evals | [15 — Make the gate block](.agents/phases/15-MERGE-GATE.md) | One MR/PR passes the gate, one is blocked |
+| Cloud agents | [16 — Delegate](.agents/phases/16-DELEGATE.md) | Give an issue to Claude Code or Cursor in headless mode; an MR/PR comes back |
+| Cloud agents | [17 — Cloud agents](.agents/phases/17-CLOUD-AGENTS.md) | The same task handover, in a cloud VM |
+| Cloud agents | [18 — Guardrails](.agents/phases/18-GUARDRAILS.md) | A review agent, and an agent section in AGENTS.md, measured |
+| Cloud agents | [19 — Capstone](.agents/phases/19-CAPSTONE.md) | Several agents on a backlog; you decide what to merge from the evidence |
 
 ## Prerequisites
 

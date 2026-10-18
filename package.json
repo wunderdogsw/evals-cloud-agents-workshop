@@ -3,17 +3,20 @@
   "private": true,
   "type": "module",
   "packageManager": "pnpm@10.28.0",
-  "engines": { "node": ">=22.12" },
+  "engines": {
+    "node": ">=22.12"
+  },
   "scripts": {
     "postinstall": "pnpm --dir samples/cost-coder install --silent",
-    "test": "pnpm -r --if-present test && pnpm --dir samples/cost-coder test && pnpm test:assets",
+    "test": "pnpm -r --if-present test && pnpm --dir samples/cost-coder test && pnpm test:assets && pnpm docs:flow --check",
     "typecheck": "pnpm -r --if-present typecheck && pnpm --dir samples/cost-coder typecheck",
     "evals": "tsx kit/evals/src/cli.ts",
     "agent-evals": "tsx kit/agent-evals/src/cli.ts",
     "workshop": "tsx .agents/assets/workshop.ts",
     "lint:phases": "tsx .agents/assets/lint-phases.ts",
     "test:assets": "tsx --test .agents/assets/lint-phases.test.ts .agents/assets/eval-build-phase.test.ts .agents/assets/push-guard.test.ts",
-    "eval:build-phase": "tsx .agents/assets/eval-build-phase.ts"
+    "eval:build-phase": "tsx .agents/assets/eval-build-phase.ts",
+    "docs:flow": "tsx .agents/assets/build-phase-flow.ts"
   },
   "devDependencies": {
     "tsx": "^4.23.15"
