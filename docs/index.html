@@ -31,14 +31,18 @@ h1 { margin: 0; max-width: 14ch; font-size: clamp(40px, 7vw, 72px); line-height:
 .stop p a:focus-visible { outline: 2px solid var(--wd-light-blue); outline-offset: 2px; border-radius: 2px; }
 /* The path: a line under the three icons, and a small agent that walks it from stop to stop. */
 .path { position: absolute; z-index: 2; left: calc(28px + (100% - 56px - 48px) / 6); right: calc(28px + (100% - 56px - 48px) / 6); top: calc(36px + var(--icon) + 52px); height: 0; border-top: 2px dashed rgba(139, 184, 240, .55); }
-.walker { position: absolute; left: 0; bottom: 0; width: 34px; height: 42px; margin-left: -17px; animation: walk 12s ease-in-out infinite; }
-.walker svg { display: block; width: 100%; height: 100%; animation: bob .5s ease-in-out infinite alternate; }
-.walker .leg-a { transform-origin: 13px 32px; animation: step .5s ease-in-out infinite alternate; }
-.walker .leg-b { transform-origin: 21px 32px; animation: step .5s ease-in-out infinite alternate-reverse; }
-@keyframes walk { 0%, 12% { left: 0; } 42%, 56% { left: 50%; } 86%, 100% { left: 100%; } }
+.walker { position: absolute; left: 0; top: 0; z-index: 5; width: 34px; height: 42px; list-style: none; will-change: transform; pointer-events: none; }
+.walker svg { display: block; width: 100%; height: 100%; }
+.walker .leg-a { transform-origin: 13px 32px; }
+.walker .leg-b { transform-origin: 21px 32px; }
+.walker.walking svg { animation: bob .5s ease-in-out infinite alternate; }
+.walker.walking .leg-a { animation: step .5s ease-in-out infinite alternate; }
+.walker.walking .leg-b { animation: step .5s ease-in-out infinite alternate-reverse; }
+.walker.jumping .leg-a { transform: rotate(-22deg); }
+.walker.jumping .leg-b { transform: rotate(22deg); }
 @keyframes bob { from { transform: translateY(0); } to { transform: translateY(-2px); } }
 @keyframes step { from { transform: rotate(-14deg); } to { transform: rotate(14deg); } }
-@media (prefers-reduced-motion: reduce) { .walker, .walker svg, .walker .leg-a, .walker .leg-b { animation: none; } }
+.stop .badge { transform-origin: 50% 100%; }
 @media (max-width: 820px) {
   .journey ol { --icon: 76px; grid-template-columns: 1fr; padding: 28px 20px 28px 20px; gap: 36px; }
   .stop { display: grid; grid-template-columns: var(--icon) 1fr; column-gap: 20px; align-items: start; text-align: left; }
@@ -46,9 +50,7 @@ h1 { margin: 0; max-width: 14ch; font-size: clamp(40px, 7vw, 72px); line-height:
   .stop .badge svg { width: 42px; height: 42px; }
   /* --s2 and --s3: where stops 2 and 3 are on the line, set by the script at the end of the page. */
   .path { left: calc(20px + var(--icon) / 2); right: auto; top: calc(28px + var(--icon) + 6px); height: calc(var(--s3, 600px) + 46px); border-top: 0; border-left: 2px dashed rgba(139, 184, 240, .55); }
-  .walker { left: 0; bottom: auto; top: 0; margin-left: -17px; animation-name: walk-down; }
   .stop .badge { position: relative; z-index: 3; }
-  @keyframes walk-down { 0%, 12% { top: 0; } 42%, 56% { top: var(--s2, 300px); } 86%, 100% { top: var(--s3, 600px); } }
 }
 footer { margin-top: auto; border-top: 1px solid rgba(139, 184, 240, .25); background: rgba(3, 6, 13, .35); }
 footer .inner { max-width: 1120px; margin: 0 auto; box-sizing: border-box; padding: 20px 16px 32px; font-size: 14px; color: var(--muted); }
@@ -77,7 +79,7 @@ footer a { color: var(--fg); }
 
 <main class="journey">
   <ol aria-label="How the workshop goes">
-    <li class="path" aria-hidden="true"><span class="walker"><svg viewBox="0 0 34 42" aria-hidden="true"><line x1="17" y1="6" x2="17" y2="2" stroke="#faf6f0" stroke-width="2" stroke-linecap="round"/><circle cx="17" cy="2.5" r="2.3" fill="#f77c00"/><rect x="5" y="6" width="24" height="26" rx="9" fill="#faf6f0"/><rect x="9" y="12" width="16" height="9" rx="4.5" fill="#08203d"/><circle cx="13.5" cy="16.5" r="1.8" fill="#8bb8f0"/><circle cx="20.5" cy="16.5" r="1.8" fill="#8bb8f0"/><g class="leg-a"><line x1="13" y1="31" x2="13" y2="40" stroke="#faf6f0" stroke-width="3" stroke-linecap="round"/></g><g class="leg-b"><line x1="21" y1="31" x2="21" y2="40" stroke="#faf6f0" stroke-width="3" stroke-linecap="round"/></g></svg></span></li>
+    <li class="path" aria-hidden="true"></li>
     <li class="stop">
       <span class="badge"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="24" cy="15" r="6"/><path d="M13 38v-3a11 11 0 0 1 22 0v3"/><circle cx="10" cy="19" r="4.2"/><path d="M3 36v-2a7.5 7.5 0 0 1 9.5-7.2"/><circle cx="38" cy="19" r="4.2"/><path d="M45 36v-2a7.5 7.5 0 0 0-9.5-7.2"/></svg></span>
       <span class="step">01 · Kickoff talk</span>
@@ -96,6 +98,7 @@ footer a { color: var(--fg); }
       <h2>Cloud agents</h2>
       <p>4 phases. Hand real issues to agents that run in the cloud, and use your evals to decide what to merge.</p>
     </li>
+    <li class="walker" aria-hidden="true"><svg viewBox="0 0 34 42" aria-hidden="true"><line x1="17" y1="6" x2="17" y2="2" stroke="#faf6f0" stroke-width="2" stroke-linecap="round"/><circle cx="17" cy="2.5" r="2.3" fill="#f77c00"/><rect x="5" y="6" width="24" height="26" rx="9" fill="#faf6f0"/><rect x="9" y="12" width="16" height="9" rx="4.5" fill="#08203d"/><circle cx="13.5" cy="16.5" r="1.8" fill="#8bb8f0"/><circle cx="20.5" cy="16.5" r="1.8" fill="#8bb8f0"/><g class="leg-a"><line x1="13" y1="31" x2="13" y2="40" stroke="#faf6f0" stroke-width="3" stroke-linecap="round"/></g><g class="leg-b"><line x1="21" y1="31" x2="21" y2="40" stroke="#faf6f0" stroke-width="3" stroke-linecap="round"/></g></svg></li>
   </ol>
 </main>
 
@@ -104,16 +107,111 @@ footer a { color: var(--fg); }
 </footer>
 <script src="assets/streaks.js"></script>
 <script>
-/* On narrow screens the stops have different heights, so the walker's stop positions come from the layout. */
+/* The walker: walks the line from stop to stop, waits at the end, then jumps onto the three icons (cloud agents,
+   evals, slides) and back down to the start of the line. Each icon squashes when it lands and wobbles back when it
+   leaves. Positions come from the layout, so it works for the row (desktop) and the column (phone). */
 (function () {
-  const path = document.querySelector(".journey .path"), badges = [...document.querySelectorAll(".journey .badge")];
-  function place() {
-    if (!path || badges.length < 3) return;
+  const ol = document.querySelector(".journey ol"), path = ol && ol.querySelector(".path"), walker = ol && ol.querySelector(".walker");
+  const badges = ol ? [...ol.querySelectorAll(".badge")] : [];
+  if (!ol || !path || !walker || badges.length !== 3) return;
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const W = 34, H = 42, SQUASH = 0.88;
+  let run = 0;
+
+  const sleep = (ms, id) => new Promise((ok, no) => setTimeout(() => (id === run ? ok() : no()), ms));
+  const ease = (t) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2);
+  function tween(ms, fn, id) {
+    return new Promise((ok, no) => {
+      const t0 = performance.now();
+      (function frame(now) {
+        if (id !== run) return no();
+        const t = Math.min(1, (now - t0) / ms);
+        fn(t);
+        t < 1 ? requestAnimationFrame(frame) : ok();
+      })(t0);
+    });
+  }
+  let pos = { x: 0, y: 0 };
+  function put(p) { pos = p; walker.style.transform = `translate(${p.x - W / 2}px, ${p.y - H}px)`; }
+
+  // Stop points, relative to the list: on the line below each icon, and on top of each icon.
+  function points() {
+    const o = ol.getBoundingClientRect(), l = path.getBoundingClientRect();
+    const row = l.width > l.height;
+    return badges.map((b) => {
+      const r = b.getBoundingClientRect(), cx = r.left + r.width / 2 - o.left;
+      return {
+        line: row ? { x: cx, y: l.top - o.top + 1 } : { x: l.left - o.left + 1, y: r.bottom - o.top + 4 + H },
+        top: { x: cx, y: r.top - o.top + 2 },
+        h: r.height,
+      };
+    });
+  }
+
+  async function walk(to, id) {
+    const from = { ...pos }, d = Math.hypot(to.x - from.x, to.y - from.y);
+    walker.className = "walker walking";
+    await tween(Math.max(400, d / 0.11), (t) => { const k = ease(t); put({ x: from.x + (to.x - from.x) * k, y: from.y + (to.y - from.y) * k }); }, id);
+    walker.className = "walker";
+  }
+  async function jump(to, id) {
+    const from = { ...pos }, peak = Math.min(from.y, to.y) - 56;
+    walker.className = "walker jumping";
+    await tween(620, (t) => {
+      const x = from.x + (to.x - from.x) * t, base = from.y + (to.y - from.y) * t;
+      const arc = 4 * t * (1 - t) * (Math.min(from.y, to.y) - peak);
+      put({ x, y: base - arc });
+    }, id);
+    walker.className = "walker";
+  }
+  // The icon's top bends down under the walker, and the walker sinks with it.
+  function squash(b, i, pts, id) {
+    b.animate([{ transform: "scale(1, 1)" }, { transform: `scale(1.07, ${SQUASH})` }], { duration: 160, easing: "ease-out", fill: "forwards" });
+    const y0 = pts[i].top.y, sink = pts[i].h * (1 - SQUASH);
+    return tween(160, (t) => put({ x: pos.x, y: y0 + sink * t }), id);
+  }
+  function wobble(b) {
+    b.animate([
+      { transform: `scale(1.07, ${SQUASH})` }, { transform: "scale(0.95, 1.07)" }, { transform: "scale(1.03, 0.97)" },
+      { transform: "scale(0.99, 1.01)" }, { transform: "scale(1, 1)" },
+    ], { duration: 700, easing: "ease-out", fill: "forwards" });
+  }
+  function rise(i, pts, id) { // the walker comes up with the icon as it springs back, then jumps
+    wobble(badges[i]);
+    return tween(90, (t) => put({ x: pos.x, y: pts[i].top.y + pts[i].h * (1 - SQUASH) * (1 - t) }), id);
+  }
+
+  async function loop(id) {
+    for (;;) {
+      const p = points();
+      put(p[0].line);
+      await sleep(1200, id);
+      await walk(p[1].line, id); await sleep(1400, id);
+      await walk(p[2].line, id); await sleep(3000, id);
+      await jump(p[2].top, id); await squash(badges[2], 2, p, id); await sleep(900, id);
+      await rise(2, p, id); await jump(p[1].top, id); await squash(badges[1], 1, p, id); await sleep(900, id);
+      await rise(1, p, id); await jump(p[0].top, id); await squash(badges[0], 0, p, id); await sleep(900, id);
+      await rise(0, p, id); await jump(p[0].line, id);
+    }
+  }
+
+  // On the phone layout the line's length depends on where the stops are.
+  function layout() {
     const b = badges.map((x) => x.getBoundingClientRect().bottom);
     path.style.setProperty("--s2", (b[1] - b[0]) + "px");
     path.style.setProperty("--s3", (b[2] - b[0]) + "px");
   }
-  window.addEventListener("resize", place); place();
+  function start() {
+    layout();
+    run++;
+    badges.forEach((b) => b.getAnimations().forEach((a) => a.cancel()));
+    walker.className = "walker";
+    if (reduce) { put(points()[0].line); return; }
+    loop(run).catch(() => {});
+  }
+  let t = 0;
+  window.addEventListener("resize", () => { clearTimeout(t); t = setTimeout(start, 150); });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(start); else start();
 })();
 </script>
 </body>
