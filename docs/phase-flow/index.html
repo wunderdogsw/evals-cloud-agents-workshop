@@ -260,14 +260,15 @@ const PHASES = [
   "file": ".agents/phases/06-RULES-TO-EXPECTATIONS.md",
   "do": [
    "<strong>List the rules</strong>: write every rule from the instruction files, <code>.claude/rules/</code> and hooks as one row in <code>expectations.md</code>.",
-   "<strong>Mark how each is checked</strong>: by code (files touched, tests added, a command passes) or by a judge (placement, naming, quality of explanation).",
+   "<strong>Mark how each is checked</strong>: by code (files touched, tests added, a command passes), by a judge (placement, naming, quality of explanation), or as a hard gate that a hook, lint rule or CI check enforces instead of an eval.",
    "<strong>Pick five</strong>: choose the five rules that cause the most damage when broken, at least two of each kind, each with a reason."
   ],
   "gate": [
-   "Every rule in <code>expectations.md</code> has a check type and a one-line \"how\".",
+   "Every rule in <code>expectations.md</code> has a check type (<code>code</code>, <code>judge</code> or <code>gate</code>) and a one-line \"how\".",
+   "At least one rule is a <code>gate</code>, with what enforces it and why one failure is not acceptable.",
    "Five rules are picked, at least two code and two judge, each with a reason."
   ],
-  "lp": "If you can't check a rule, you can't tell whether the agent follows it. When you decide how to check each rule, you see which rules are specific enough to check.",
+  "lp": "If you can't check a rule, you can't tell whether the agent follows it. If a rule must hold every time, enforce it with a hook, lint rule or CI check instead; evals are for rules where some failures are acceptable and you want to know how often they happen.",
   "out": "You have an <code>expectations.md</code> with five picked rules, each marked as checkable by code or by a judge, and Phases 7–11 build the agent tasks and graders from these rules."
  },
  {

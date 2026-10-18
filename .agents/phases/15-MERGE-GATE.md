@@ -28,6 +28,8 @@ You have a merge gate on the workshop branch that you have seen pass, block a st
 
 > Narrate: "Two MRs/PRs, all to your workshop branch. One should pass. One should fail twice, for two different reasons."
 
+Point out that this CI job is itself a hard gate, like the Phase 5 hook and the `gate` rows in `expectations.md`: it doesn't measure, it blocks.
+
 Explain the branch rule once. Every branch is `dev-days-workshop/<participant>-<suffix>`. Every MR/PR targets `dev-days-workshop/<participant>`. The push guard blocks anything else. Before the first push in this phase, confirm once with the participant.
 
 ### [HUMAN]
