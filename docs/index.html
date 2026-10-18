@@ -13,20 +13,32 @@
   :root { --bg: #111714; --surface: #18201c; --fg: #e2e9e5; --muted: #98a69e; --line: #5f6d65; --accent: #7fd1a8; color-scheme: dark; }
 }
 body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--sans); font-size: 16px; line-height: 1.5; }
+nav { background: var(--surface); border-bottom: 1px solid var(--line); }
+nav ul { max-width: 760px; margin: 0 auto; padding: 0 16px; list-style: none; display: flex; flex-wrap: wrap; gap: 0 24px; }
+nav a { display: block; padding: 14px 0; color: var(--fg); font-weight: 500; font-size: 15px; text-decoration: none; }
+nav a:hover, nav a:focus-visible { color: var(--accent); text-decoration: underline; }
 main { max-width: 760px; margin: 0 auto; padding: 48px 16px; }
 .eyebrow { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
 h1 { margin: 4px 0 8px; font-size: 28px; line-height: 1.2; font-weight: 600; }
 p { margin: 0; color: var(--muted); }
-ul { list-style: none; padding: 0; margin: 32px 0 0; display: grid; gap: 12px; }
-li { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 16px 18px; }
-li a { color: var(--fg); font-weight: 600; font-size: 18px; text-decoration: none; }
-li a:hover, li a:focus-visible { color: var(--accent); text-decoration: underline; }
-li p { margin-top: 4px; }
+main ul { list-style: none; padding: 0; margin: 32px 0 0; display: grid; gap: 12px; }
+main li { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 16px 18px; }
+main li a { color: var(--fg); font-weight: 600; font-size: 18px; text-decoration: none; }
+main li a:hover, main li a:focus-visible { color: var(--accent); text-decoration: underline; }
+main li p { margin-top: 4px; }
 .extra { margin-top: 8px; font-size: 14px; }
 .extra a { color: var(--accent); }
 </style>
 </head>
 <body>
+<nav aria-label="Workshop pages">
+  <ul>
+    <li><a href="phase-flow/">Evals phase flow</a></li>
+    <li><a href="slides/">Slides</a></li>
+    <li><a href="slides/evals-cloud-agents.pdf" download>Slides PDF with speaker notes</a></li>
+    <li><a href="https://github.com/wunderdogsw/evals-cloud-agents-workshop">Repository</a></li>
+  </ul>
+</nav>
 <main>
   <span class="eyebrow">Admicom × Wunderdog</span>
   <h1>Evals & Cloud Agents Workshop</h1>
@@ -38,8 +50,8 @@ li p { margin-top: 4px; }
     </li>
     <li>
       <a href="slides/">Slides</a>
-      <p>The workshop slides. Use the arrow keys to move between slides.</p>
-      <p class="extra"><a href="slides/evals-cloud-agents.pdf" download>Download the slides as PDF</a></p>
+      <p>The workshop slides. Use the arrow keys to move between slides. Press N or the Notes button to see the speaker notes.</p>
+      <p class="extra"><a href="slides/evals-cloud-agents.pdf" download>Download the slides as PDF, with the speaker notes after each slide</a></p>
     </li>
   </ul>
 </main>

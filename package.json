@@ -8,7 +8,7 @@
   },
   "scripts": {
     "postinstall": "pnpm --dir samples/cost-coder install --silent",
-    "test": "pnpm -r --if-present test && pnpm --dir samples/cost-coder test && pnpm test:assets && pnpm docs:flow --check",
+    "test": "pnpm -r --if-present test && pnpm --dir samples/cost-coder test && pnpm test:assets && pnpm docs:flow --check && pnpm docs:slides --check",
     "typecheck": "pnpm -r --if-present typecheck && pnpm --dir samples/cost-coder typecheck",
     "evals": "tsx kit/evals/src/cli.ts",
     "agent-evals": "tsx kit/agent-evals/src/cli.ts",
@@ -20,6 +20,7 @@
     "docs:slides": "tsx .agents/assets/build-slides-pdf.ts"
   },
   "devDependencies": {
+    "pdf-lib": "^1.17.1",
     "tsx": "^4.23.15"
   }
 }

@@ -26,7 +26,7 @@ evals-cloud-agents-workshop/       ← open THIS in Cursor / Claude Code
 ├── kit/templates/                 ← CI jobs (GitLab + GitHub), agent suite folder, Cursor env, AGENTS.md snippets
 ├── kit/catchup/                   ← reference work for `pnpm workshop catchup`
 ├── docs/phase-flow/               ← interactive evals flow (GitHub Pages), built from the phase docs
-├── docs/slides/                   ← workshop slides and their PDF (GitHub Pages)
+├── docs/slides/                   ← workshop slides, speaker notes and the PDF (GitHub Pages)
 ├── samples/cost-coder/            ← sample target (TypeScript) with an agent setup that has problems on purpose
 ├── targets/                       ← gitignored — your attached repo(s) land here
 └── .workshop/                     ← gitignored — progress, repo profile, notes, labels
@@ -43,7 +43,7 @@ evals-cloud-agents-workshop/       ← open THIS in Cursor / Claude Code
 
 **[Open the interactive flow](https://wunderdogsw.github.io/evals-cloud-agents-workshop/phase-flow/)**: click a phase to see its steps, Gate, learning point and wanted outcome, with a link to the phase document. The page is built from the phase documents with `pnpm docs:flow`, and `pnpm test` fails if it is out of date. To view it without GitHub Pages, open `docs/phase-flow/index.html` in a browser.
 
-**[Open the slides](https://wunderdogsw.github.io/evals-cloud-agents-workshop/slides/)** · **[Download the slides as PDF](https://wunderdogsw.github.io/evals-cloud-agents-workshop/slides/evals-cloud-agents.pdf)**. The slides in `docs/slides/index.html` are a copy of the slide deck. After you replace that file with a new version, run `pnpm docs:slides` to write the PDF again (needs Playwright).
+**[Open the slides](https://wunderdogsw.github.io/evals-cloud-agents-workshop/slides/)** (press N for the speaker notes) · **[Download the slides as PDF](https://wunderdogsw.github.io/evals-cloud-agents-workshop/slides/evals-cloud-agents.pdf)**, with the speaker notes after each slide.
 
 ## What you do
 
@@ -136,7 +136,8 @@ The site is public even when the repo is private. Anyone with the link can see t
 To update the pages:
 
 - **Evals flow:** run `pnpm docs:flow` after you change a phase document. `pnpm test` fails if you forget. Add `--images` to also update the README pictures.
-- **Slides:** replace `docs/slides/index.html` with the new version of the slide deck, keep the PDF link in its toolbar, and run `pnpm docs:slides` to write the PDF again. Both need Playwright (`pnpm add -D playwright` and `npx playwright install chromium`).
+- **Slides:** `docs/slides/index.html` is a copy of the slide deck, and `docs/slides/notes.json` is a copy of its speaker notes (one entry per slide). After you update either one, run `pnpm docs:slides`. It puts the notes into the page and writes the PDF again. When you replace `index.html` with a new version of the deck, keep its local changes: the PDF link in the toolbar, the `static-notes` script tag and `useStaticNotes()`. `pnpm test` fails if the page doesn't have the notes from `notes.json`.
+- Both scripts need Playwright for the PDF and the pictures (`pnpm add -D playwright` and `npx playwright install chromium`).
 
 Then commit, merge to `main` and push. GitHub Pages updates on its own.
 
