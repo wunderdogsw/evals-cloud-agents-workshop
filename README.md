@@ -51,7 +51,7 @@ evals-cloud-agents-workshop/       ← open THIS in Cursor / Claude Code
 | Section | Phase | What you do |
 |---|---|---|
 | Evals | [1 — Attach your target](.agents/phases/01-ATTACH-TARGET.md) | Attach a repo on a `dev-days-workshop` branch and prove its tests run |
-| Evals | [2 — Discover your agent setup](.agents/phases/02-DISCOVER-AGENT-SETUP.md) | List what the agent really loads: instructions, rules, skills, hooks, MCP |
+| Evals | [2 — Discover your agent setup](.agents/phases/02-DISCOVER-AGENT-SETUP.md) | Predict what the agent loads, check it, and decide what to fix |
 | Evals | [3 — Check the setup with Claude Code](.agents/phases/03-CHECK-SETUP.md) | `claude doctor`, `/doctor` and `/doctor prompt-audit`; rank the findings |
 | Evals | [4 — Fix the instruction files](.agents/phases/04-FIX-INSTRUCTIONS.md) | Make sure the instructions load, don't contradict each other and stay short; audit again |
 | Evals | [5 — Add skills, hooks and permissions](.agents/phases/05-SKILLS-HOOKS-PERMISSIONS.md) | A skill that runs the app, a hook that blocks a broken rule, a checked list of allowed commands |
@@ -146,7 +146,7 @@ Then commit, merge to `main` and push. GitHub Pages updates on its own.
 
 The guide writes the setup code. **You** write the things that decide the result:
 
-- the inventory and findings about your agent setup,
+- the findings about your agent setup, including the loading gaps,
 - the rules you pick and how each is checked,
 - the agent task prompts,
 - the rule graders, the judge rubrics and your labels,

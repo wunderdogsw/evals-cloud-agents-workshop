@@ -34,7 +34,7 @@ About 28 minutes per phase, including Room Gates.
 | Part | Phase | Main point | Wanted outcome |
 |---|---|---|---|
 | A. Foundation | 1 Attach your target | You can't measure a repo you can't run | Target that runs, on its workshop branch |
-| A. Foundation | 2 Discover your agent setup | The agent doesn't get every file on disk | List of what the agent really loads |
+| A. Foundation | 2 Discover your agent setup | The agent doesn't get every file on disk, and part of what it gets is personal | Loading gaps with a fix-or-leave decision |
 | A. Foundation | 3 Check the setup with Claude Code | An instruction file nobody checked may not work | Ranked findings; "fix" or "already good" path |
 | A. Foundation | 4 Fix the instruction files | Instructions are text; they can't force the agent | Instruction files that load and agree, committed |
 | A. Foundation | 5 Add skills, hooks and permissions | Rules that must never break go in hooks | Complete agent setup, committed |

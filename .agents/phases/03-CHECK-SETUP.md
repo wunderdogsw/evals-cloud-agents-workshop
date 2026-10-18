@@ -72,7 +72,7 @@ They don't apply anything. They paste the findings here and mark the findings ab
 
 ### [BRANCH]
 
-- **Older than 2.1.283** → run `claude update`, restart the session and run the audit again. If they can't update, they check `CLAUDE.md`, `AGENTS.md` and rules by hand against their inventory. They check every command, path and rule against the repo.
+- **Older than 2.1.283** → run `claude update`, restart the session and run the audit again. If they can't update, they check `CLAUDE.md`, `AGENTS.md` and rules by hand, using the "Agent files" list in `findings.md`. They check every command, path and rule against the repo.
 - **"Unavailable", or the `/claude-api` skill is turned off** → check `/skills`. If a managed setting turns it off, use the manual check described above and tell the facilitator.
 - **The repo has many skills** → also run `/skill-doctor` (v2.1.252+) in the terminal session. It shows how much context each skill uses and how often it runs. Note the skills that use a lot of context but are never used.
 - **No instruction files at all** → the audit has little or nothing to report. That is the expected result, not a good one. They write "no instruction files" as finding 1 and choose the `create` path.
@@ -82,12 +82,12 @@ They don't apply anything. They paste the findings here and mark the findings ab
 
 ### [HUMAN]
 
-They write `.workshop/targets/<name>/findings.md` themselves:
+They add to `.workshop/targets/<name>/findings.md` themselves, below the sections from Phase 2:
 
 1. A short section for each check (`claude doctor`, `/doctor`, `/doctor prompt-audit`) with the project findings, in their own words.
-2. **Top 3**: the findings most likely to make the agent do the wrong thing in this repo. Each one gets one line on why it has that rank. An instruction that doesn't load, or that contradicts another, usually ranks above a finding about context use.
+2. **Top 3**: the findings most likely to make the agent do the wrong thing in this repo. Include the loading gaps from Phase 2 marked **fix**. Each one gets one line on why it has that rank. An instruction that doesn't load, or that contradicts another, usually ranks above a finding about context use.
 3. **Path**: this decides how Phases 4–5 run. Choose the first one that fits:
-   - `create` — the repo has no `CLAUDE.md` and no `AGENTS.md` (the inventory from Phase 2 says "missing"). Phase 4 creates the files with `/init` and audits the new files.
+   - `create` — the repo has no `CLAUDE.md` and no `AGENTS.md` (the "Agent files" list from Phase 2 has none). Phase 4 creates the files with `/init` and audits the new files.
    - `fix` — any instruction finding is in the top 3. Phase 4 fixes the files.
    - `already good` — neither of the above. Phase 4 shortens the files instead of fixing them. Phase 5 tests the existing hooks instead of adding new ones.
 

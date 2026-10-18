@@ -28,7 +28,7 @@ Instruction files that load, don't contradict each other, and are committed on t
 
 > Narrate: "First make sure the agent gets the instructions. Then make the instructions correct."
 
-Read `findings.md` and the inventory. Repeat the path (`create`, `fix` or `already good`) and the top 3 in three lines. Remind them of two rules: all edits happen in `targets/<name>` on the workshop branch, and only project files change.
+Read `findings.md`, including the "Loading gaps" from Phase 2. Repeat the path (`create`, `fix` or `already good`) and the top 3 in three lines. Remind them of two rules: all edits happen in `targets/<name>` on the workshop branch, and only project files change.
 
 ### [HUMAN]
 

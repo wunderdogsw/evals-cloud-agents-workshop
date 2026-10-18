@@ -105,7 +105,7 @@ git -C targets/<name> push -u origin dev-days-workshop/<participant>
 
 The participant confirms, and you verify:
 
-- [ ] `agent-suite.json` is committed, has a threshold for each grader in the gate, and tracks every agent file. — read `targets/<name>/evals/suites/agent/agent-suite.json` and compare it with `expectations.md` and the Phase 2 inventory
+- [ ] `agent-suite.json` is committed, has a threshold for each grader in the gate, and tracks every agent file. — read `targets/<name>/evals/suites/agent/agent-suite.json` and compare it with `expectations.md` and the "Agent files" list in `findings.md`
 - [ ] `last-run.json` is committed and `pnpm verify suites/agent` passes locally. — `pnpm --dir targets/<name>/evals verify suites/agent` and `git -C targets/<name> status --short`
 - [ ] The CI job runs on the pushed workshop branch and passes. — the pipeline link they share, or `glab ci status` / `gh run list --branch dev-days-workshop/<participant>`
 
