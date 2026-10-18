@@ -1,0 +1,25 @@
+# Agent eval gate — GitLab CI. No model and no secrets in CI.
+#
+# Locally, with your own Claude Code or Cursor login, from the workshop control room:
+#     pnpm agent-evals run targets/<name> --tasks <tasks-file> --agent claude --record targets/<name>/evals/suites/agent
+# commits evals/suites/agent/last-run.json. This job checks that the recording is fresh (no tracked agent file,
+# rule, rubric or threshold changed since), was a real full run, and met the threshold per grader.
+#
+# Installed at .gitlab/ci/workshop-agent-evals.yml and included from .gitlab-ci.yml.
+
+workshop-agent-evals:
+  stage: test
+  image: node:22
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH =~ /^dev-days-workshop\// && $CI_PIPELINE_SOURCE == "push"
+  timeout: 10m
+  before_script:
+    - corepack enable
+    - cd evals && pnpm install --frozen-lockfile=false
+  script:
+    - pnpm verify suites/agent --junit "$CI_PROJECT_DIR/agent-gate-junit.xml"
+  artifacts:
+    when: always
+    reports:
+      junit: agent-gate-junit.xml

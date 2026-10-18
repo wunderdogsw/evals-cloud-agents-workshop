@@ -1,0 +1,32 @@
+# Agent eval gate — GitHub Actions. No model and no secrets in CI.
+#
+# Locally, with your own Claude Code or Cursor login, from the workshop control room:
+#     pnpm agent-evals run targets/<name> --tasks <tasks-file> --agent claude --record targets/<name>/evals/suites/agent
+# commits evals/suites/agent/last-run.json. This workflow checks the recording is fresh, a real full run,
+# and over the threshold per grader. Make it a merge gate: require the "workshop-agent-evals" check.
+
+name: workshop-agent-evals
+
+on:
+  pull_request:
+  push:
+    branches: ["dev-days-workshop/**"]
+
+jobs:
+  workshop-agent-evals:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - run: corepack enable
+      - working-directory: evals
+        run: pnpm install
+      - working-directory: evals
+        run: |
+          set -o pipefail
+          pnpm verify suites/agent --junit "$RUNNER_TEMP/agent-gate-junit.xml" | tee -a "$GITHUB_STEP_SUMMARY"

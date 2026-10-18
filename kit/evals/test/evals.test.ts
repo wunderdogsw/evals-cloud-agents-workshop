@@ -249,3 +249,16 @@ describe("cursor provider", () => {
     expect(argv).toContain("--output-format");
   });
 });
+
+describe("compare per grader", () => {
+  it("finds a broken grader inside a case that still passes", () => {
+    const mk = (r4: boolean) => ({
+      summary: { suite: "s", startedAt: "", finishedAt: "", cases: 1, trials: 1, passRate: 1, graders: [], byTag: {}, errors: 0, totalCostUsd: 0 },
+      runs: [{ caseId: "t1", trial: 1, tags: [], input: {}, grades: [{ name: "hidden-tests", pass: true, score: 1 }, { name: "rule:R4", pass: r4, score: r4 ? 1 : 0, reason: r4 ? undefined : "edited data/" }], pass: true, durationMs: 0, costUsd: 0 }],
+    });
+    const c = compareRuns(mk(true), mk(false));
+    expect(c.regressions).toEqual([]);
+    expect(c.graderRegressions).toEqual([{ caseId: "t1", grader: "rule:R4", reason: "edited data/" }]);
+    expect(compareRuns(mk(false), mk(true)).graderFixes).toEqual([{ caseId: "t1", grader: "rule:R4" }]);
+  });
+});

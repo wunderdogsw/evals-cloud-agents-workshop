@@ -1,0 +1,7 @@
+{
+  "name": "agent",
+  "rules": "rules.mjs",
+  "judges": {},
+  "threshold": { "graders": {} },
+  "tracks": __TRACKS__
+}

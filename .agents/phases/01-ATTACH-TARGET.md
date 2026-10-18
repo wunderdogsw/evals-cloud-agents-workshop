@@ -1,16 +1,33 @@
 # Phase 1 — Attach your target
 
-## Overview
+## What you do
 
-You'll pick the repo you want to work in, attach it under `targets/`, and let the guide profile it: stack, commands, CI, git host, any existing LLM calls. The phase ends when the target's own tests run green from here — you can't measure anything in a repo you can't run.
+1. **Choose a target** — a GitLab/GitHub URL (for production repos, a mirror the facilitators set up), a local checkout, or `sample`.
+2. **Prove it runs** — install the target and run its own tests from the workshop repo, then decide on the result of the CI check.
+
+## Gate
+
+- [ ] The target is on `dev-days-workshop/<participant>`, with a `dev-days-workshop/<participant>-start` tag.
+- [ ] Its tests passed in this session, or you switched to `sample`.
+- [ ] The CI check found no deploy lines, or the participant confirmed its deploy lines are safe, or you switched to a mirror.
+
+## Learning point
+
+If you can't run a repo, you can't measure anything in it. Don't experiment in a repo where a push could reach production.
+
+## Wanted outcome
+
+A target that runs, on its `dev-days-workshop` branch, with a start tag, a backup of the settings files and a CI check.
 
 ---
 
-## 1.1 [LLM] Check the control room
+## 1.1 Choose a target
 
-> Narrate: "Quick preflight — Node, pnpm, git, and a model the evals can call."
+### [LLM]
 
-Evals, judges and agents run on the participant's **own** Claude Code or Cursor login — whichever they have, no API key, no choice to make. Run and report in one compact block:
+> Narrate: "First, a quick check of Node, pnpm, git and the coding tools you'll use today."
+
+Run these commands and report the results in one short block:
 
 ```bash
 node -v && pnpm -v && git --version
@@ -19,70 +36,63 @@ agent --version 2>/dev/null || echo "cursor CLI: not installed"
 glab --version 2>/dev/null | head -1 || gh --version 2>/dev/null | head -1 || echo "glab/gh: not installed"
 ```
 
-- Node < 22.12 or missing pnpm → tell them `corepack enable` (or install Node 22+) and stop until fixed.
-- If `node_modules/` is missing at the root, run `pnpm install`.
-- **At least one** of `claude` (Claude Code CLI) or `agent` (Cursor CLI) must be installed and logged in. Missing both → install the one matching the tool they already use: Claude Code `curl -fsSL https://claude.ai/install.sh | bash` then `claude` to log in; Cursor CLI `curl https://cursor.com/install -fsS | bash` then `agent login`. Having both is a bonus, not a requirement.
-- Smoke-test the one they have: `claude -p "Reply with: ok" --tools ""` or `agent -p "Reply with: ok"`. An auth error → they log in in their own terminal and retry.
-- `glab` / `gh` is only needed on Day 2 (reading issues, opening MRs/PRs) — mention it, don't block.
-- Never ask them to paste a key or token into chat.
+- Node is older than 22.12, or pnpm is missing → run `corepack enable` (or install Node 22+). Don't continue until this is fixed. If `node_modules/` is missing at the root, run `pnpm install`.
+- The agent-setup phases need **Claude Code 2.1.283 or later**. (`/doctor prompt-audit` was added in 2.1.283.) If it is older, run `claude update`. If it is missing, install it: run `curl -fsSL https://claude.ai/install.sh | bash`, then run `claude` to log in. Install it even if they mostly use Cursor, because Phases 2–5 use checks that only Claude Code has.
+- Cursor CLI (`agent`) is optional. Test each installed tool with one short prompt: `claude -p "Reply with: ok" --tools ""` or `agent -p "Reply with: ok"`. If you get a login error, they log in from their own terminal.
+- Phase 14 and later need `glab` / `gh` to open MRs/PRs. Tell them this, but don't stop the phase for it.
+- Never ask them to paste a key or token into the chat.
 
-## 1.2 [HUMAN] Choose a target
+### [HUMAN]
 
-Present the three options and ask which one:
+Show the three options and ask which one they want:
 
-1. **A GitLab or GitHub URL** — ideally the workshop mirror your facilitators set up (`…/workshop/<repo>`). Cloned fresh into `targets/`.
-2. **A local checkout** — a path like `~/code/my-service`. Attached as a git worktree on a new branch, so your own checkout is untouched.
-3. **`sample`** — the bundled `cost-coder` app (TypeScript, has an LLM feature, no remote). Always works.
+1. **A GitLab or GitHub URL** — if the repo has code in production, use the workshop mirror your facilitators set up. The repo is cloned as a new copy into `targets/`.
+2. **A local checkout** — a path like `~/code/my-service`. It is added as a git worktree on a new branch, so their own checkout does not change.
+3. **`sample`** — the included `cost-coder` app. It is written in TypeScript, has an LLM feature, and has an agent setup with problems added on purpose. This option always works. Facilitators can choose a different agent setup with `--setup good` (no problems) or `--setup none` (no `CLAUDE.md` or `AGENTS.md`), to try the other paths of Phases 3–5.
 
-Also ask for a short participant name for the branch (default: their git user name).
+Also ask for a short participant name to use in the branch name. The default is their git user name.
 
-Good targets build in minutes, have tests, and have a history of merged changes that touched tests. If they're unsure, recommend their mirror if they have one, otherwise `sample`.
+A good target builds in a few minutes and has tests. It also has agent instruction files (`CLAUDE.md`, `AGENTS.md`, `.cursor/rules/`) and a history of merged changes that changed tests. If they are unsure, use their mirror if they have one. Otherwise, use `sample`.
 
-## 1.3 [LLM] Attach and profile
+## 1.2 Prove it runs
+
+### [LLM]
+
+> Narrate: "All your work today happens on a `dev-days-workshop` branch. Your default branch does not change."
 
 ```bash
 pnpm workshop attach <url | path | sample> --participant <name>
 ```
 
-This clones/worktrees/copies the target, creates `workshop/<name>`, writes `.workshop/targets/<name>/profile.json`, and sets `activeTarget` in `progress.json`.
+This command clones the target, adds it as a worktree, or copies it. It creates `dev-days-workshop/<participant>` and tags the start point as `dev-days-workshop/<participant>-start`. It backs up `~/.claude/settings.json`, `~/.claude/CLAUDE.md` and `~/.cursor/hooks.json`. It writes `.workshop/targets/<name>/profile.json` and runs the CI check.
 
-Read the profile and summarise it in **at most 6 lines**: stack, host, default branch, install/build/test commands, CI present, LLM call sites found (count + top 2 files), agent instruction files present.
+Summarise the profile in **at most 6 lines**: stack, host, default branch, install/build/test commands, agent instruction files found, and the result of the CI check.
 
-## 1.4 [LLM] Confirm commands
+The profile step guesses the commands, and some guesses can be wrong. Check the target's README, CI config and build files. Correct any wrong command **in the profile JSON** (`commands.install`, `commands.build`, `commands.test`). Then run the install and test commands from `targets/<name>/`. Show only the last lines of the output while it runs.
 
-The profiler guesses. Look at the target's README, CI config and build files and correct any wrong command **in the profile JSON** (`commands.install`, `commands.build`, `commands.test`). If you can't tell, ask the participant one question listing the candidates.
+### [HUMAN]
 
-If `notes` mentions pnpm `--ignore-workspace`, keep that flag for local runs inside the control room.
+They make two decisions:
 
-## 1.5 [LLM] Install and run the tests
+- **Tests:** they watch the test run. If the tests fail, and you can't fix them in about 15 minutes, they decide whether to switch to `sample`. Common causes are a missing SDK, a private package registry, or a database the tests need.
+- **CI check:** if the result is `REVIEW`, show the lines it listed. Only they (or the repo owner) can confirm that those jobs never run on `dev-days-workshop/*` branches or on their MRs/PRs. If they can't confirm it, they switch to a mirror or `sample`. Nothing is pushed before Phase 14. But if they switch repos at that point, they lose the day's work.
 
-From `targets/<name>/` run the install command, then the test command. Stream only the tail of the output.
+### [BRANCH]
 
-- Pass → go to 1.6.
-- Fail → diagnose before anything else. Typical: missing SDK/toolchain, private registry auth, a service the tests need (database), env vars. Fix what you can; for things you can't (VPN, private registry token), tell the participant exactly what to get from whom. If it can't be fixed within ~15 minutes, recommend switching to `sample` and continuing — they can come back to their repo in Phase 6.
+- **Tests fail** → find the cause first: a missing toolchain, registry login, a service the tests need, or environment variables. Fix what you can. For what you can't fix, say exactly what they need and who can give it to them.
+- **CI check says REVIEW and they can't confirm** → attach a mirror again (`pnpm workshop attach <mirror-url> --participant <name>`) or `sample`.
+- **Target is `sample`** → the tests pass without a network connection, and the CI check reports no remote. They don't need to decide anything.
 
-## 1.6 [HUMAN] Decide what to evaluate
-
-Show the LLM call sites from the profile (file:line). Ask:
-
-> "Day 1's evals need an LLM-powered feature. Which of these is the one you'd most like to trust more — or is there none worth evaluating?"
-
-## 1.7 [BRANCH] Record the eval subject
-
-- **They picked a feature in the target** → set `evalSubject: "target-feature"` and `suite: "<short-feature-name>"` in the profile and in `progress.json` → `targets.<name>`. Write 2–3 lines on how an eval could call it (direct import for TS, CLI entry point, HTTP endpoint, or a small test harness you'd add). Don't build it yet.
-- **No LLM feature / none worth it** → set `evalSubject: "sample-feature"` and `suite: "cost-coder"`. Explain: "Day 1 evaluates the bundled invoice classifier, vendored into your repo under `evals/subject/`. Phase 6 benchmarks coding agents on *your* code, so the repo still matters."
-- **Target is `sample`** → already `target-feature` / `cost-coder`. Nothing to ask.
-
-## Gate 1
+## 1.3 Gate check
 
 The participant confirms, and you verify:
 
-- [ ] `targets/<name>/` exists and is on branch `workshop/<participant>`
-- [ ] The target's test command passed in this session (or they consciously switched to `sample`, which passes)
-- [ ] `evalSubject` and `suite` are set in the profile
+- [ ] The target is on `dev-days-workshop/<participant>`, with a `dev-days-workshop/<participant>-start` tag. — `git -C targets/<name> branch --show-current` and `git -C targets/<name> tag --list "dev-days-workshop/*"`
+- [ ] Its tests passed in this session, or you switched to `sample`. — the test run you showed in 1.2
+- [ ] The CI check found no deploy lines, or the participant confirmed its deploy lines are safe, or you switched to a mirror. — `ciCheck.verdict` in the profile, plus their confirmation if it says REVIEW
 
 ---
 
 ## Phase Complete
 
-Mark Phase 1 complete. Preview: "Phase 2 — you'll write the dataset that defines what *good* means for this feature. That's the hard, valuable part."
+Mark Phase 1 complete. Preview: "Phase 2 — before you measure anything, find out which instructions your coding agent gets about this repo."

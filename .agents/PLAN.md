@@ -2,66 +2,80 @@
 
 ## Audience and format
 
-- Experienced developers working on their own product codebase.
-- 1.5 days, facilitated, in a room. Participants work solo or in pairs.
-- Day 1 (full day): evaluations. Day 2 (half day): cloud agents.
-- Each participant works on a **target** repo: their own (preferably a mirror in a workshop group) or the bundled `samples/cost-coder`.
+- Experienced developers who work on their own product code.
+- 1.5 days, with facilitators, in one room. Participants work alone or in pairs.
+- Day 1 (full day): evals. Day 2 (half day): cloud agents.
+- Each participant works on a **target** repo: their own (best as a mirror in a workshop group) or the sample `samples/cost-coder`.
 
-## The through-line
+## The main idea
 
-> You can only delegate to agents what you can measure.
+> You can only hand work to agents when you can measure how well they do it. You can only measure an agent against rules you have written down.
 
-Day 1 builds measurement: a dataset, graders, a calibrated judge, a CI gate, and a benchmark of coding-agent tasks taken from the target's own history. Day 2 delegates real work to cloud agents and lets that measurement decide what gets merged.
+The evals section starts with the target's agent setup. Participants find out what the agent really loads, check it with Claude Code's own commands, and fix it. That setup is the standard the rest of the section measures against: tasks from the repo's own history, code graders, a judge checked against the participant's labels, one measured change, and a CI gate. The cloud agents section gives real work to agents and uses that measurement to decide what gets merged.
 
 ## Learning objectives
 
 By the end, a participant can:
 
-1. Write a golden dataset that reflects what "good" means for a feature, including edge cases and known-bad cases.
-2. Choose between deterministic graders and LLM-as-judge, and explain why most suites need both.
-3. Calibrate an LLM judge against human labels and report the agreement rate.
-4. Compare two runs and identify regressions, not just score deltas.
-5. Gate merges on eval results in GitLab CI or GitHub Actions — without a model or secrets in CI.
-6. Build a coding-agent benchmark from merged changes (hidden tests from the reference commit).
-7. Delegate a task to a coding agent (Claude Code or Cursor, locally or as a cloud agent) and review the resulting MR/PR.
-8. Write agent-facing instructions (AGENTS.md / CLAUDE.md / rules) and measure whether they help.
-9. Run several agents in parallel and triage their output by evidence.
+1. Find out what a coding agent really loads in a repo, and check it with `/doctor` and `/doctor prompt-audit`.
+2. Write instruction files that load, don't contradict each other and stay short, and block rules that must never break with hooks.
+3. Decide for each written rule whether code or a judge checks it.
+4. Build agent tasks from merged changes (graded by the tests from the real change), and measure what the setup adds.
+5. Check an LLM judge against their own labels, and report the agreement and whether the judge is too lenient or too strict.
+6. Change one agent file, compare runs per rule, and find a rule that got worse.
+7. Block merges in GitLab CI or GitHub Actions with a recorded eval run, without a model or secrets in CI.
+8. Give a task to a coding agent (locally or as a cloud agent) and review the MR/PR it opens.
+9. Run several agents at the same time and decide from the evidence which work to merge.
 
-## Day 1 — Evals
+## Evals section (Day 1)
 
-| Phase | Time | Core idea | Gate |
+About 28 minutes per phase, including Room Gates.
+
+| Part | Phase | Main point | Wanted outcome |
 |---|---|---|---|
-| 1 Attach target | 09:30–10:15 | Know your repo before you measure it | Target tests run green from the control room |
-| 2 First eval | 10:15–11:30 | The dataset is the product | Baseline score with ≥20 cases, ≥12 written or labelled by the participant |
-| 3 LLM-as-judge | 11:30–13:30 (incl. lunch) | Judges need judging | ≥80% agreement with own labels, or rubric revised and re-measured |
-| 4 Iterate | 13:30–14:30 | Score deltas lie, regressions don't | A deliberate change is shown to regress ≥1 case |
-| 5 Evals in CI | 14:30–15:30 | Measurement that doesn't block is a dashboard | A bad MR/PR is blocked by the eval job |
-| 6 Agent evals | 15:30–16:45 | Benchmark the agent on *your* code | ≥5 replay tasks run, pass rate reported |
+| A. Foundation | 1 Attach your target | You can't measure a repo you can't run | Target that runs, on its workshop branch |
+| A. Foundation | 2 Discover your agent setup | The agent doesn't get every file on disk | List of what the agent really loads |
+| A. Foundation | 3 Check the setup with Claude Code | An instruction file nobody checked may not work | Ranked findings; "fix" or "already good" path |
+| A. Foundation | 4 Fix the instruction files | Instructions are text; they can't force the agent | Instruction files that load and agree, committed |
+| A. Foundation | 5 Add skills, hooks and permissions | Rules that must never break go in hooks | Complete agent setup, committed |
+| B. Measure | 6 Turn your rules into expectations | If you can't check a rule, you can't measure it | Five rules marked code or judge |
+| B. Measure | 7 Build agent tasks from your history | Your own merged changes make the best tasks | 5–10 validated tasks |
+| B. Measure | 8 Baseline the agent | Measure what the setup adds | Pass rates with and without the setup |
+| B. Measure | 9 Grade rules with code | Use code wherever a rule allows it | A score per code rule |
+| B. Measure | 10 Write the judge rubric | If you can't label it, a judge can't either | Rubrics and 15+ labels |
+| B. Measure | 11 Calibrate the judge | Check the judge against your labels | ≥ 80 % agreement; known direction of errors |
+| C. Improve | 12 Change one agent file, measure it | Measure every instruction change | Compared run and a recorded decision |
+| C. Improve | 13 Catch a regression | The pass rate can hide a broken rule | A rule that got worse, explained |
+| D. Protect | 14 Record evals for CI | CI needs no model and no secret | Recording and CI job on the branch |
+| D. Protect | 15 Make the gate block | A gate must be seen to block | A working merge gate |
 
-## Day 2 — Cloud agents
+Phases 8–15 use `pnpm agent-evals` for runs with and without the setup (`--without-setup`), rule graders (`--rules`), judges over diffs (`--judge`, `label`, `regrade`) and CI recordings (`--record`).
 
-| Phase | Time | Core idea | Gate |
-|---|---|---|---|
-| 7 Delegate | 09:00–10:00 | An issue becomes an MR while you do something else | Agent-authored MR/PR exists and the eval gate ran on it |
-| 8 Cloud agents | 10:00–10:45 | Same delegation, someone else's machine | Second MR/PR; side-by-side comparison written |
-| 9 Guardrails | 10:45–11:30 | Instructions are code; measure them | Agent-evals rerun with improved AGENTS.md, delta reported |
-| 10 Capstone | 11:30–12:30 | Parallel agents, evidence-based merge | Retro: which MRs would you merge and why |
+## Cloud agents section (Day 2)
+
+These phases still use the old document format.
+
+| Phase | Main point | Gate |
+|---|---|---|
+| 16 Delegate | An issue becomes an MR/PR while you do something else | An agent MR/PR into the workshop branch exists, and its CI ran |
+| 17 Cloud agents | The same task handover, on another company's machine | A second MR/PR; comparison table written |
+| 18 Guardrails | A review agent comments from the repo's rules | Agent section in AGENTS.md; new run compared; a review posted |
+| 19 Capstone | Several agents; merge decisions from evidence | Retro: which MRs/PRs would you merge, and why |
+
+The agent eval gate from Phase 14 checks the agent setup, not the code in an agent's MR/PR. On Day 2 the code is checked by the repo's tests, the participant's review against the picked rules, and the review agent.
 
 ## Tools
 
-Participants use any coding tool — Claude Code, Cursor, or both — at any point; there are no tracks. Every model call (feature under test, judge, agents) runs on the participant's own login, auto-detected. CI never holds a model credential: the eval gate verifies a committed, fingerprinted recording of a local run.
-
-## Eval subject
-
-Phases 2–5 need an LLM-powered feature to evaluate. Phase 1 decides `evalSubject`:
-
-- `target-feature` — the target already calls an LLM; evaluate that feature through a task adapter (`shellTask`, `httpTask`, or a direct import for TS targets).
-- `sample-feature` — the target has no LLM feature; vendor the bundled cost-coder classifier into the target under `evals/subject/cost-coder/` and evaluate that. Phase 6 still benchmarks agents on the target's own code.
+Participants use any coding tool (Claude Code, Cursor or both) at any time; there are no tracks. Every model call (judges and agents) runs on the participant's own login, detected automatically. CI never holds a model credential: the gate checks a committed recording of a local run.
 
 ## Hosts
 
-Phase 1 records `host`: `gitlab`, `github`, or `none` (local only). Phases 5, 7, 8, 9, 10 branch on it. `none` can complete Day 1 locally but needs a pushed remote before Day 2 — facilitators should resolve this during the Phase 5 room gate.
+Phase 1 records `host`: `gitlab`, `github` or `none` (local only). Phases 14–19 choose their path from it. A target with `none` can complete Phases 1–13 locally, but needs a pushed remote from Phase 14 on.
+
+## Safety
+
+Targets may be production repos. All work stays on `dev-days-workshop/<participant>` branches with a start tag, and a push guard blocks everything else. See AGENTS.md → Target safety, and `pnpm workshop cleanup`.
 
 ## Out of scope
 
-Fine-tuning, RAG evaluation depth, production observability platforms. Mention them, don't teach them.
+Fine-tuning, deep RAG evaluation, production monitoring platforms. Mention them, but don't teach them.

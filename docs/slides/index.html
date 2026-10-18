@@ -1,0 +1,2042 @@
+<!doctype html><html lang="en"><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Evals &amp; Cloud Agents</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: fixed 1600×900 stage scaled to the viewport; Wunderdog navy template, cover-streak accents. Single dark look by design. */
+:root{
+  --bg:#0a1d3a; --bg-deep:#050c19; --panel:#11284b; --panel-2:#16325c; --line:#2a4570;
+  --fg:#ffffff; --muted:#a3b5d0; --dim:#6a81a6;
+  --orange:#ff7a2f; --amber:#ffb454; --pink:#ff6fa8; --violet:#a98bff; --blue:#4c8dff; --sky:#8fd0ff;
+  --lime:#e8ff4a; --red:#ff5d5d;
+  --sans:"DM Sans", "Helvetica Neue", Arial, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --ease:cubic-bezier(.2,.75,.2,1);
+  color-scheme:dark;
+}
+html,body{height:100%;margin:0;background:var(--bg-deep);color:var(--fg);overflow:hidden;font-family:var(--sans);-webkit-font-smoothing:antialiased}
+#deck{position:absolute;left:50%;top:50%;width:1600px;height:900px;transform-origin:center;transform:translate(-50%,-50%) scale(var(--scale,.5));background:var(--bg);overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.5)}
+.slide{position:absolute;inset:0;background:var(--bg);opacity:0;visibility:hidden;transition:opacity .55s var(--ease),visibility .55s;overflow:hidden;font-size:30px;line-height:1.35}
+.slide.active{opacity:1;visibility:visible}
+.abs{position:absolute}
+
+/* template chrome */
+.chrome .wm{position:absolute;left:83px;top:38px}
+.wm{font-weight:500;font-size:21px;letter-spacing:.48em;color:var(--fg)}
+.chrome .pg{position:absolute;right:83px;top:38px;font-size:22px;color:var(--fg);font-variant-numeric:tabular-nums}
+.chrome::after{content:"";position:absolute;left:83px;right:83px;top:80px;height:1px;background:rgba(255,255,255,.5)}
+.t{position:absolute;left:83px;right:83px;top:112px;margin:0;font-size:60px;line-height:1.1;font-weight:700;letter-spacing:-.012em;text-wrap:balance}
+.body{position:absolute;left:83px;right:83px;top:240px;bottom:64px}
+.desc{position:absolute;left:83px;right:83px;top:190px;margin:0;font-size:26px;line-height:1.35;color:var(--muted);max-width:1250px}
+
+/* step engine */
+.slide [data-s]{opacity:0;transform:translateY(26px);transition:opacity .6s var(--ease) var(--d,0s),transform .75s var(--ease) var(--d,0s)}
+.slide [data-s].fade{transform:none}
+.slide [data-s].left{transform:translateX(-46px)}
+.slide [data-s].right{transform:translateX(46px)}
+.slide [data-s].zoom{transform:scale(.86)}
+.slide [data-s].on{opacity:1;transform:none}
+.slide svg .draw[data-s]{opacity:1;transform:none;stroke-dasharray:var(--len,2000);stroke-dashoffset:var(--len,2000);transition:stroke-dashoffset 1.3s var(--ease) var(--d,0s)}
+.slide svg .draw[data-s].on{stroke-dashoffset:0}
+.slide [data-out]{transition:opacity .45s var(--ease)}
+.slide .gone{opacity:0 !important}
+
+/* shared pieces */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:26px 28px}
+.lbl{font-size:17px;font-weight:500;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.mono{font-family:var(--mono)}
+.muted{color:var(--muted)}
+.lime{color:var(--lime)} .orange{color:var(--orange)} .red{color:var(--red)} .violet{color:var(--violet)} .sky{color:var(--sky)}
+ul.b{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:18px}
+ul.b li{position:relative;padding-left:34px}
+ul.b li::before{content:"";position:absolute;left:4px;top:.55em;width:11px;height:11px;border-radius:50%;background:var(--orange)}
+.row{display:flex;gap:24px}
+.col{display:flex;flex-direction:column;gap:20px}
+.arrow{flex:none;width:46px;height:20px;align-self:center}
+.arrow path{stroke:var(--dim);stroke-width:2.5;fill:none}
+.pill{display:inline-flex;align-items:center;gap:10px;padding:8px 18px;border-radius:999px;border:1px solid var(--line);background:var(--panel);font-size:21px;white-space:nowrap}
+.statement{font-size:44px;font-weight:500;line-height:1.2;letter-spacing:-.01em}
+.term{background:#071224;border:1px solid var(--line);border-radius:14px;padding:24px 28px;font-family:var(--mono);font-size:21px;line-height:1.6;color:#d6e2f5;white-space:pre}
+.term .p{color:var(--lime)} .term .c{color:var(--dim)}
+.typing::after{content:"";display:inline-block;width:.55em;height:1.05em;vertical-align:-.15em;background:var(--lime);margin-left:2px;opacity:0}
+.typing.busy::after{opacity:1;animation:blink .8s steps(2) infinite}
+@keyframes blink{50%{opacity:0}}
+
+/* cover + dividers */
+canvas.streaks{position:absolute;inset:0;width:1600px;height:900px}
+.cover-title{position:absolute;left:83px;top:330px;margin:0;font-size:84px;line-height:1.08;font-weight:700;letter-spacing:-.015em}
+.cover-title span{font-weight:400;display:block}
+.cover-meta{position:absolute;left:83px;top:640px;font-size:32px}
+.div-num{position:absolute;left:83px;top:250px;font-size:200px;font-weight:300;line-height:1;letter-spacing:-.04em;color:rgba(255,255,255,.9)}
+.div-title{position:absolute;left:83px;top:500px;margin:0;font-size:96px;font-weight:700;letter-spacing:-.02em}
+
+/* S2 two themes */
+.theme{flex:1;height:420px;border-radius:20px;padding:44px;display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden;border:1px solid var(--line);background:var(--panel)}
+.theme .n{font-size:120px;font-weight:300;line-height:1;letter-spacing:-.04em}
+.theme h3{margin:0;font-size:56px;font-weight:700}
+.theme p{margin:6px 0 0;color:var(--muted);font-size:28px}
+.theme.a{background:linear-gradient(150deg,#18355f 0%,#11284b 60%)}
+.theme.a .n{color:var(--lime)}
+.theme.b{background:linear-gradient(150deg,#2a2350 0%,#11284b 65%)}
+.theme.b .n{color:var(--orange)}
+.bridge{position:absolute;left:0;right:0;top:240px;height:0;display:flex;justify-content:center;align-items:center;z-index:2}
+.bridge .pill{font-size:24px;background:var(--bg);border-color:var(--fg);padding:12px 26px}
+
+/* S4 vibes */
+.prompt{display:flex;align-items:center;gap:22px;font-size:30px}
+.lane{display:grid;grid-template-columns:120px 1fr 420px;align-items:center;gap:28px;height:84px}
+.lane .name{font-size:24px;color:var(--muted)}
+.track{height:14px;border-radius:7px;background:var(--panel-2);overflow:hidden}
+.track i{display:block;height:100%;width:0;border-radius:7px;background:linear-gradient(90deg,var(--blue),var(--sky))}
+.mv .track i,.track.mv i{width:100%;transition:width var(--t,2s) var(--ease)}
+.verdict{font-size:28px;font-weight:700;display:flex;align-items:center;gap:12px;white-space:nowrap}
+.mark{flex:none;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;color:var(--bg)}
+.mark.sm{width:32px;height:32px}
+.ico{width:62%;height:62%;fill:none;stroke:currentColor;stroke-width:3.4;stroke-linecap:round;stroke-linejoin:round;display:block}
+.ico.tx{display:inline-block;width:.95em;height:.95em;vertical-align:-.12em;stroke-width:3}
+.mark.ok{background:var(--lime)} .mark.no{background:var(--red)}
+
+/* S5 anatomy */
+.anat{display:flex;align-items:stretch;gap:0;height:500px}
+.anat .node{flex:1;display:flex;flex-direction:column;gap:16px}
+.anat .node .card{flex:1;display:flex;flex-direction:column;justify-content:flex-end;gap:10px;padding:24px}
+.anat h4{margin:0;font-size:32px;font-weight:700}
+.anat p{margin:0;font-size:22px;color:var(--muted);line-height:1.3}
+.anat .arrow{width:52px}
+.vis{flex:1;display:flex;align-items:center;justify-content:center}
+.stack3{position:relative;width:120px;height:100px}
+.stack3 b{position:absolute;width:96px;height:66px;border-radius:10px;border:2px solid var(--sky);background:var(--panel-2)}
+.stack3 b:nth-child(1){left:0;top:0;opacity:.45}.stack3 b:nth-child(2){left:12px;top:14px;opacity:.7}.stack3 b:nth-child(3){left:24px;top:28px}
+.doc{width:96px;height:110px;border-radius:10px;border:2px solid var(--muted);padding:16px 14px;box-sizing:border-box;display:flex;flex-direction:column;gap:9px}
+.doc i{height:5px;border-radius:3px;background:var(--dim)} .doc i:nth-child(2){width:70%} .doc i:nth-child(4){width:50%}
+.score{font-size:76px;font-weight:700;color:var(--lime);line-height:1}
+
+/* S6 outcome */
+.bubble{position:relative;background:var(--panel-2);border-radius:26px 26px 26px 6px;padding:30px 34px;font-size:32px;max-width:560px}
+.stamp{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(-7deg);border:5px solid var(--red);color:var(--red);font-weight:700;font-size:44px;letter-spacing:.06em;padding:10px 28px;border-radius:12px;background:rgba(10,29,58,.88);white-space:nowrap}
+.slide .stamp[data-s]{transform:translate(-50%,-50%) rotate(-7deg) scale(1.6)}
+.slide .stamp[data-s].on{transform:translate(-50%,-50%) rotate(-7deg) scale(1)}
+
+/* S7 graders */
+.gcol{flex:1;display:flex;flex-direction:column;gap:20px}
+.gcol h3{margin:0;font-size:40px}
+.gcol .ex{font-size:23px;color:var(--muted);min-height:64px}
+.pro,.con{font-size:24px;display:flex;gap:12px;align-items:baseline}
+.pro::before{content:"+";color:var(--lime);font-weight:700}
+.con::before{content:"–";color:var(--orange);font-weight:700}
+.axis{height:10px;border-radius:5px;background:linear-gradient(90deg,var(--lime),var(--sky) 50%,var(--orange))}
+
+/* S8 pass^k */
+.fcard{padding:24px 28px}
+.fcard .big{font-size:46px;font-weight:700;line-height:1.1}
+.fcard .f{font-family:var(--mono);font-size:26px;color:var(--muted);margin:8px 0 6px}
+.chart text{font-family:var(--sans);font-size:18px;fill:var(--muted)}
+.chart .grid{stroke:var(--line);stroke-width:1}
+.slider{display:flex;align-items:center;gap:20px;font-size:24px;color:var(--muted)}
+.slider input{flex:1;accent-color:var(--lime);height:28px}
+.slider b{color:var(--fg);font-variant-numeric:tabular-nums;min-width:70px}
+
+/* S9 capability/regression */
+.cr{display:grid;grid-template-rows:1fr 1fr;gap:28px;height:520px}
+.crl{display:grid;grid-template-columns:330px 1fr 150px;align-items:center;gap:36px;border-radius:18px;padding:0 36px;border:1px solid var(--line);background:var(--panel);position:relative}
+.crl h3{margin:0;font-size:38px}
+.crl .qq{font-size:23px;color:var(--muted);margin-top:4px}
+.meter{height:22px;border-radius:11px;background:var(--panel-2);position:relative;overflow:hidden}
+.meter i.mv{width:var(--w2,var(--w))}
+.meter i{position:absolute;left:0;top:0;bottom:0;border-radius:11px;width:var(--w);transition:width 1.6s var(--ease)}
+.crl .pct{font-size:52px;font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
+.chip{position:absolute;padding:8px 16px;border-radius:10px;font-size:19px;font-family:var(--mono);background:var(--panel-2);border:1px solid var(--line);white-space:nowrap;transition:transform 1.2s var(--ease),border-color .6s,background .6s}
+.chip.grad.mv{transform:translateY(274px);border-color:var(--lime);background:#2b3a1e}
+
+/* S10 sources */
+.funnel{display:grid;grid-template-columns:420px 1fr 380px;align-items:center;height:560px}
+.src{display:flex;flex-direction:column;gap:22px}
+.src .card{padding:20px 26px;font-size:27px;display:flex;align-items:center;gap:16px}
+.src .card i{width:14px;height:14px;border-radius:4px;background:var(--orange);flex:none}
+.flow path{fill:none;stroke:var(--line);stroke-width:2}
+.flow .dash{stroke:var(--lime);stroke-width:3;stroke-dasharray:3 18;opacity:0}
+.flow.mv .dash{opacity:1;animation:flow 1.1s linear infinite}
+@keyframes flow{to{stroke-dashoffset:-42}}
+.suite{border-radius:20px;border:2px solid var(--lime);padding:36px;text-align:center;background:var(--panel)}
+.suite .count{font-size:110px;font-weight:700;line-height:1;color:var(--lime);font-variant-numeric:tabular-nums}
+
+/* S12 plugin anatomy */
+.tree{font-family:var(--mono);font-size:24px;line-height:1.75;color:#d6e2f5;white-space:pre}
+.tree .d{color:var(--sky)} .tree .g{color:var(--dim)}
+.fileh{font-family:var(--mono);font-size:18px;color:var(--muted);margin-bottom:10px}
+.code{font-family:var(--mono);font-size:19px;line-height:1.55;white-space:pre;color:#d6e2f5}
+.code .k{color:var(--sky)} .code .s{color:var(--amber)} .code .c{color:var(--dim)}
+
+/* S14 grader types */
+.gt{display:grid;grid-template-columns:1fr 1fr;gap:40px}
+.gt .grp{display:flex;flex-direction:column;gap:16px}
+.gchip{display:grid;grid-template-columns:200px 1fr;align-items:center;gap:20px;padding:18px 24px;border-radius:14px;background:var(--panel);border:1px solid var(--line)}
+.gchip b{font-family:var(--mono);font-size:24px;font-weight:600}
+.gchip span{font-size:22px;color:var(--muted)}
+.grp.free .gchip b{color:var(--lime)} .grp.judge .gchip b{color:var(--violet)}
+
+/* S13 results table */
+.res{display:grid;grid-template-columns:1.6fr .8fr .8fr .8fr;font-family:var(--mono);font-size:22px;row-gap:12px}
+.res .h{color:var(--dim)}
+.pos{color:var(--lime)} .zero{color:var(--orange)}
+
+/* S11 delta bars */
+.db{display:grid;grid-template-columns:280px 1fr 120px;align-items:center;row-gap:40px;column-gap:30px}
+.db .case{font-family:var(--mono);font-size:23px}
+.bars{display:flex;flex-direction:column;gap:8px}
+.bar{height:28px;border-radius:5px;width:0;transition:width 1.2s var(--ease) var(--d,0s)}
+.bar.w{background:var(--lime)} .bar.wo{background:#5b77a3}
+.bars.mv .bar{width:var(--v)}
+.db .delta{font-size:30px;font-weight:700;font-variant-numeric:tabular-nums}
+.hl{position:absolute;left:-20px;right:-20px;border:2px dashed var(--orange);border-radius:16px}
+.legend{display:flex;gap:30px;font-size:21px;color:var(--muted)}
+.legend i{display:inline-block;width:18px;height:18px;border-radius:4px;vertical-align:-3px;margin-right:10px}
+
+/* S15 triggers */
+.q{font-size:25px;padding:16px 22px;border-radius:12px;background:var(--panel);border:1px solid var(--line);display:flex;gap:16px;align-items:center}
+.q .ic{flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-size:18px;font-weight:700;color:var(--bg)}
+
+/* S16 pitfalls */
+.pit{display:grid;grid-template-columns:1fr 1fr;gap:26px}
+.pit .card{padding:30px 34px;display:flex;flex-direction:column;gap:12px;min-height:200px;box-sizing:border-box}
+.pit h3{margin:0;font-size:34px}
+.pit p{margin:0;font-size:24px;color:var(--muted)}
+.jump{display:flex;align-items:baseline;gap:18px;font-size:48px;font-weight:700}
+
+/* loops (S17, S33) */
+.loop{position:absolute;left:50%;top:50%;width:560px;height:560px;margin:-280px 0 0 -280px}
+.loop .ring{position:absolute;inset:40px;border-radius:50%;border:2px dashed var(--line)}
+.loop .orb{position:absolute;inset:40px;animation:spin 9s linear infinite}
+.loop .orb::before{content:"";position:absolute;left:50%;top:-9px;width:18px;height:18px;margin-left:-9px;border-radius:50%;background:var(--lime);box-shadow:0 0 22px var(--lime)}
+@keyframes spin{to{transform:rotate(360deg)}}
+.ln{position:absolute;width:240px;margin-left:-120px;margin-top:-40px;text-align:center}
+.ln .card{padding:18px 18px;font-size:27px;font-weight:500;background:var(--bg);border-color:var(--fg)}
+.ln small{display:block;font-size:19px;color:var(--muted);margin-top:6px;font-weight:400}
+.center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center}
+
+/* S20 timeline */
+.tl{position:absolute;left:40px;right:40px;top:120px}
+.tl .base{position:absolute;left:0;right:0;top:0;height:4px;background:var(--line);border-radius:2px}
+.tl .fill{position:absolute;left:0;top:0;height:4px;border-radius:2px;background:linear-gradient(90deg,var(--sky),var(--violet),var(--orange));width:calc(var(--p,0)*100%);transition:width 1s var(--ease)}
+.stop{position:absolute;top:0;width:270px;margin-left:-135px;text-align:center}
+.stop .who{padding-top:18px;border-top:1px solid var(--line)}
+.stop .dot{width:26px;height:26px;border-radius:50%;margin:-11px auto 0;background:var(--bg);border:4px solid var(--line);transition:border-color .5s,background .5s}
+.stop.mv .dot{border-color:var(--fg);background:var(--orange)}
+.stop h4{margin:34px 0 8px;font-size:32px;font-weight:700}
+.stop p{margin:0;font-size:23px;color:var(--muted);min-height:64px}
+.stop .who{margin-top:90px;font-size:26px;font-weight:500;color:var(--lime)}
+
+/* S21 where */
+.where{display:grid;grid-template-columns:repeat(4,1fr);gap:24px}
+.where .card{display:flex;flex-direction:column;gap:14px;height:380px;box-sizing:border-box;padding:32px 30px}
+.where h3{margin:0;font-size:34px}
+.where p{margin:0;font-size:25px;color:var(--muted)}
+.where .tag{margin-top:auto;font-family:var(--mono);font-size:19px;color:var(--sky)}
+.spectrum{display:flex;justify-content:space-between;font-size:22px;color:var(--muted);margin-top:34px;position:relative;padding-top:24px}
+.spectrum::before{content:"";position:absolute;left:0;right:0;top:0;height:6px;border-radius:3px;background:linear-gradient(90deg,var(--sky),var(--violet),var(--orange))}
+
+/* S22 pipeline */
+.pipe{position:relative;display:flex;justify-content:space-between;align-items:flex-start;margin-top:90px}
+.pipe::before{content:"";position:absolute;left:70px;right:70px;top:65px;height:3px;background:var(--line)}
+.pipe .nd{position:relative;width:180px;text-align:center}
+.pipe .nd .o{width:130px;height:130px;margin:0 auto;border-radius:50%;background:var(--panel);border:3px solid var(--line);display:grid;place-items:center;font-family:var(--mono);font-size:20px;color:var(--dim)}
+.pipe .nd h4{margin:24px 0 8px;font-size:28px}
+.pipe .nd p{margin:0;font-size:20px;color:var(--muted)}
+.pipe.mv .nd .o{animation:lit .5s var(--ease) both;animation-delay:calc(var(--i)*.55s + .2s)}
+@keyframes lit{from{border-color:var(--line);color:var(--dim);background:var(--panel)}to{border-color:var(--lime);color:var(--lime);background:#1e3215}}
+.pipe.mv .nd .o{border-color:var(--lime);color:var(--lime);background:#1e3215}
+.pipe .tok{position:absolute;top:56px;left:80px;width:22px;height:22px;border-radius:50%;background:var(--lime);box-shadow:0 0 24px var(--lime);opacity:0}
+.pipe.mv .tok{animation:travel 3.6s var(--ease) .2s both}
+@keyframes travel{0%{left:80px;opacity:1}95%{opacity:1}100%{left:calc(100% - 100px);opacity:0}}
+.pipe .loopy{animation:none}
+.pipe.mv .nd.agent .o{animation:lit .5s var(--ease) both, pulse 1.6s ease-in-out 2.6s infinite;animation-delay:calc(var(--i)*.55s + .2s),2.6s}
+@keyframes pulse{50%{box-shadow:0 0 0 14px rgba(232,255,74,.12)}}
+
+/* S23 environment */
+.env{display:grid;grid-template-columns:640px 1fr;gap:50px}
+.field{display:flex;flex-direction:column;gap:10px;margin-bottom:26px}
+.seg{display:flex;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.seg button{flex:1;font:inherit;font-size:22px;padding:14px 0;background:transparent;color:var(--muted);border:0;border-right:1px solid var(--line);cursor:pointer}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--lime);color:var(--bg);font-weight:700}
+.seg button:focus-visible{outline:3px solid var(--sky);outline-offset:-3px}
+.hosts{display:flex;flex-direction:column;gap:14px}
+.host{display:flex;justify-content:space-between;align-items:center;padding:18px 24px;border-radius:12px;border:1px solid var(--line);background:var(--panel);font-family:var(--mono);font-size:23px;transition:opacity .4s,border-color .4s}
+.host .st{font-family:var(--sans);font-size:20px;font-weight:700;padding:4px 14px;border-radius:999px}
+.host.ok{border-color:#4f6a2a}.host.ok .st{background:var(--lime);color:var(--bg)}
+.host.no{opacity:.55}.host.no .st{background:transparent;color:var(--red);border:1px solid var(--red)}
+
+/* S24 creds */
+.vm{position:absolute;left:0;top:30px;width:520px;height:330px;border:2px dashed var(--sky);border-radius:22px;padding:28px;box-sizing:border-box}
+.box{position:absolute;border-radius:16px;background:var(--panel);border:1px solid var(--line);display:grid;place-items:center;text-align:center;font-size:28px;font-weight:500}
+.pkt{position:absolute;width:30px;height:30px;border-radius:8px;background:var(--sky);top:250px;left:300px;opacity:0}
+.mv .pkt,.pkt.mv{animation:pkt 3.2s var(--ease) both infinite}
+@keyframes pkt{0%{left:300px;opacity:0;background:var(--sky)}8%{opacity:1}45%{left:735px;background:var(--sky)}55%{left:735px;background:var(--lime);box-shadow:0 0 22px var(--lime)}92%{left:1270px;opacity:1;background:var(--lime)}100%{left:1270px;opacity:0;background:var(--lime)}}
+
+/* S25 hub */
+.hub{position:absolute;inset:0}
+.hub svg{position:absolute;inset:0;width:100%;height:100%}
+.hub .spoke{stroke:var(--line);stroke-width:2.5;fill:none}
+.hub .pulse{stroke:var(--orange);stroke-width:4;fill:none;stroke-dasharray:16 400;opacity:0}
+.hub .pulse.on{opacity:1;animation:pls 2.2s linear infinite}
+@keyframes pls{from{stroke-dashoffset:420}to{stroke-dashoffset:0}}
+.hn{position:absolute;width:300px;margin-left:-150px;margin-top:-62px}
+.hn .card{padding:18px 22px;text-align:center}
+.hn h4{margin:0;font-size:29px}
+.hn p{margin:6px 0 0;font-size:20px;color:var(--muted);font-family:var(--mono)}
+.core{position:absolute;left:50%;top:50%;width:250px;height:250px;margin:-125px 0 0 -125px;border-radius:50%;display:grid;place-items:center;text-align:center;font-size:30px;font-weight:700;background:radial-gradient(circle at 40% 35%,#ff9a52,#c4467f 55%,#3b2f86);box-shadow:0 0 70px rgba(255,122,47,.35)}
+
+/* S26 fan-out */
+.lanes{display:flex;flex-direction:column;gap:24px}
+.fl{display:grid;grid-template-columns:1fr 150px;gap:24px;align-items:center;padding:20px 26px;border-radius:14px;background:var(--panel);border:1px solid var(--line)}
+.fl .nm{font-size:23px;margin-bottom:12px}
+.fl .track{height:10px}
+.fl .track i{background:linear-gradient(90deg,var(--violet),var(--orange))}
+.prb{font-family:var(--mono);font-size:21px;text-align:center;padding:8px 0;border-radius:10px;border:1px solid var(--lime);color:var(--lime)}
+
+/* S27 plan flow */
+.pf{display:flex;align-items:stretch;gap:0}
+.pf .st{flex:1;display:flex;flex-direction:column;gap:14px}
+.pf .loc{font-size:18px;font-weight:700;letter-spacing:.16em;text-transform:uppercase}
+.pf .card{flex:1;display:flex;flex-direction:column;gap:18px;min-height:210px;box-sizing:border-box}
+.pf h3{margin:0;font-size:34px}
+.pf code{font-family:var(--mono);font-size:21px;color:var(--sky);word-break:break-word;white-space:normal}
+
+/* S28 PR */
+.pr{width:780px}
+.pr .head{display:flex;align-items:center;gap:16px;font-size:32px;font-weight:700}
+.pr .br{font-family:var(--mono);font-size:20px;color:var(--muted);margin:10px 0 24px}
+.check{display:flex;align-items:center;gap:16px;padding:16px 20px;border-top:1px solid var(--line);font-size:23px;position:relative;min-height:40px}
+.check .s{width:22px;height:22px;border-radius:50%;flex:none}
+.swap{position:relative;flex:1;height:34px}
+.swap>*{position:absolute;inset:0;display:flex;align-items:center;gap:14px}
+.comment{margin-top:14px;padding:16px 20px;border-radius:12px;background:var(--panel-2);font-size:22px}
+.comment b{color:var(--sky);font-weight:500}
+
+/* S29 managed */
+.mg{position:absolute;inset:0}
+.mg .box{font-size:26px}
+.mg .box small{display:block;font-size:19px;color:var(--muted);font-weight:400;margin-top:6px}
+.prov{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:12px}
+.prov span{font-size:17px;padding:4px 12px;border-radius:999px;border:1px solid var(--line);color:var(--muted);font-weight:400}
+
+/* case flows */
+.cf{display:flex;align-items:stretch}
+.cf .card{flex:1;display:flex;flex-direction:column;gap:14px;padding:28px 24px;min-height:220px;box-sizing:border-box}
+.cf .card .k{font-family:var(--mono);font-size:18px;color:var(--orange)}
+.cf .card h4{margin:0;font-size:29px;line-height:1.22}
+.cf .arrow{width:42px}
+.evals{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-top:64px}
+.evals .lbl{margin-right:6px}
+.evals .pill{border-color:var(--lime)}
+.evals .pill i{width:10px;height:10px;border-radius:50%;background:var(--lime)}
+.casetag{position:absolute;right:83px;top:126px;font-size:20px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--orange)}
+
+/* S32 grid */
+.mods{display:grid;grid-template-columns:repeat(8,1fr);gap:12px}
+.mods i{aspect-ratio:1.6;border-radius:8px;background:var(--panel);border:1px solid var(--line)}
+.mods.mv i{animation:done .5s var(--ease) both;animation-delay:var(--d)}
+@keyframes done{from{background:var(--panel);border-color:var(--line)}to{background:var(--lime);border-color:var(--lime)}}
+.mods.mv i{background:var(--lime);border-color:var(--lime)}
+.gate{display:flex;align-items:center;gap:14px;font-size:24px;padding:14px 20px;border-radius:12px;border:1px solid var(--lime);color:var(--lime)}
+
+/* thanks */
+.stacklogo{position:absolute;right:150px;top:306px;font-weight:500;font-size:64px;letter-spacing:.5em;line-height:1.5;text-align:left}
+.thanks{position:absolute;left:83px;top:388px;margin:0;font-size:96px;font-weight:700}
+
+
+/* ===== cookie factory ===== */
+.factory{position:absolute;left:83px;top:196px;width:1434px;height:560px}
+.fsvg{position:absolute;left:0;top:0;width:1434px;height:560px;overflow:visible}
+.fsvg *{transform-box:fill-box}
+.f-mach{fill:#142c52;stroke:#4d6c9e;stroke-width:2}
+.f-slot{fill:#071224;stroke:#4d6c9e;stroke-width:1.5}
+.f-rail{stroke:#4d6c9e;stroke-width:3}
+.f-floor{stroke:#2a4570;stroke-width:2}
+.f-leg{stroke:#2f4b78;stroke-width:4}
+.f-shaft{stroke:#33507f;stroke-width:6;stroke-linecap:round}
+.f-power{stroke:var(--orange);stroke-width:2;stroke-dasharray:4 22;opacity:.85;animation:mv 1s linear infinite}
+.f-belt{fill:#1b355f;stroke:#4d6c9e;stroke-width:2}
+.f-belt-move{stroke:#7895c6;stroke-width:2;stroke-dasharray:10 14;animation:mv .8s linear infinite}
+@keyframes mv{to{stroke-dashoffset:-24}}
+.roller{fill:#0f2142;stroke:#7895c6;stroke-width:2;stroke-dasharray:5 4;transform-origin:center;animation:spin 1s linear infinite}
+.gear{transform-origin:center;animation:spin 5s linear infinite}
+.gear-shape{fill:#24467a;stroke:#8fb2e6;stroke-width:2;transition:fill .6s,stroke .6s}
+.gear-hub{fill:#0a1d3a;stroke:#8fb2e6;stroke-width:2}
+.eng-body{transition:stroke .6s}
+.eng-new{font:700 15px var(--sans);fill:var(--violet);letter-spacing:.1em;opacity:0;transition:opacity .5s}
+.chute{stroke:#4d6c9e;stroke-width:8;stroke-linecap:round;fill:none}
+.tk{fill:var(--sky);opacity:0;animation:tk 1.5s ease-in infinite}
+@keyframes tk{0%{transform:translateY(0);opacity:0}15%{opacity:1}80%{opacity:1}100%{transform:translateY(70px);opacity:0}}
+.paddle line{stroke:#8fb2e6;stroke-width:4;stroke-linecap:round}
+.paddle{transform-origin:center;animation:spin 1.4s linear infinite}
+.drop{fill:#3a2414;stroke:#c98943;stroke-width:1;animation:drop .72s ease-in infinite}
+@keyframes drop{0%{transform:translateY(0);opacity:1}100%{transform:translateY(70px);opacity:.2}}
+.oven-win{fill:var(--orange);animation:glow 2.4s ease-in-out infinite}
+@keyframes glow{0%,100%{fill-opacity:.55}50%{fill-opacity:.95}}
+.smoke{fill:#6d84aa;animation:smoke 3s ease-out infinite}
+@keyframes smoke{0%{transform:translate(0,0) scale(.6);opacity:.6}100%{transform:translate(10px,-60px) scale(1.6);opacity:0}}
+.press{animation:press 1.1s ease-in-out infinite}
+@keyframes press{0%,100%{transform:translateY(0)}50%{transform:translateY(12px)}}
+.crate{fill:#5b3d22;stroke:#c98943;stroke-width:2}
+.slat{stroke:#c98943;stroke-width:1.5}
+.truck{animation:bob 1.6s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-2px)}}
+.wheel{fill:#071224;stroke:#8fb2e6;stroke-width:3}
+.f-names text{font:600 19px var(--sans);fill:#cfdbef;text-anchor:middle}
+/* cookies */
+.ck-dough{fill:#ecd3a6}
+.ck-bake circle{fill:var(--bake,#c98943)}
+.ck-chips circle{fill:#3a2414}
+.ck-crack{fill:none;stroke:#7a3b2a;stroke-width:2.2;opacity:0;transition:opacity .4s}
+.ck-pack rect{fill:#f3ead9;stroke:#c9b48f;stroke-width:1}
+.ck-pack .ck-band{fill:var(--orange);stroke:none}
+.ck{animation:ckmove 10s linear infinite;animation-delay:var(--dl)}
+.ck .ck-chips{animation:ckchips 10s linear infinite;animation-delay:var(--dl)}
+.ck .ck-bake{animation:ckbake 10s linear infinite;animation-delay:var(--dl)}
+.ck .ck-pack{animation:ckpack 10s linear infinite;animation-delay:var(--dl)}
+@keyframes ckmove{0%{transform:translateX(0);opacity:0}4%{opacity:1}95%{opacity:1}100%{transform:translateX(720px);opacity:0}}
+@keyframes ckchips{0%,14%{opacity:0}17%,100%{opacity:1}}
+@keyframes ckbake{0%,40%{opacity:0}46%,100%{opacity:1}}
+@keyframes ckpack{0%,70%{opacity:0}73%,100%{opacity:1}}
+.ck-static{display:none}
+.st-dough .ck-chips,.st-dough .ck-bake,.st-dough .ck-pack,.st-chips .ck-bake,.st-chips .ck-pack,.st-bake .ck-pack{opacity:0}
+/* optional parts, off until the slide turns them on */
+.cloud,.lab,.feedback,.clock,.recipe,.books,.notes,.beacons,.fgate,.tech{opacity:0;transition:opacity .6s}
+.cloud-shape{fill:#2a1f4d;stroke:var(--pink);stroke-width:2.5}
+.cloud-link{stroke:var(--pink);stroke-width:2;stroke-dasharray:6 8;animation:mv 1s linear infinite reverse}
+.cloud-pulse{fill:var(--pink);animation:blink 1.2s ease-in-out infinite}
+.lab-box{fill:#132b1c;stroke:var(--lime);stroke-width:2.5}
+.lab-tube{stroke:var(--lime);stroke-width:3;stroke-dasharray:2 6}
+.flask{fill:rgba(232,255,74,.18);stroke:var(--lime);stroke-width:2}
+.lab-screen{fill:#071224;stroke:var(--lime);stroke-width:1.5}
+.lab-line{fill:none;stroke:var(--lime);stroke-width:2.5}
+.sample{fill:var(--lime);opacity:0}
+.sampling .sample{animation:sample 1.8s linear infinite}
+@keyframes sample{0%{transform:translateY(0);opacity:0}10%{opacity:1}90%{opacity:1}100%{transform:translateY(-230px);opacity:0}}
+.feedback{fill:none;stroke:var(--violet);stroke-width:3;stroke-dasharray:10 10;animation:mv .9s linear infinite}
+.clock-face{fill:#2a1a0d;stroke:var(--orange);stroke-width:3}
+.clock-h,.clock-m{stroke:var(--orange);stroke-width:3;stroke-linecap:round;transform-origin:bottom}
+.clock-m{animation:spin 3s linear infinite} .clock-h{animation:spin 36s linear infinite}
+.clock-pin{fill:var(--orange)}
+.recipe-card{fill:#eef4ff;stroke:var(--sky);stroke-width:2.5}
+.recipe-l{stroke:#5b77a3;stroke-width:3}
+.fhead{stroke-width:2.5;fill:#1b2a55}
+.h1{stroke:var(--violet)} .h2{stroke:var(--sky)} .h3{stroke:var(--amber)}
+.sensor-rod{stroke:#4d6c9e;stroke-width:2}
+.sensor-box{fill:#2a2110;stroke:var(--amber);stroke-width:2}
+.sensor-beam{stroke:var(--amber);stroke-width:2;stroke-dasharray:4 5;animation:blink 1s steps(2) infinite}
+.note{fill:var(--amber);stroke:#8a5a12;stroke-width:1}
+.show-notes .note{animation:pop 2.4s ease-in-out infinite}
+.show-notes .n2{animation-delay:.4s} .show-notes .n3{animation-delay:.8s}
+@keyframes pop{0%,100%{transform:scale(1) rotate(-4deg)}50%{transform:scale(1.12) rotate(4deg)}}
+.beacon{fill:var(--red)}
+.alarm .beacon{animation:blink .7s steps(2) infinite}
+@keyframes blink{50%{opacity:.25}}
+.gate-post{fill:#4d6c9e}
+.gate-arm{fill:var(--red);transform-origin:top;transform:rotate(0deg);transition:transform .7s var(--ease)}
+.bin{fill:#2a1212;stroke:var(--red);stroke-width:2}
+.rej{fill:#3b2416;stroke:var(--red);stroke-width:2;opacity:0}
+.reject .rej{animation:rej 2s ease-in infinite}
+@keyframes rej{0%{transform:translateY(-18px);opacity:0}20%{opacity:1}100%{transform:translateY(48px);opacity:0}}
+.factory.show-cloud .cloud,.factory.show-lab .lab,.factory.show-feedback .feedback,.factory.show-clock .clock,.factory.show-recipe .recipe,.factory.show-skills .books,.factory.show-notes .notes,.factory.alarm .beacons,.factory.gate-on .fgate,.factory.show-tech .tech{opacity:1}
+.factory .gate-arm{transform:rotate(-90deg)}
+.factory.gate-on .gate-arm{transform:rotate(0deg)}
+.factory.new-engine .gear-shape{fill:#3b2a78;stroke:var(--violet)}
+.factory.new-engine .eng-body{stroke:var(--violet)}
+.factory.new-engine .eng-new{opacity:1}
+.factory.burnt{--bake:#2a170c}
+.factory.burnt .oven-win{fill:var(--red)}
+.factory.flour .tk{fill:var(--violet)}
+.factory.flour .ck-crack{opacity:1}
+.factory.fixed .gear-shape{stroke:var(--lime)}
+
+/* factory v2 */
+.ck{animation:ckmove2 10s linear infinite;animation-delay:var(--dl)}
+@keyframes ckmove2{0%{transform:translateX(0);opacity:0}3%{opacity:1}95%{opacity:1}100%{transform:translateX(730px);opacity:0}}
+.ck-lump{fill:#e6c896}
+.ck .ck-lump{animation:cklump 10s linear infinite;animation-delay:var(--dl)}
+.ck .ck-dough{animation:ckdough 10s linear infinite;animation-delay:var(--dl)}
+.ck .ck-chips{animation:ckchips2 10s linear infinite;animation-delay:var(--dl)}
+.ck .ck-pack{animation:ckpack2 10s linear infinite;animation-delay:var(--dl)}
+@keyframes cklump{0%,8%{opacity:1}10%,100%{opacity:0}}
+@keyframes ckdough{0%,8%{opacity:0}10%,100%{opacity:1}}
+@keyframes ckchips2{0%,21%{opacity:0}23%,100%{opacity:1}}
+@keyframes ckpack2{0%,84%{opacity:0}86%,100%{opacity:1}}
+.st-lump .ck-dough,.st-lump .ck-chips,.st-lump .ck-bake,.st-lump .ck-pack,.st-dough .ck-lump,.st-chips .ck-lump,.st-bake .ck-lump,.st-pack .ck-lump{opacity:0}
+.f-names text{font:600 17px var(--sans)}
+.harn-body{stroke:#6f8fc2}
+.h-led{fill:var(--lime);animation:blink 1.5s steps(2) infinite}
+.h-dial{fill:#0a1d3a;stroke:#8fb2e6;stroke-width:2}
+.h-needle{stroke:var(--orange);stroke-width:3;stroke-linecap:round;transform-origin:bottom;animation:needle 3s ease-in-out infinite}
+@keyframes needle{0%,100%{transform:rotate(-40deg)}50%{transform:rotate(40deg)}}
+.h-slot{fill:#0a1d3a;stroke:#4d6c9e;stroke-width:1.5}
+.factory.show-harness .harn-body{stroke:var(--sky);stroke-width:3.5}
+.poster-head{fill:var(--sky)}
+.book{stroke-width:2;fill:#1b2a55}
+.b1{stroke:var(--violet);fill:#2b2255} .b2{stroke:var(--sky);fill:#16365c} .b3{stroke:var(--amber);fill:#3a2a12}
+.stamp{animation:press 1s ease-in-out infinite}
+.drop-body{stroke:var(--amber)}
+.factory.show-hooks .drop-body{stroke-width:3.5;filter:drop-shadow(0 0 6px rgba(255,180,84,.8))}
+.qa-post{stroke:#6f8fc2;stroke-width:5;stroke-linecap:round}
+.qa-beam{stroke:var(--lime);stroke-width:3;stroke-dasharray:4 5;animation:blink 1.2s steps(2) infinite}
+.qa-eye{fill:var(--lime)}
+.rej-box{fill:#2a1a10;stroke:var(--orange);stroke-width:2}
+.rej-chute{stroke:var(--orange);stroke-width:2;stroke-dasharray:4 4}
+.rej-label{font:600 14px var(--sans);fill:#f2c7a0}
+.rej{fill:#2a170c;stroke:var(--red);stroke-width:2;opacity:0}
+.factory.show-rejects .rej,.factory.reject .rej{animation:rej2 2.2s ease-in infinite}
+@keyframes rej2{0%{transform:translateY(-6px);opacity:0}15%{opacity:1}100%{transform:translateY(64px);opacity:0}}
+.tech-head{fill:#f2c7a0;stroke:var(--orange);stroke-width:2}
+.tech-body{fill:var(--orange)}
+.tech-wrench{fill:none;stroke:#cfdbef;stroke-width:3;stroke-linecap:round}
+.twin{width:130px;margin-left:-65px;font-size:17px;line-height:1.15;white-space:nowrap;top:530px}
+@media print{.ck-static .ck-lump{animation:none}}
+
+/* ===== tire plant ===== */
+.plant .plant-svg{position:absolute;left:0;top:0;width:1434px;height:560px;overflow:visible}
+.plant-svg *{transform-box:fill-box}
+.p-arrow{stroke:#6f8fc2;stroke-width:2.5}
+.p-track{stroke:#2a4570;stroke-width:4;stroke-dasharray:2 10}
+.p-tire{animation:ptire 9s linear infinite}
+@keyframes ptire{0%{transform:translateX(0);opacity:0}3%{opacity:1}95%{opacity:1}100%{transform:translateX(1215px);opacity:0}}
+.p-tire-spin{transform-origin:center;animation:spin 1s linear infinite}
+.p-tire-r{fill:#141414;stroke:#cfdbef;stroke-width:4;stroke-dasharray:4 3}
+.p-tire-hub{fill:#8fb2e6}
+.plant.defects .p-tire-r{stroke:var(--red)}
+.p-conn{stroke:#6f8fc2;stroke-width:2;stroke-dasharray:3 4;opacity:0;transition:opacity .5s}
+.p-feedback{fill:none;stroke:var(--violet);stroke-width:3;stroke-dasharray:9 8;animation:mv .9s linear infinite;opacity:0;transition:opacity .5s}
+.p-reject{stroke:var(--red);stroke-width:3;stroke-dasharray:6 6;opacity:0;animation:mv .8s linear infinite;transition:opacity .5s}
+.p-rules{position:absolute;left:0;right:0;top:0;height:34px;box-sizing:border-box;border-radius:8px;border:1.5px solid var(--sky);display:flex;justify-content:space-between;align-items:center;padding:0 16px;font-size:17px;color:#cfdbef;background:rgba(143,208,255,.08);opacity:0;transition:opacity .6s}
+.p-rules b{color:var(--sky);font-size:17px}
+.pcard{position:absolute;top:72px;width:219px;height:164px;box-sizing:border-box;padding:14px 16px;border-radius:14px;background:var(--panel);border:1.5px solid var(--line);display:flex;flex-direction:column;gap:4px;transition:border-color .5s;animation:pglow 9s linear infinite}
+.pcard.k1{animation-delay:1.8s}.pcard.k2{animation-delay:3.6s}.pcard.k3{animation-delay:5.4s}.pcard.k4{animation-delay:7.2s}.pcard.k5{animation-delay:9s}
+@keyframes pglow{0%{box-shadow:0 0 0 3px rgba(143,208,255,.55)}12%,100%{box-shadow:0 0 0 0 rgba(143,208,255,0)}}
+.picon{stroke:#8fb2e6;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.pcard h4{margin:6px 0 0;font-size:21px;line-height:1.15}
+.pcard p{margin:0;font-size:16px;line-height:1.3;color:var(--muted)}
+.spill{position:absolute;top:272px;width:219px;height:46px;box-sizing:border-box;border-radius:999px;border:1.5px solid var(--lime);color:var(--lime);display:grid;place-items:center;font-size:20px;font-weight:700;background:rgba(232,255,74,.06)}
+.ptag{position:absolute;padding:3px 10px;border-radius:8px;font-size:15px;white-space:nowrap;opacity:0;transition:opacity .5s;background:rgba(6,15,31,.95);border:1.5px solid var(--c);color:#cfdbef}
+.ptag b{color:var(--c);margin-left:6px}
+.t-skill{--c:var(--violet)} .t-hook{--c:var(--amber)} .t-new{--c:var(--violet)} .t-bad{--c:var(--red)} .t-hold{--c:var(--lime)} .t-alarm{--c:var(--red)}
+.sbox{position:absolute;top:336px;height:96px;box-sizing:border-box;padding:10px 16px;border-radius:12px;border:1.5px dashed var(--c);background:rgba(6,15,31,.6);opacity:0;transition:opacity .6s,box-shadow .6s}
+.sbox b{display:block;color:var(--c);font-size:14px;letter-spacing:.14em;text-transform:uppercase}
+.sbox h5{margin:2px 0 0;font-size:19px}
+.sbox p{margin:2px 0 0;font-size:15px;color:var(--muted);line-height:1.3}
+.u-night{--c:var(--orange)} .u-track{--c:var(--lime)} .u-tech{--c:var(--violet)} .u-reject{--c:var(--amber)} .u-routine{--c:var(--pink)}
+.p-band{position:absolute;left:0;right:0;height:38px;box-sizing:border-box;border-radius:10px;display:flex;justify-content:space-between;align-items:center;padding:0 18px;font-size:18px;color:#cfdbef;transition:border-color .5s,box-shadow .5s}
+.p-band b{font-size:18px}
+.b-harness{top:446px;background:#13294d;border:1.5px solid #6f8fc2} .b-harness b{color:var(--sky)}
+.b-model{top:492px;background:#1a2236;border:1.5px solid #4d6c9e}
+.m-new{display:none}
+.plant.new-robot .m-old{display:none} .plant.new-robot .m-new{display:inline;color:var(--violet);font-weight:700}
+.plant.new-robot .b-model{border-color:var(--violet);box-shadow:0 0 0 3px rgba(169,139,255,.3)}
+.plant.show-rules .p-rules{opacity:1}
+.plant.show-skills .t-skill,.plant.show-hooks .t-hook,.plant.new-type .t-new,.plant.defects .t-bad,.plant.gate-on .t-hold,.plant.alarm .t-alarm{opacity:1}
+.plant.show-night .u-night,.plant.show-track .u-track,.plant.show-tech .u-tech,.plant.show-reject .u-reject,.plant.show-routine .u-routine{opacity:1}
+.plant.show-night .c0,.plant.show-track .c1,.plant.show-track .c2,.plant.show-tech .c3,.plant.show-reject .c4,.plant.show-routine .c5{opacity:1}
+.plant.show-feedback .p-feedback,.plant.rejects .p-reject{opacity:1}
+.plant.track-active .u-track{border-style:solid;box-shadow:0 0 0 4px rgba(232,255,74,.18)}
+.plant.new-type .k0{border-color:var(--violet)}
+.plant.defects .k3,.plant.defects .k4,.plant.defects .k5{border-color:var(--red)}
+.plant.alarm .k3{border-color:var(--red);box-shadow:0 0 0 4px rgba(255,93,93,.25)}
+.plant.alarm .k3 .picon{stroke:var(--red)}
+.plant.fixed .k3{border-color:var(--lime)}
+.plant .fchip{max-width:none}
+.board.compact{padding:10px 16px;font-size:16px;line-height:1.4}
+.board.compact b{font-size:17px;margin-bottom:2px}
+
+/* ===== tire plant v2 ===== */
+.tp-svg{position:absolute;left:0;top:0;width:1434px;height:400px;overflow:visible}
+.tp-svg *{transform-box:fill-box}
+.tp-arm,.tp-arm *{transform-box:view-box}
+.tp-beam{fill:#24406b}
+.tp-hanger{stroke:#4d6c9e;stroke-width:3}
+.tp-rail{fill:#33507f}
+.tp-chain{stroke:#9fb6dc;stroke-width:6;stroke-dasharray:8 6;animation:tpchain 1s linear infinite}
+@keyframes tpchain{to{stroke-dashoffset:-28}}
+.tp-sprocket{fill:#0f2142;stroke:#9fb6dc;stroke-width:3;stroke-dasharray:6 4;transform-origin:center;animation:spin 2s linear infinite}
+.tp-drive{fill:#142c52;stroke:#6f8fc2;stroke-width:2}
+.tp-led{fill:var(--lime);animation:blink 1.4s steps(2) infinite} .tp-led.l2{animation-delay:.4s} .tp-led.l3{animation-delay:.8s}
+.tplant.show-harness .tp-rail,.tplant.show-harness .tp-drive{fill:#1d4a7a;stroke:var(--sky);stroke-width:3}
+.tplant.show-harness .tp-chain{stroke:var(--sky)}
+.tp-car{animation:tpmove 12s linear infinite;animation-delay:var(--dl)}
+@keyframes tpmove{0%{transform:translateX(0);opacity:0}3%{opacity:1}96%{opacity:1}100%{transform:translateX(1215px);opacity:0}}
+.tp-rod{stroke:#9fb6dc;stroke-width:3} .tp-hook{fill:none;stroke:#9fb6dc;stroke-width:3}
+.tp-tag rect{fill:#eef4ff;stroke:#9fb6dc} .tp-tag line{stroke:#5b77a3;stroke-width:2}
+.tp-green circle{fill:none;stroke:#6f7d64;stroke-width:12}
+.tp-cured-r{fill:none;stroke:#101317;stroke-width:12}
+.tp-tread{fill:none;stroke:#3a4250;stroke-width:3;stroke-dasharray:4 4}
+.tp-crack{fill:none;stroke:var(--red);stroke-width:3;stroke-dasharray:6 10;opacity:0}
+.tp-ok circle{fill:var(--lime)} .tp-ok path{fill:none;stroke:#0a1d3a;stroke-width:2.5}
+.tp-car .tp-tag{animation:tptag 12s linear infinite;animation-delay:var(--dl)}
+.tp-car .tp-green{animation:tpgreen 12s linear infinite;animation-delay:var(--dl)}
+.tp-car .tp-cured{animation:tpcured 12s linear infinite;animation-delay:var(--dl)}
+.tp-car .tp-ok{animation:tpok 12s linear infinite;animation-delay:var(--dl)}
+@keyframes tptag{0%,37%{opacity:1}40%,100%{opacity:0}}
+@keyframes tpgreen{0%,37%{opacity:0}40%,57%{opacity:1}60%,100%{opacity:0}}
+@keyframes tpcured{0%,57%{opacity:0}60%,100%{opacity:1}}
+@keyframes tpok{0%,78%{opacity:0}81%,100%{opacity:1}}
+.tp-floor{stroke:#4d6c9e;stroke-width:4}
+.tp-body{fill:#142c52;stroke:#6f8fc2;stroke-width:2}
+.tp-leg,.tp-pole{stroke:#6f8fc2;stroke-width:5;stroke-linecap:round}
+.tp-screen{fill:#0d3a5c;stroke:#8fd0ff;stroke-width:1.5}
+.tp-slot{fill:#071224}
+.tp-slip{fill:#eef4ff;transform-origin:top;animation:tpslip 2.4s ease-in-out infinite}
+@keyframes tpslip{0%,15%{transform:scaleY(.1)}60%,100%{transform:scaleY(1)}}
+.tp-blue{fill:none;stroke:#8fd0ff;stroke-width:2}
+.tp-bind{fill:#2a3a5c;stroke:#6f8fc2;stroke-width:1.5;transition:fill .5s,stroke .5s}
+.tplant.show-skills .b1{fill:#3b2a78;stroke:var(--violet)} .tplant.show-skills .b2{fill:#16365c;stroke:var(--sky)} .tplant.show-skills .b3{fill:#4a3412;stroke:var(--amber)}
+.tplant.show-skills .tp-binders{filter:drop-shadow(0 0 8px rgba(169,139,255,.7))}
+.tp-arm-base{fill:#2a3f63;stroke:#9fb6dc;stroke-width:2}
+.tp-arm-seg{fill:#c9d6ea;stroke:#6f8fc2;stroke-width:1.5;transition:fill .5s}
+.tp-joint{fill:#24406b;stroke:#9fb6dc;stroke-width:2}
+.tp-grip{fill:none;stroke:#c9d6ea;stroke-width:3}
+.tplant.show-model .tp-arm{filter:drop-shadow(0 0 8px rgba(255,255,255,.5))}
+.tplant.new-robot .tp-arm-seg{fill:#a98bff} .tplant.new-robot .tp-joint{stroke:var(--violet)}
+.tp-drum{fill:#2a3a52;stroke:#9fb6dc;stroke-width:2}
+.tp-drum-l{stroke:#9fb6dc;stroke-width:2;stroke-dasharray:10 8;animation:tpchain .6s linear infinite}
+.tp-heat{fill:var(--orange);animation:glow 2s ease-in-out infinite}
+.tp-lid{animation:tplid 3s ease-in-out infinite}
+@keyframes tplid{0%,100%{transform:translateY(0)}45%,60%{transform:translateY(28px)}}
+.tp-beacon{fill:#3a2020;stroke:#7a3b3b;stroke-width:2}
+.tplant.alarm .tp-beacon{fill:var(--red);animation:blink .7s steps(2) infinite}
+.tplant.alarm .tp-heat{fill:var(--red)}
+.tplant.fixed .tp-heat{fill:var(--lime)}
+.tp-xpost{stroke:#6f8fc2;stroke-width:5}
+.tp-xbeam{stroke:#8fd0ff;stroke-width:3;stroke-dasharray:4 5;animation:blink 1.2s steps(2) infinite}
+.tp-insp-tire{fill:none;stroke:#101317;stroke-width:10;stroke-dasharray:30 6;animation:tpchain 1.4s linear infinite}
+.tp-cone{fill:rgba(232,255,74,.12);stroke:none}
+.tp-head{fill:#f2c7a0;stroke:#c98943;stroke-width:1.5}
+.tp-person{fill:#2f4b78;stroke:#6f8fc2;stroke-width:1.5}
+.tp-stack{fill:none;stroke:#101317;stroke-width:7}
+.tp-door{fill:#071224}
+.tp-x{opacity:0;transition:opacity .6s}
+.tplant.show-rules .tp-rules,.tplant.show-hooks .tp-hook-scale,.tplant.show-hooks .tp-hook-gauge,.tplant.show-track .tp-track,.tplant.show-routine .tp-dish,.tplant.show-night .tp-night,.tplant.show-tech .tp-tech,.tplant.show-reject .tp-reject,.tplant.show-feedback .tp-feedback,.tplant.gate-on .tp-hold{opacity:1}
+.tp-board{fill:#eef4ff;stroke:var(--sky);stroke-width:2} .tp-board-h{fill:var(--sky)} .tp-bl{stroke:#5b77a3;stroke-width:3}
+.tp-scale{fill:var(--amber)} .tp-kg{font:700 13px var(--sans);fill:var(--amber)}
+.tp-gauge{fill:#2a2110;stroke:var(--amber);stroke-width:2} .tp-gauge-fill{fill:var(--amber)}
+.tp-track-oval{fill:none;stroke:var(--lime);stroke-width:4}
+.tp-sample{stroke:var(--lime);stroke-width:3;stroke-dasharray:4 6}
+.tplant.track-active .tp-sample{animation:tpchain .8s linear infinite reverse}
+.tplant.track-active .tp-track-oval{filter:drop-shadow(0 0 8px rgba(232,255,74,.8))}
+.tp-dish-b{fill:#2a1f4d;stroke:var(--pink);stroke-width:2.5} .tp-dish-p{stroke:var(--pink);stroke-width:3}
+.tp-wave{fill:none;stroke:var(--pink);stroke-width:2.5;animation:blink 1.2s steps(2) infinite}
+.tp-moon{fill:var(--amber)} .tp-clock{fill:#2a1a0d;stroke:var(--orange);stroke-width:3}
+.tp-hand{stroke:var(--orange);stroke-width:3;stroke-linecap:round;transform-origin:bottom;animation:spin 3s linear infinite} .tp-hand.m{transform-origin:left;animation-duration:24s}
+.tp-wrench{fill:none;stroke:#cfdbef;stroke-width:3;stroke-linecap:round}
+.tp-bin{fill:#2a1a10;stroke:var(--amber);stroke-width:2.5}
+.tp-rej{fill:none;stroke:var(--red);stroke-width:7;opacity:0;animation:tprej 2.4s ease-in infinite}
+@keyframes tprej{0%{transform:translateY(-30px);opacity:0}20%{opacity:1}100%{transform:translateY(50px);opacity:0}}
+.tp-feedback{fill:none;stroke:var(--violet);stroke-width:3;stroke-dasharray:9 8;animation:mv .9s linear infinite}
+.tp-bar{fill:var(--red)} .tp-hold-t{font:700 15px var(--sans);fill:var(--red);letter-spacing:.12em}
+.tplant.new-type .tp-tag rect{fill:#d9ccff;stroke:var(--violet)} .tplant.new-type .tp-green circle{stroke:#7c6aa8}
+.tplant.defects .tp-crack{opacity:1} .tplant.defects .tp-cone{fill:rgba(255,93,93,.18)} .tplant.defects .tp-stack{stroke:#5a1d1d}
+.tp-lab{position:absolute;top:400px;width:236px;margin-left:-118px;text-align:center;line-height:1.25}
+.tp-lab b{display:block;font-size:18px}
+.tp-lab .tp-sd{display:block;font-size:17px;font-weight:700;color:var(--lime)}
+.tp-legend{position:absolute;left:0;right:0;top:470px;display:flex;gap:14px}
+.lg{flex:1 1 0;min-width:0;max-width:300px;padding:9px 14px;border-radius:10px;background:var(--panel);border:1px solid var(--line);border-top:3px solid var(--c);box-sizing:border-box}
+.lg b{display:block;font-size:17px;line-height:1.25}
+.lg span{display:block;font-size:15px;line-height:1.3;color:var(--c);font-weight:600}
+.lg.crewlg span{color:#cfdbef;font-weight:400}
+.lg.crewlg b{color:var(--orange)}
+/* facilitators */
+.facs{display:grid;grid-template-columns:1fr 1fr;gap:56px;margin-top:20px}
+.fac{display:grid;grid-template-columns:230px 1fr;gap:30px;align-items:start}
+.fac img{width:230px;height:264px;object-fit:cover;object-position:top;border-radius:14px;border:1px solid var(--line);filter:grayscale(1)}
+.fac h3{margin:0;font-size:34px;line-height:1.15}
+.fac .role{font-size:21px;font-weight:600;color:var(--orange);margin:6px 0 20px;letter-spacing:.02em}
+.fac ul.b{gap:12px;font-size:22px;line-height:1.35;color:#cfdbef}
+.fac ul.b li::before{width:9px;height:9px}
+/* plant v3: in-scene pins + one caption per step */
+.factory.tplant{top:236px;height:470px}
+.tp-late{opacity:0;transition:opacity .6s var(--ease) var(--d2,0s)}
+.tp-lab.on .tp-late{opacity:1}
+.tp-pin-t{font:700 19px var(--sans);fill:var(--pc);paint-order:stroke;stroke:#0a1d3a;stroke-width:7px;stroke-linejoin:round}
+.tp-pin .tp-dot{fill:var(--pc);stroke:#0a1d3a;stroke-width:2}
+.tp-pin .tp-lead{stroke:var(--pc);stroke-width:2}
+.tp-pin .tp-pulse{fill:none;stroke:var(--pc);stroke-width:2.5;opacity:0;transform-origin:center}
+.tp-pin.on .tp-pulse{animation:tppulse 1.5s ease-out .3s 3}
+@keyframes tppulse{0%{opacity:.95;transform:scale(1)}100%{opacity:0;transform:scale(4.2)}}
+.c-sky{--pc:var(--sky)} .c-violet{--pc:var(--violet)} .c-amber{--pc:var(--amber)} .c-lime{--pc:var(--lime)} .c-orange{--pc:var(--orange)} .c-pink{--pc:var(--pink)} .c-red{--pc:var(--red)} .c-white{--pc:#e6eefb}
+.crewpin circle{fill:var(--orange);stroke:#0a1d3a;stroke-width:3}
+.crewpin .tp-crew-l{font:800 18px var(--sans);fill:#0a1d3a}
+.tp-tread{stroke:#5d6e8a;stroke-width:4;stroke-dasharray:3 4}
+.tplant.wrong-tread .tp-tread{stroke:var(--violet);stroke-width:6;stroke-dasharray:13 3}
+.tp-ci{fill:none;stroke:#101317;stroke-width:6}
+.tp-ct{fill:none;stroke:#9fb6dc;stroke-width:4;stroke-dasharray:3 4}
+.tplant.wrong-tread .tp-ct.got{stroke:var(--violet);stroke-width:6;stroke-dasharray:12 3}
+.tplant.tuned .tp-binders{filter:drop-shadow(0 0 10px rgba(169,139,255,.9))}
+.tp-cmp-t{font:600 14px var(--sans);fill:#9fb6dc;letter-spacing:.04em} .tp-cmp-t.vs{font-size:16px}
+.tp-mark.bad circle{fill:var(--red)} .tp-mark.bad path{fill:none;stroke:#fff;stroke-width:3;stroke-linecap:round}
+.tp-mark.good circle{fill:var(--lime)} .tp-mark.good path{fill:none;stroke:#0a1d3a;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.tp-mark{transition:opacity .4s} .tp-mark.bad{opacity:0}
+.tplant.wrong-tread .tp-mark.bad{opacity:1} .tplant.wrong-tread .tp-mark.good{opacity:0}
+.tplant.show-cmp .tp-cmp{opacity:1}
+.cap{position:absolute;left:83px;right:83px;top:712px;height:150px}
+.capi{position:absolute;left:0;right:0;top:0;display:grid;grid-template-columns:1fr 1fr;gap:48px}
+.capi>div{padding-left:18px;border-left:4px solid var(--c)}
+.capi .fc1{--c:var(--orange)} .capi .fc2{--c:var(--lime)}
+.capi b{display:block;font-size:15px;letter-spacing:.16em;text-transform:uppercase;color:var(--c);margin-bottom:6px}
+.capi p{margin:0;font-size:26px;line-height:1.38;color:#b9c8e2}
+.capi strong{color:var(--fg);font-weight:700}
+.capdots{position:absolute;left:0;top:132px;display:flex;gap:10px}
+.capdots i{width:9px;height:9px;border-radius:50%;background:#24406b;display:block}
+.capdots i.on{background:var(--lime)}
+.slide .capdots i[data-s]{opacity:1;transform:none}
+/* overlays */
+.fchip{position:absolute;max-width:290px;padding:10px 14px;border-radius:10px;background:rgba(6,15,31,.94);border:1.5px solid var(--c,var(--line));font-size:18px;line-height:1.3;color:#cfdbef;box-shadow:0 8px 24px rgba(0,0,0,.35)}
+.fchip b{display:block;color:var(--c,var(--fg));font-size:20px;font-weight:700;margin-bottom:2px}
+.fchip.k-rule{--c:var(--sky)} .fchip.k-skill{--c:var(--violet)} .fchip.k-hook{--c:var(--amber)} .fchip.k-eval{--c:var(--lime)} .fchip.k-sched{--c:var(--orange)} .fchip.k-routine{--c:var(--pink)} .fchip.k-bad{--c:var(--red)} .fchip.k-plain{--c:#cfdbef}
+.twin{position:absolute;top:524px;width:200px;margin-left:-100px;text-align:center;font-size:19px;font-weight:600;color:var(--lime)}
+.board{position:absolute;padding:14px 18px;border-radius:12px;background:rgba(6,15,31,.95);border:1.5px solid var(--c,var(--line));font-size:18px;line-height:1.45;color:#cfdbef;box-shadow:0 8px 24px rgba(0,0,0,.35)}
+.board b{display:block;color:var(--c);font-size:20px;margin-bottom:6px}
+.board .r{display:flex;justify-content:space-between;gap:18px;font-family:var(--mono);font-size:16px}
+.board .r span:last-child{color:var(--c)}
+.crew{position:absolute;display:flex;align-items:center;gap:10px;padding:8px 14px 8px 8px;border-radius:999px;background:rgba(6,15,31,.95);border:2px solid var(--orange);font-size:19px;font-weight:600;white-space:nowrap}
+.crew i{font-style:normal;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:var(--orange);color:var(--bg);font-weight:700}
+.fcap{position:absolute;left:83px;right:83px;top:770px;display:grid;grid-template-columns:1fr 1fr;gap:48px;font-size:24px;line-height:1.35}
+.fcap>div{padding-left:18px;border-left:4px solid var(--c)}
+.fcap .fc1{--c:var(--orange)} .fcap .fc2{--c:var(--lime)}
+.fcap b{display:block;font-size:15px;letter-spacing:.16em;text-transform:uppercase;color:var(--c);margin-bottom:4px}
+/* evolution grid */
+.evo{display:grid;grid-template-columns:230px repeat(3,1fr);gap:20px}
+.evo .hd{font-size:30px;font-weight:700;padding:6px 4px}
+.evo .hd small{display:block;font-size:18px;font-weight:400;color:var(--muted)}
+.evo .rl{font-size:27px;font-weight:700;align-self:center}
+.evo .cell{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px 24px;font-size:24px;line-height:1.35;min-height:110px}
+.evo .cell code{font-family:var(--mono);font-size:20px;color:var(--sky)}
+.evo .gatebar{grid-column:2/-1;display:flex;align-items:center;gap:14px;padding:14px 20px;border-radius:12px;border:1.5px solid var(--lime);color:var(--lime);font-size:22px;font-weight:600}
+.lines3{display:grid;grid-template-columns:repeat(3,1fr);gap:26px}
+.lines3 .card{display:flex;flex-direction:column;gap:14px;min-height:300px;box-sizing:border-box}
+.lines3 h3{margin:0;font-size:34px}
+.lines3 p{margin:0;font-size:24px;color:var(--muted)}
+.lines3 .tag{margin-top:auto;font-family:var(--mono);font-size:18px;color:var(--orange)}
+@media print{.tp-car{transform:translateX(var(--px));opacity:1}.tp-car .tp-tag,.tp-car .tp-green,.tp-car .tp-cured,.tp-car .tp-ok{opacity:0}.tp-car.st-tag .tp-tag,.tp-car.st-green .tp-green,.tp-car.st-cured .tp-cured,.tp-car.st-ok .tp-cured,.tp-car.st-ok .tp-ok{opacity:1}.ck{display:none}.ck-static{display:inline}.tk{opacity:1}.factory.sampling .sample{opacity:1}}
+@media (prefers-reduced-motion: reduce){.ck{display:none}.ck-static{display:inline}}
+
+/* presenter notes */
+.np{position:fixed;left:0;right:0;bottom:0;height:36vh;background:#061020;border-top:2px solid var(--orange);z-index:25;display:flex;flex-direction:column;gap:8px;padding:12px 20px calc(12px + env(safe-area-inset-bottom,0px));box-sizing:border-box;font-family:var(--sans)}
+.np[hidden]{display:none}
+.np-head{display:flex;justify-content:space-between;align-items:center;gap:16px;font-size:14px;color:var(--muted)}
+.np-head b{color:var(--fg);font-size:16px}
+.np-head button{font:inherit;font-size:13px;color:var(--fg);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:3px 10px;cursor:pointer}
+.np textarea{flex:1;min-height:0;resize:none;background:#0b1a33;color:#e6eefb;border:1px solid var(--line);border-radius:8px;padding:12px 14px;font:17px/1.5 var(--sans)}
+.np textarea:focus{outline:2px solid var(--orange);outline-offset:-1px}
+body.notes-open .ui,body.notes-open .hint{bottom:calc(36vh + 12px)}
+body.notes-open #deck{box-shadow:none}
+[hidden]{display:none !important}
+/* UI */
+.ui{position:fixed;right:16px;bottom:calc(14px + env(safe-area-inset-bottom,0px));display:flex;gap:6px;align-items:center;z-index:20;opacity:0;transition:opacity .4s;font-family:var(--sans)}
+body.show-ui .ui{opacity:1}
+.ui button{font:inherit;font-size:14px;color:var(--fg);background:rgba(17,40,75,.9);border:1px solid var(--line);border-radius:8px;height:34px;min-width:34px;padding:0 10px;cursor:pointer}
+.ui button:focus-visible,.ui a.pdf:focus-visible{outline:2px solid var(--lime)}
+.ui a.pdf{display:inline-flex;align-items:center;font-size:14px;color:var(--fg);text-decoration:none;background:rgba(17,40,75,.9);border:1px solid var(--line);border-radius:8px;height:34px;padding:0 10px}
+.ui .ctr{font-size:13px;color:var(--muted);padding:0 8px;font-variant-numeric:tabular-nums}
+.prog{position:fixed;left:0;bottom:0;height:3px;background:linear-gradient(90deg,var(--orange),var(--violet));width:0;z-index:20;transition:width .4s var(--ease)}
+.ov{position:fixed;inset:0;z-index:30;background:rgba(5,12,25,.96);padding:40px 24px;overflow:auto;display:none;box-sizing:border-box}
+.ov.open{display:block}
+.ov h2{margin:0 auto 20px;max-width:1200px;font-size:15px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);font-weight:500}
+.ov .grid{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.ov button{text-align:left;font:inherit;color:var(--fg);background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;cursor:pointer;font-size:15px;line-height:1.3;min-height:76px}
+.ov button span{display:block;color:var(--dim);font-size:12px;margin-bottom:6px;font-variant-numeric:tabular-nums}
+.ov button.cur{border-color:var(--lime)}
+.hint{position:fixed;left:16px;bottom:calc(14px + env(safe-area-inset-bottom,0px));font-size:13px;color:var(--muted);z-index:20;opacity:0;transition:opacity .4s}
+body.show-ui .hint{opacity:1}
+
+@media (prefers-reduced-motion: reduce){
+  .slide [data-s]{transition-duration:.01s !important}
+  .loop .orb,.pulse,.flow .dash{animation:none !important}
+}
+
+/* print / PDF: one slide per page, final state */
+@media print{
+  @page{size:1600px 900px;margin:0}
+  html,body{overflow:visible;height:auto;background:var(--bg)}
+  #deck{position:static;transform:none !important;box-shadow:none;width:1600px;height:auto;overflow:visible}
+  .slide{position:relative;opacity:1 !important;visibility:visible !important;width:1600px;height:900px;break-after:page;page-break-after:always}
+  .ui,.prog,.ov,.hint,.np{display:none !important}
+  *{transition:none !important;animation:none !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .typing::after{display:none}
+}
+</style>
+<div id="deck" aria-live="polite">
+
+<!-- 1 Cover -->
+<section class="slide cover" data-hook="streaks" data-title="Admicom x Wunderdog – Evals & Cloud Agents" data-o="980,520">
+  <canvas class="streaks" width="1600" height="900"></canvas>
+  <div class="wm abs" style="left:83px;top:38px">WUNDERDOG</div>
+  <h1 class="cover-title"><b data-s="0" class="left">Admicom x Wunderdog –</b><span data-s="0" class="left" style="--d:.25s">Evals &amp; Cloud Agents</span></h1>
+  <div class="cover-meta fade" data-s="0" style="--d:.6s">DevDays 20.–21.10.2026 @ Jyväskylä</div>
+</section>
+
+<!-- 2 Facilitators -->
+<section class="slide content" data-title="Workshop facilitators" data-pace="1000">
+  <h2 class="t">Workshop facilitators</h2>
+  <div class="body">
+    <div class="facs">
+    <div class="fac left" data-s="0">
+      <img src="data:image/jpeg;base64,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" alt="Juuso Korhonen" width="230" height="264">
+      <div><h3>Juuso Korhonen</h3><div class="role">Technology Lead</div><ul class="b"><li>10+ years of full stack</li><li>15+ years of programming</li><li>Technical Lead specializing in rapid idea-to-production delivery within weeks</li><li>React, React Native, Typescript, Node, Python, PostgreSQL, Contentful, GCP, AWS, Terraform</li></ul></div>
+    </div>
+    <div class="fac right" data-s="1">
+      <img src="data:image/jpeg;base64,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" alt="Mikko Vallaskivi" width="230" height="264">
+      <div><h3>Mikko Vallaskivi</h3><div class="role">Technology Lead</div><ul class="b"><li>Software development generalist</li><li>10+ years of full stack web, mobile and cloud experience</li><li>15+ years of programming</li><li>Copilot/Codex/Claude Code</li></ul></div>
+    </div>
+    </div>
+  </div>
+</section>
+
+<!-- 2 Two themes -->
+<section class="slide content" data-title="Two themes" data-pace="900,1100">
+  <h2 class="t">Two themes</h2>
+  <div class="body">
+    <div class="row" style="gap:120px;margin-top:30px">
+      <div class="theme a left" data-s="0">
+        <div class="n">01</div>
+        <div><h3>Evaluations</h3><p>Know when it works</p></div>
+      </div>
+      <div class="theme b" data-s="1">
+        <div class="n">02</div>
+        <div><h3>Cloud agents</h3><p>Let it work while you don't</p></div>
+      </div>
+    </div>
+    <div class="bridge"><span class="pill zoom" data-s="2">Trust → autonomy</span></div>
+  </div>
+</section>
+
+<!-- 3 Divider: Evaluations -->
+<section class="slide divider" data-hook="streaks" data-title="01 Evaluations" data-o="1180,600" data-dim="1">
+  <canvas class="streaks" width="1600" height="900"></canvas>
+  <div class="wm abs" style="left:83px;top:38px">WUNDERDOG</div>
+  <div class="div-num fade" data-s="0">01</div>
+  <h2 class="div-title" data-s="0" style="--d:.2s">Evaluations</h2>
+</section>
+
+<!-- 4 Vibes -->
+<section class="slide content" data-title="Vibes don't scale" data-pace="700,2700,1300">
+  <h2 class="t">Vibes don't scale</h2>
+  <div class="body col" style="gap:34px">
+    <div class="card prompt" data-s="0"><span class="lbl">Prompt</span><span>Catalogue last week's review comments by problem type</span></div>
+    <div data-mv="1">
+      <div class="lane fade" data-s="1"><div class="name">Run 1</div><div class="track" style="--t:1.7s"><i></i></div>
+        <div class="verdict left" data-s="2"><span class="mark ok" role="img" aria-label="pass"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.8l4.4 4.4L19 7.6"/></svg></span>Pass</div></div>
+      <div class="lane fade" data-s="1"><div class="name">Run 2</div><div class="track" style="--t:2.4s"><i></i></div>
+        <div class="verdict left" data-s="2" style="--d:.15s"><span class="mark no" role="img" aria-label="fail"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg></span>Ranked a one-off nit first</div></div>
+      <div class="lane fade" data-s="1"><div class="name">Run 3</div><div class="track" style="--t:2s"><i></i></div>
+        <div class="verdict left" data-s="2" style="--d:.3s"><span class="mark ok" role="img" aria-label="pass"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.8l4.4 4.4L19 7.6"/></svg></span>Pass</div></div>
+    </div>
+    <div class="statement" data-s="3">Same prompt. Different outcome.</div>
+  </div>
+</section>
+
+<!-- 5 Anatomy of an eval -->
+<section class="slide content" data-title="Anatomy of an eval" data-note-title="Anatomy of an eval &lt;3" data-pace="800">
+  <h2 class="t">Anatomy of an eval</h2>
+  <div class="body">
+    <div class="anat" style="margin-top:40px">
+      <div class="node" data-s="0"><div class="card"><div class="vis"><div class="doc"><i></i><i></i><i></i><i></i></div></div><h4>Task</h4><p>Input and success criteria</p></div></div>
+      <svg class="arrow fade" data-s="1" viewBox="0 0 52 20"><path d="M2 10h44M38 3l8 7-8 7"/></svg>
+      <div class="node" data-s="1"><div class="card"><div class="vis"><div class="stack3"><b></b><b></b><b></b></div></div><h4>Trials</h4><p>Several attempts per task</p></div></div>
+      <svg class="arrow fade" data-s="2" viewBox="0 0 52 20"><path d="M2 10h44M38 3l8 7-8 7"/></svg>
+      <div class="node" data-s="2">
+        <div class="card" style="flex:1;justify-content:center"><h4>Transcript</h4><p>Every step the agent took</p></div>
+        <div class="card" style="flex:1;justify-content:center;border-color:var(--sky)"><h4 class="sky">Outcome</h4><p>Final state of the world</p></div>
+      </div>
+      <svg class="arrow fade" data-s="3" viewBox="0 0 52 20"><path d="M2 10h44M38 3l8 7-8 7"/></svg>
+      <div class="node" data-s="3"><div class="card"><div class="vis col" style="gap:10px;align-items:stretch;width:100%">
+          <span class="pill" style="justify-content:center">tests pass</span><span class="pill" style="justify-content:center">skill used</span><span class="pill" style="justify-content:center">rubric</span></div>
+        <h4>Graders</h4><p>Each checks one thing</p></div></div>
+      <svg class="arrow fade" data-s="4" viewBox="0 0 52 20"><path d="M2 10h44M38 3l8 7-8 7"/></svg>
+      <div class="node" data-s="4"><div class="card" style="border-color:var(--lime)"><div class="vis"><div class="score count" data-from="0" data-to="67" data-suffix="%">67%</div></div><h4>Score</h4><p>Pass rate across trials</p></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 6 Outcome not claim -->
+<section class="slide content" data-title="Grade the outcome, not the claim" data-pace="1000,700,1200,1000">
+  <h2 class="t">Grade the outcome, not the claim</h2>
+  <div class="body">
+    <div class="row" style="gap:60px;align-items:center;margin-top:20px;position:relative">
+      <div class="col" style="flex:1;gap:14px">
+        <div class="lbl" data-s="0">What the agent says</div>
+        <div class="bubble left" data-s="0" style="font-size:38px;padding:40px 44px;min-height:150px">Fixed the flaky test. CI is green.</div>
+      </div>
+      <div class="col" style="flex:1;gap:14px">
+        <div class="lbl" data-s="1">What the repo says</div>
+        <div class="term right" data-s="1" style="font-size:25px;padding:34px 36px;min-height:150px"><span class="p">$</span> <span class="typing" data-s="1">run-tests auth.spec --repeat 10</span>
+<span data-s="2" class="fade" style="--d:.1s"><span class="lime"><svg class="ico tx" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.8l4.4 4.4L19 7.6"/></svg> 7 runs passed</span></span>
+<span data-s="2" class="fade" style="--d:.3s"><span class="red"><svg class="ico tx" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg> 3 runs failed   token expiry</span></span></div>
+      </div>
+      <div class="stamp" data-s="3" style="left:28%;top:88%">CLAIM ≠ OUTCOME</div>
+    </div>
+    <ul class="b" style="margin-top:110px;flex-direction:row;gap:70px">
+      <li data-s="4">Check the end state</li>
+      <li data-s="4" style="--d:.15s">Not the agent's report</li>
+    </ul>
+  </div>
+</section>
+
+<!-- 7 Grader kinds -->
+<section class="slide content" data-title="Three kinds of graders" data-pace="750,750,900">
+  <h2 class="t">Three kinds of graders</h2>
+  <div class="body col" style="gap:44px">
+    <div class="row" style="gap:28px">
+      <div class="card gcol" data-s="0"><h3 class="lime">Code</h3><div class="ex">Unit tests · regex · tool-call checks</div><div class="pro">Fast, cheap, repeatable</div><div class="con">Brittle on nuance</div></div>
+      <div class="card gcol" data-s="1"><h3 class="sky">Model</h3><div class="ex">Rubrics · pairwise · judge panels</div><div class="pro">Handles open-ended output</div><div class="con">Needs calibration</div></div>
+      <div class="card gcol" data-s="2"><h3 class="orange">Human</h3><div class="ex">Expert review · spot checks</div><div class="pro">Gold standard</div><div class="con">Slow and expensive</div></div>
+    </div>
+    <div class="col" data-s="3" style="gap:14px">
+      <div class="axis"></div>
+      <div class="row" style="justify-content:space-between;font-size:24px"><span class="lime">Prefer deterministic</span><span class="orange">Escalate only when needed</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- 8 pass@k vs pass^k -->
+<section class="slide content" data-title="pass@k vs pass^k" data-pace="800,1600,1700" data-hook="passk">
+  <h2 class="t">pass@k vs pass^k</h2>
+  <p class="desc fade" data-s="0" style="--d:.2s">Run the same task k times. Does any run succeed, or does every run?</p>
+  <div class="body" style="display:grid;grid-template-columns:420px 1fr;gap:56px;top:268px">
+    <div class="col" style="gap:24px">
+      <div class="card fcard left" data-s="1"><div class="big sky">pass@k</div><div class="f">1 − (1 − p)ᵏ</div><div style="font-size:24px">At least one run succeeds</div></div>
+      <div class="card fcard left" data-s="2"><div class="big orange">pass^k</div><div class="f">pᵏ</div><div style="font-size:24px">Every run succeeds</div></div>
+      <div class="slider interactive" data-s="3"><label for="pk-p">p</label><input id="pk-p" type="range" min="0.3" max="0.99" step="0.01" value="0.75"><b id="pk-pv">75%</b></div>
+    </div>
+    <div data-s="0" class="fade" style="position:relative">
+      <svg class="chart" viewBox="0 0 860 560" width="860" height="560">
+        <g class="axes"></g>
+        <path class="draw curve-at" data-s="1" fill="none" stroke="var(--sky)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+        <path class="draw curve-pow" data-s="2" fill="none" stroke="var(--orange)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+        <g class="callout fade" data-s="3">
+          <line class="k3" stroke="var(--fg)" stroke-dasharray="4 6" stroke-width="2"/>
+          <circle class="dot-at" r="9" fill="var(--sky)"/><circle class="dot-pow" r="9" fill="var(--orange)"/>
+          <text class="lab-at" font-size="26" font-weight="700" style="fill:var(--sky)"></text>
+          <text class="lab-pow" font-size="26" font-weight="700" style="fill:var(--orange)"></text>
+        </g>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- 9 Capability vs regression -->
+<section class="slide content" data-title="Capability vs regression" data-pace="1000,2100">
+  <h2 class="t">Capability vs regression</h2>
+  <div class="body">
+    <div class="cr">
+      <div class="crl" data-s="0">
+        <div><h3>Capability</h3><div class="qq">What can it do yet?</div></div>
+        <div class="meter"><i data-mv="1" style="--w:18%;--w2:64%;background:var(--sky)"></i></div>
+        <div class="pct count sky" data-mv="1" data-from="18" data-to="64" data-suffix="%">18%</div>
+      </div>
+      <div class="crl" data-s="0" style="--d:.15s">
+        <div><h3>Regression</h3><div class="qq">Does it still work?</div></div>
+        <div class="meter"><i style="--w:98%;background:var(--lime)"></i></div>
+        <div class="pct lime">98%</div>
+      </div>
+    </div>
+    <span class="chip grad" data-mv="2" data-s="1" style="left:470px;top:34px">rule-not-followed</span>
+    <div class="lbl fade" data-s="2" style="position:absolute;left:700px;top:320px;--d:.9s;color:var(--lime)">Graduates when it passes reliably</div>
+  </div>
+</section>
+
+<!-- 10 Start from failures -->
+<section class="slide content" data-title="Start from real failures" data-pace="1300,1800">
+  <h2 class="t">Start from real failures</h2>
+  <div class="body">
+    <div class="funnel">
+      <div class="src">
+        <div class="card left" data-s="0"><i></i>Bug tracker</div>
+        <div class="card left" data-s="0" style="--d:.1s"><i></i>Support tickets</div>
+        <div class="card left" data-s="0" style="--d:.2s"><i></i>Manual QA checks</div>
+        <div class="card left" data-s="0" style="--d:.3s"><i></i>Agent transcripts</div>
+      </div>
+      <svg class="flow" data-mv="1" viewBox="0 0 634 560" width="634" height="560" style="width:100%;height:560px">
+        <path d="M0 133 C 300 133, 330 280, 634 280"/><path d="M0 231 C 300 231, 330 280, 634 280"/><path d="M0 329 C 300 329, 330 280, 634 280"/><path d="M0 427 C 300 427, 330 280, 634 280"/>
+        <path class="dash" d="M0 133 C 300 133, 330 280, 634 280"/><path class="dash" d="M0 231 C 300 231, 330 280, 634 280"/><path class="dash" d="M0 329 C 300 329, 330 280, 634 280"/><path class="dash" d="M0 427 C 300 427, 330 280, 634 280"/>
+      </svg>
+      <div class="suite zoom" data-s="1">
+        <div class="lbl" style="color:var(--lime)">Eval suite</div>
+        <div class="count fade" data-s="1" data-from="0" data-to="30">30</div>
+        <div style="font-size:26px;margin-top:6px">tasks</div>
+      </div>
+    </div>
+    <div class="statement" data-s="2" style="position:absolute;left:0;bottom:-10px;font-size:34px">20–50 tasks is enough to start</div>
+  </div>
+</section>
+
+<!-- 11 Plugin eval anatomy -->
+<section class="slide content" data-title="Anatomy of a plugin eval" data-pace="1000,1000,1000">
+  <h2 class="t">Anatomy of a plugin eval</h2>
+  <div class="body" style="display:grid;grid-template-columns:470px 1fr;gap:44px">
+    <div class="card left" data-s="0" style="align-self:start">
+<div class="tree"><span class="d">evals/</span>
+<span class="g">└─</span> <span class="d">rule-not-followed/</span>
+   <span class="g">├─</span> prompt.md
+   <span class="g">└─</span> <span class="d">graders/</span>
+      <span class="g">├─</span> finding.md
+      <span class="g">└─</span> skill-fired.md</div>
+    </div>
+    <div class="col" style="gap:20px">
+      <div class="card right" data-s="1" style="padding:20px 26px">
+        <div class="fileh">prompt.md</div>
+<div class="code"><span class="c">---</span>
+<span class="k">max_turns:</span> 20
+<span class="k">allowed_tools:</span> [Read, Skill]
+<span class="c">---</span>
+Catalogue the review comments in comments.json.
+Write your findings to findings.json.</div>
+      </div>
+      <div class="row" style="gap:20px">
+        <div class="card right" data-s="2" style="flex:1;padding:20px 24px;min-width:0">
+          <div class="fileh">finding.md</div>
+<div class="code"><span class="k">type:</span> regex
+<span class="k">target:</span>
+  <span class="k">source:</span> file
+  <span class="k">path:</span> findings.json
+<span class="k">pattern:</span>
+  <span class="s">'rule-not-followed'</span></div>
+        </div>
+        <div class="card right" data-s="3" style="flex:1;padding:20px 24px;min-width:0">
+          <div class="fileh">skill-fired.md</div>
+<div class="code"><span class="k">type:</span> tool_used
+<span class="k">tool:</span> Skill
+<span class="k">input_match:</span>
+  <span class="s">'review-catalogue'</span></div>
+        </div>
+      </div>
+      <div class="row" style="gap:40px;font-size:24px">
+        <span data-s="2" class="fade" style="--d:.4s"><span class="lime">●</span> Grades the result</span>
+        <span data-s="3" class="fade" style="--d:.4s"><span class="violet">●</span> Grades the path</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 12 Grader types -->
+<section class="slide content" data-title="Six grader types" data-pace="1300,1200">
+  <h2 class="t">Six grader types</h2>
+  <div class="body">
+    <div class="gt">
+      <div class="grp free">
+        <div class="lbl" data-s="0">Free · from transcript and files</div>
+        <div class="gchip" data-s="0" style="--d:.05s"><b>regex</b><span>Pattern in reply, trace or file</span></div>
+        <div class="gchip" data-s="0" style="--d:.15s"><b>tool_used</b><span>Tool called, n times</span></div>
+        <div class="gchip" data-s="0" style="--d:.25s"><b>tool_order</b><span>A before B</span></div>
+        <div class="gchip" data-s="0" style="--d:.35s"><b>file_exists</b><span>File was created</span></div>
+      </div>
+      <div class="grp judge">
+        <div class="lbl" data-s="1">Judge model · costs a call</div>
+        <div class="gchip" data-s="1" style="--d:.05s"><b>llm</b><span>Rubric, 2 of 3 votes</span></div>
+        <div class="gchip" data-s="1" style="--d:.15s"><b>baseline</b><span>At least as good as a reference transcript</span></div>
+        <div class="card" data-s="2" style="margin-top:22px;border-color:var(--lime);font-size:26px;line-height:1.4">One grader on the result.<br>One on the path.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 13 Run it -->
+<section class="slide content" data-title="Run it" data-pace="1100,900,1100,1800">
+  <h2 class="t">Run it</h2>
+  <div class="body" style="display:grid;grid-template-columns:1fr 420px;gap:50px">
+    <div class="term" data-s="0" style="white-space:normal;align-self:start">
+      <div><span class="p">$</span> <span class="typing" data-s="0">claude plugin eval init</span></div>
+      <div class="c fade" data-s="1">  drafts cases and graders, tries them once</div>
+      <div style="margin-top:14px"><span class="p">$</span> <span class="typing" data-s="2">claude plugin eval . --allow-tools Write</span></div>
+      <div class="res" style="margin-top:18px">
+        <span class="h fade" data-s="3">CASE</span><span class="h fade" data-s="3">WITH</span><span class="h fade" data-s="3">W/OUT</span><span class="h fade" data-s="3">Δ</span>
+        <span data-s="3" class="fade" style="--d:.2s">missing-tests</span><span data-s="3" class="fade" style="--d:.2s">1.00</span><span data-s="3" class="fade" style="--d:.2s">0.33</span><span data-s="3" class="fade pos" style="--d:.2s">+0.67</span>
+        <span data-s="3" class="fade" style="--d:.4s">rule-not-followed</span><span data-s="3" class="fade" style="--d:.4s">0.67</span><span data-s="3" class="fade" style="--d:.4s">0.00</span><span data-s="3" class="fade pos" style="--d:.4s">+0.67</span>
+        <span data-s="3" class="fade" style="--d:.6s">rank-by-impact</span><span data-s="3" class="fade" style="--d:.6s">1.00</span><span data-s="3" class="fade" style="--d:.6s">0.67</span><span data-s="3" class="fade pos" style="--d:.6s">+0.33</span>
+        <span data-s="3" class="fade" style="--d:.8s">one-off-nit</span><span data-s="3" class="fade" style="--d:.8s">1.00</span><span data-s="3" class="fade" style="--d:.8s">1.00</span><span data-s="3" class="fade zero" style="--d:.8s">0.00</span>
+      </div>
+      <div class="c fade" data-s="3" style="--d:1s;margin-top:16px">report → evals/results/&lt;timestamp&gt;/report.html</div>
+    </div>
+    <ul class="b" style="align-self:center">
+      <li data-s="4">3 runs per case</li>
+      <li data-s="4" style="--d:.12s">Baseline runs without the plugin</li>
+      <li data-s="4" style="--d:.24s">Gate CI on the threshold</li>
+    </ul>
+  </div>
+</section>
+
+<!-- 14 What the skill adds -->
+<section class="slide content" data-title="Read the delta" data-pace="700,2000">
+  <h2 class="t">Read the delta</h2>
+  <div class="body">
+    <div class="legend" data-s="0" style="margin-bottom:34px"><span><i style="background:var(--lime)"></i>With plugin</span><span><i style="background:#5b77a3"></i>Without</span><span style="margin-left:auto" class="muted">Example data</span></div>
+    <div class="db" style="position:relative">
+      <div class="case" data-s="0">missing-tests</div>
+      <div class="bars" data-mv="1"><div class="bar w" style="--v:100%;--d:.0s"></div><div class="bar wo" style="--v:33%;--d:.0s"></div></div>
+      <div class="delta lime fade" data-s="1" style="--d:1s">+0.67</div>
+      <div class="case" data-s="0">rule-not-followed</div>
+      <div class="bars" data-mv="1"><div class="bar w" style="--v:67%;--d:.15s"></div><div class="bar wo" style="--v:0%;--d:.15s"></div></div>
+      <div class="delta lime fade" data-s="1" style="--d:1.1s">+0.67</div>
+      <div class="case" data-s="0">rank-by-impact</div>
+      <div class="bars" data-mv="1"><div class="bar w" style="--v:100%;--d:.3s"></div><div class="bar wo" style="--v:67%;--d:.3s"></div></div>
+      <div class="delta lime fade" data-s="1" style="--d:1.2s">+0.33</div>
+      <div class="case" data-s="0">one-off-nit</div>
+      <div class="bars" data-mv="1"><div class="bar w" style="--v:100%;--d:.45s"></div><div class="bar wo" style="--v:100%;--d:.45s"></div></div>
+      <div class="delta orange fade" data-s="1" style="--d:1.3s">0.00</div>
+      <div class="hl zoom" data-s="2" style="top:298px;height:92px"></div>
+    </div>
+    <div class="statement" data-s="2" style="font-size:32px;margin-top:40px"><span class="orange">Passes without the plugin</span> → the plugin isn't why it passes</div>
+  </div>
+</section>
+
+<!-- 15 Test both directions -->
+<section class="slide content" data-title="Test both directions" data-pace="1300,1300">
+  <h2 class="t">Test both directions</h2>
+  <div class="body" style="display:grid;grid-template-columns:1fr 1fr;gap:40px;align-content:start">
+    <div class="col" style="gap:16px">
+      <div class="lbl" data-s="0" style="color:var(--lime)">Should trigger</div>
+      <div class="q left" data-s="0"><span class="ic" style="background:var(--lime)"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.8l4.4 4.4L19 7.6"/></svg></span>What do reviewers keep flagging in our PRs?</div>
+      <div class="q left" data-s="0" style="--d:.12s"><span class="ic" style="background:var(--lime)"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.8l4.4 4.4L19 7.6"/></svg></span>Group last week's review comments by theme</div>
+      <div class="q left" data-s="0" style="--d:.24s"><span class="ic" style="background:var(--lime)"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.8l4.4 4.4L19 7.6"/></svg></span>Which review comments should become rules?</div>
+    </div>
+    <div class="col" style="gap:16px">
+      <div class="lbl" data-s="1" style="color:var(--orange)">Should not trigger · near misses</div>
+      <div class="q right" data-s="1"><span class="ic" style="background:var(--orange)"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg></span>Review this pull request</div>
+      <div class="q right" data-s="1" style="--d:.12s"><span class="ic" style="background:var(--orange)"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg></span>Reply to the comments on PR #412</div>
+      <div class="q right" data-s="1" style="--d:.24s"><span class="ic" style="background:var(--orange)"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg></span>Write release notes from last week's PRs</div>
+    </div>
+    <div class="row" style="grid-column:1/-1;gap:16px;flex-wrap:wrap;margin-top:40px">
+      <span class="pill" data-s="2">~20 queries</span>
+      <span class="pill" data-s="2" style="--d:.1s">60 / 40 train · test</span>
+      <span class="pill" data-s="2" style="--d:.2s">3 runs per query</span>
+      <span class="pill" data-s="2" style="--d:.3s;border-color:var(--lime)">Pick the description by held-out score</span>
+    </div>
+  </div>
+</section>
+
+<!-- 16 Pitfalls -->
+<section class="slide content" data-title="Pitfalls" data-pace="900,1700,900">
+  <h2 class="t">Pitfalls</h2>
+  <div class="body">
+    <div class="pit">
+      <div class="card" data-s="0"><h3>Ambiguous task</h3><p>Two experts must agree on pass or fail</p></div>
+      <div class="card" data-s="1"><h3>Rigid grader</h3><p><span class="mono">"96.12"</span> rejected for <span class="mono">96.124991…</span></p>
+        <div class="jump"><span class="red">42%</span><span class="muted" style="font-size:30px">→</span><span class="lime count fade" data-s="1" style="--d:.6s" data-from="42" data-to="95" data-suffix="%">95%</span><span style="font-size:20px;font-weight:400" class="muted">after fixing grading and task bugs</span></div></div>
+      <div class="card" data-s="2"><h3>Shared state</h3><p>Leftover files inflate scores between runs</p></div>
+      <div class="card" data-s="3"><h3>Unread transcripts</h3><p>Read them. Every failure, every time.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 17 Eval loop -->
+<section class="slide content" data-title="The eval loop" data-pace="750">
+  <h2 class="t">The eval loop</h2>
+  <div class="body">
+    <div class="loop fade" style="top:290px" data-s="0">
+      <div class="ring"></div><div class="orb"></div>
+      <div class="center" style="width:300px"><div style="font-size:24px" class="muted">On every change<br>and every new model</div></div>
+    </div>
+    <div class="ln zoom" data-s="0" style="left:717px;top:50px"><div class="card">Write cases</div></div>
+    <div class="ln zoom" data-s="1" style="left:945px;top:216px"><div class="card">Run ×3<small>with and without</small></div></div>
+    <div class="ln zoom" data-s="2" style="left:858px;top:484px"><div class="card">Read transcripts</div></div>
+    <div class="ln zoom" data-s="3" style="left:576px;top:484px"><div class="card">Fix skill or grader</div></div>
+    <div class="ln zoom" data-s="4" style="left:489px;top:216px"><div class="card" style="border-color:var(--lime)">Gate in CI</div></div>
+  </div>
+</section>
+
+<!-- 18 Takeaway evals -->
+<section class="slide content" data-title="Define done first" data-pace="900,700">
+  <h2 class="t">Define done first</h2>
+  <div class="body col" style="justify-content:center;gap:40px;padding-bottom:60px">
+    <div class="statement" data-s="0" style="font-size:68px;font-weight:700">An eval is a spec you can run.</div>
+    <ul class="b" style="font-size:38px;gap:28px">
+      <li data-s="1">Start small, from real failures</li>
+      <li data-s="2">Grade outcomes, read transcripts</li>
+      <li data-s="3">Measure what the skill adds</li>
+    </ul>
+  </div>
+</section>
+
+<!-- 19 Divider: Cloud agents -->
+<section class="slide divider" data-hook="streaks" data-title="02 Cloud agents" data-o="1240,420" data-dim="1">
+  <canvas class="streaks" width="1600" height="900"></canvas>
+  <div class="wm abs" style="left:83px;top:38px">WUNDERDOG</div>
+  <div class="div-num fade" data-s="0">02</div>
+  <h2 class="div-title" data-s="0" style="--d:.2s">Cloud agents</h2>
+</section>
+
+<!-- 20 Timeline -->
+<section class="slide content" data-title="From pair programmer to teammate" data-pace="900" data-hook="timeline">
+  <h2 class="t">From pair programmer to teammate</h2>
+  <div class="body">
+    <div class="tl">
+      <div class="base"></div><div class="fill"></div>
+      <div class="stop" data-s="0" data-mv="0" style="left:10%"><div class="dot"></div><h4>Autocomplete</h4><p>Suggests the next line</p><div class="who">You type</div></div>
+      <div class="stop" data-s="1" data-mv="1" style="left:30%"><div class="dot"></div><h4>Chat</h4><p>Answers questions</p><div class="who">You ask</div></div>
+      <div class="stop" data-s="2" data-mv="2" style="left:50%"><div class="dot"></div><h4>Local agent</h4><p>Edits and runs code</p><div class="who">You watch</div></div>
+      <div class="stop" data-s="3" data-mv="3" style="left:70%"><div class="dot"></div><h4>Cloud agent</h4><p>Works while you're away</p><div class="who">You review</div></div>
+      <div class="stop" data-s="4" data-mv="4" style="left:90%"><div class="dot"></div><h4>Routines</h4><p>Starts on its own triggers</p><div class="who">You set the goal</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 21 Where agents run -->
+<section class="slide content" data-title="Where agents run" data-pace="750">
+  <h2 class="t">Where agents run</h2>
+  <div class="body">
+    <div class="where">
+      <div class="card" data-s="0"><h3>Local session</h3><p>Your machine, your files, your tools</p><div class="tag">claude</div></div>
+      <div class="card" data-s="1"><h3>Remote Control</h3><p>Your machine, steered from phone or browser</p><div class="tag">claude remote-control</div></div>
+      <div class="card" data-s="2"><h3>Self-hosted</h3><p>Your infrastructure, cloud workflow</p><div class="tag">self-hosted environment</div></div>
+      <div class="card" data-s="3" style="border-color:var(--orange)"><h3>Cloud session</h3><p>Managed VM, keeps going when the laptop closes</p><div class="tag">claude --cloud</div></div>
+    </div>
+    <div class="spectrum fade" data-s="0"><span>Runs on your hardware</span><span>Runs in managed cloud</span></div>
+  </div>
+</section>
+
+<!-- 22 Anatomy of a cloud session -->
+<section class="slide content" data-title="Anatomy of a cloud session" data-pace="900,4200">
+  <h2 class="t">Anatomy of a cloud session</h2>
+  <div class="body">
+    <div class="pipe" data-mv="1">
+      <div class="tok"></div>
+      <div class="nd" data-s="0" style="--i:0;--d:0s"><div class="o">go</div><h4>Trigger</h4><p>Person, schedule, API, PR</p></div>
+      <div class="nd" data-s="0" style="--i:1;--d:.08s"><div class="o">vm</div><h4>Fresh VM</h4><p>Isolated per session</p></div>
+      <div class="nd" data-s="0" style="--i:2;--d:.16s"><div class="o">git</div><h4>Clone</h4><p>Repo at branch</p></div>
+      <div class="nd" data-s="0" style="--i:3;--d:.24s"><div class="o">sh</div><h4>Setup</h4><p>Script, cached</p></div>
+      <div class="nd agent" data-s="0" style="--i:4;--d:.32s"><div class="o">loop</div><h4>Agent loop</h4><p>Edit, run, test</p></div>
+      <div class="nd" data-s="0" style="--i:5;--d:.4s"><div class="o">ci</div><h4>Checks</h4><p>Tests and lint</p></div>
+      <div class="nd" data-s="0" style="--i:6;--d:.48s"><div class="o">pr</div><h4>Pull request</h4><p>On a claude/ branch</p></div>
+    </div>
+    <div class="row" style="margin-top:120px;gap:14px;flex-wrap:wrap;align-items:center">
+      <span class="lbl" data-s="2" style="margin-right:10px">Same shape</span>
+      <span class="pill" data-s="2" style="--d:.1s">Claude Code</span>
+      <span class="pill" data-s="2" style="--d:.2s">Codex Cloud</span>
+      <span class="pill" data-s="2" style="--d:.3s">Copilot cloud agent</span>
+      <span class="pill" data-s="2" style="--d:.4s">Cursor Cloud Agents</span>
+    </div>
+  </div>
+</section>
+
+<!-- 23 Environment -->
+<section class="slide content" data-title="The environment is the contract" data-pace="900,1100" data-hook="net">
+  <h2 class="t">The environment is the contract</h2>
+  <div class="body env">
+    <div class="card left" data-s="0" style="align-self:start;padding:30px 32px">
+      <div class="field interactive"><span class="lbl">Network access</span>
+        <div class="seg" role="group" aria-label="Network access level">
+          <button type="button" id="net-none" data-level="none" aria-pressed="false">None</button>
+          <button type="button" id="net-trusted" data-level="trusted" aria-pressed="true">Trusted</button>
+          <button type="button" id="net-custom" data-level="custom" aria-pressed="false">Custom</button>
+          <button type="button" id="net-full" data-level="full" aria-pressed="false">Full</button>
+        </div>
+      </div>
+      <div class="field"><span class="lbl">Setup script <span class="pill" style="font-size:15px;padding:2px 10px;margin-left:8px;letter-spacing:.05em">cached</span></span>
+        <div class="code" style="font-size:21px">npm ci &amp;&amp; npx playwright install</div></div>
+      <div class="field" style="margin-bottom:0"><span class="lbl">Variables</span>
+        <div class="code" style="font-size:21px">NODE_ENV=test</div></div>
+    </div>
+    <div class="col" style="gap:24px">
+      <div class="hosts" data-s="1">
+        <div class="host" data-h="npm"><span>registry.npmjs.org</span><span class="st"></span></div>
+        <div class="host" data-h="pypi"><span>pypi.org</span><span class="st"></span></div>
+        <div class="host" data-h="corp"><span>api.yourcompany.com</span><span class="st"></span></div>
+        <div class="host" data-h="any"><span>random-paste-site.io</span><span class="st"></span></div>
+      </div>
+      <div class="statement" data-s="2" style="font-size:32px">Open only what the task needs</div>
+    </div>
+  </div>
+</section>
+
+<!-- 24 Credentials -->
+<section class="slide content" data-title="Credentials stay outside" data-pace="800,800,3300">
+  <h2 class="t">Credentials stay outside</h2>
+  <div class="body">
+    <div class="vm fade" data-s="0">
+      <div class="lbl" style="color:var(--sky)">Cloud VM</div>
+    </div>
+    <div class="box" data-s="0" style="left:40px;top:110px;width:440px;height:96px">Agent</div>
+    <div class="box" data-s="0" style="left:40px;top:225px;width:440px;height:80px;font-family:var(--mono);font-size:22px">git push</div>
+    <svg data-s="1" class="fade" style="position:absolute;left:0;top:0;width:1434px;height:560px" viewBox="0 0 1434 560">
+      <path d="M480 265 H640" stroke="var(--line)" stroke-width="3"/><path d="M860 265 H1134" stroke="var(--line)" stroke-width="3"/>
+    </svg>
+    <div class="box" data-s="1" style="left:640px;top:180px;width:220px;height:170px;border-color:var(--lime)">
+      <div><svg width="64" height="34" viewBox="0 0 64 34" aria-hidden="true"><circle cx="17" cy="17" r="12" fill="none" stroke="var(--lime)" stroke-width="5"/><path d="M29 17h32M50 17v11M59 17v8" stroke="var(--lime)" stroke-width="5" fill="none"/></svg><div style="margin-top:8px">Git proxy</div></div>
+    </div>
+    <div class="box" data-s="1" style="left:1134px;top:180px;width:300px;height:170px;--d:.15s">GitHub</div>
+    <div class="pkt" data-mv="2"></div>
+    <ul class="b" style="position:absolute;left:640px;top:410px;gap:16px">
+      <li data-s="3">Tokens never enter the VM</li>
+      <li data-s="3" style="--d:.12s">No tag pushes or branch deletes</li>
+      <li data-s="3" style="--d:.24s">Branch protection rules still apply</li>
+    </ul>
+  </div>
+</section>
+
+<!-- 25 Triggers -->
+<section class="slide content" data-title="What starts a cloud agent" data-pace="800,900,900">
+  <h2 class="t">What starts a cloud agent</h2>
+  <div class="body">
+    <div class="hub">
+      <svg viewBox="0 0 1434 596" preserveAspectRatio="none">
+        <path class="spoke fade" data-s="1" d="M200 128 L717 298"/><path class="pulse" data-s="1" d="M200 128 L717 298"/>
+        <path class="spoke fade" data-s="2" d="M200 470 L717 298"/><path class="pulse" data-s="2" d="M200 470 L717 298"/>
+        <path class="spoke fade" data-s="2" d="M1234 128 L717 298"/><path class="pulse" data-s="2" d="M1234 128 L717 298"/>
+        <path class="spoke fade" data-s="3" d="M1234 470 L717 298"/><path class="pulse" data-s="3" d="M1234 470 L717 298"/>
+        <path class="spoke fade" data-s="3" d="M717 46 L717 298"/><path class="pulse" data-s="3" d="M717 46 L717 298"/>
+      </svg>
+      <div class="core zoom" data-s="0">Cloud<br>session</div>
+      <div class="hn" data-s="1" style="left:200px;top:128px"><div class="card"><h4>You</h4><p>web · phone · --cloud</p></div></div>
+      <div class="hn" data-s="2" style="left:200px;top:470px"><div class="card"><h4>Schedule</h4><p>nightly · weekly</p></div></div>
+      <div class="hn" data-s="2" style="left:1234px;top:128px;--d:.12s"><div class="card"><h4>API</h4><p>POST …/fire</p></div></div>
+      <div class="hn" data-s="3" style="left:1234px;top:470px"><div class="card"><h4>GitHub event</h4><p>PR opened · release</p></div></div>
+      <div class="hn" data-s="3" style="left:717px;top:46px;--d:.12s"><div class="card"><h4>Slack</h4><p>@Claude in a thread</p></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 26 Fan out -->
+<section class="slide content" data-title="Fan out" data-pace="2200,1800,2600,1000">
+  <h2 class="t">Fan out</h2>
+  <div class="body" style="display:grid;grid-template-columns:700px 1fr;gap:44px">
+    <div class="term" style="white-space:normal;font-size:20px;align-self:start" data-s="0">
+      <div><span class="p">$</span> <span class="typing" data-s="0">claude --cloud "Triage failed run 8812 on main"</span></div>
+      <div><span class="p fade" data-s="1">$</span> <span class="typing" data-s="1">claude --cloud "Catalogue last week's reviews"</span></div>
+      <div><span class="p fade" data-s="2">$</span> <span class="typing" data-s="2">claude --cloud "Upgrade date-fns to v4"</span></div>
+    </div>
+    <div class="lanes">
+      <div class="fl right" data-s="0" style="--d:.6s"><div><div class="nm">Red main</div><div class="track" data-mv="0" style="--t:2.6s"><i></i></div></div><div class="prb" data-s="3">PR #412</div></div>
+      <div class="fl right" data-s="1" style="--d:.4s"><div><div class="nm">Review catalogue</div><div class="track" data-mv="1" style="--t:2s"><i></i></div></div><div class="prb" data-s="3" style="--d:.15s">PR #413</div></div>
+      <div class="fl right" data-s="2" style="--d:.4s"><div><div class="nm">date-fns v4</div><div class="track" data-mv="2" style="--t:3s"><i></i></div></div><div class="prb" data-s="3" style="--d:.3s">PR #414</div></div>
+      <ul class="b" style="margin-top:16px">
+        <li data-s="4">One VM per task</li>
+        <li data-s="4" style="--d:.12s">Parallel runs share your usage</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 27 Plan local, run cloud -->
+<section class="slide content" data-title="Plan locally, run in the cloud" data-pace="800,800,800,1000">
+  <h2 class="t">Plan locally, run in the cloud</h2>
+  <div class="body">
+    <div class="pf" style="margin-top:30px">
+      <div class="st" data-s="0"><div class="loc sky">Local</div><div class="card"><h3>Plan</h3><code>claude --permission-mode plan</code></div></div>
+      <svg class="arrow fade" data-s="1" viewBox="0 0 52 20" style="margin-top:40px"><path d="M2 10h44M38 3l8 7-8 7"/></svg>
+      <div class="st" data-s="1"><div class="loc sky">Local</div><div class="card"><h3>Commit the plan</h3><code>docs/migration-plan.md</code></div></div>
+      <svg class="arrow fade" data-s="2" viewBox="0 0 52 20" style="margin-top:40px"><path d="M2 10h44M38 3l8 7-8 7"/></svg>
+      <div class="st" data-s="2"><div class="loc orange">Cloud</div><div class="card" style="border-color:var(--orange)"><h3>Execute</h3><code>claude --cloud "Execute docs/migration-plan.md"</code></div></div>
+      <svg class="arrow fade" data-s="3" viewBox="0 0 52 20" style="margin-top:40px"><path d="M2 10h44M38 3l8 7-8 7"/></svg>
+      <div class="st" data-s="3"><div class="loc sky">Local</div><div class="card"><h3>Pull it back</h3><code>claude --teleport</code></div></div>
+    </div>
+    <ul class="b" style="margin-top:60px;flex-direction:row;gap:70px">
+      <li data-s="4">Talk where feedback is fast</li>
+      <li data-s="4" style="--d:.12s">Run where waiting is free</li>
+    </ul>
+  </div>
+</section>
+
+<!-- 28 Contributors, not committers -->
+<section class="slide content" data-title="Contributors, not committers" data-pace="1200,1300,1300,1200">
+  <h2 class="t">Contributors, not committers</h2>
+  <div class="body" style="display:grid;grid-template-columns:800px 1fr;gap:60px">
+    <div class="card pr left" data-s="0" style="align-self:start">
+      <div class="head"><svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true"><circle cx="9" cy="7" r="4" fill="none" stroke="var(--lime)" stroke-width="3"/><circle cx="9" cy="27" r="4" fill="none" stroke="var(--lime)" stroke-width="3"/><circle cx="25" cy="27" r="4" fill="none" stroke="var(--lime)" stroke-width="3"/><path d="M9 11v12M25 23V14c0-3-2-5-5-5h-5" fill="none" stroke="var(--lime)" stroke-width="3"/></svg>Hook: run tests on new endpoints</div>
+      <div class="br">claude/review-catalogue-week-42 → main</div>
+      <div class="check"><span style="width:160px" class="muted">Evals · rules</span>
+        <div class="swap">
+          <span data-s="0" data-out="1" class="fade"><i class="s" style="background:var(--amber)"></i>Running</span>
+          <span data-s="1" data-out="3" class="fade"><i class="s" style="background:var(--red)"></i>1 case regressed</span>
+          <span data-s="3" class="fade"><i class="s" style="background:var(--lime)"></i>Passing</span>
+        </div></div>
+      <div class="check"><span style="width:160px" class="muted">Review</span>
+        <div class="swap">
+          <span data-s="0" data-out="2" class="fade"><i class="s" style="background:var(--dim)"></i>Requested</span>
+          <span data-s="2" data-out="4" class="fade"><i class="s" style="background:var(--amber)"></i>Changes requested</span>
+          <span data-s="4" class="fade"><i class="s" style="background:var(--lime)"></i>Approved by a human</span>
+        </div></div>
+      <div class="comment" data-s="2"><b>reviewer</b> · Scope the hook to the api/ folder only</div>
+      <div class="comment" data-s="3" style="border:1px solid var(--lime)"><b style="color:var(--lime)">claude</b> · Auto-fix pushed 1 commit</div>
+    </div>
+    <ul class="b" style="align-self:center">
+      <li data-s="1">Agent branch, human merge</li>
+      <li data-s="3">Auto-fix answers CI and review comments</li>
+      <li data-s="4">Branch protection stays on</li>
+    </ul>
+  </div>
+</section>
+
+<!-- 29 Managed agents -->
+<section class="slide content" data-title="Build your own with Managed Agents" data-pace="1100,1100">
+  <h2 class="t">Build your own with Managed Agents</h2>
+  <div class="body">
+    <div class="mg">
+      <svg style="position:absolute;left:0;top:0;width:1434px;height:596px" viewBox="0 0 1434 596" aria-hidden="true">
+        <path data-s="0" class="fade" d="M240 265 H400" stroke="var(--line)" stroke-width="3"/>
+        <path data-s="1" class="fade" d="M720 240 H900" stroke="var(--orange)" stroke-width="3"/>
+        <path data-s="1" class="fade" d="M900 290 H720" stroke="var(--sky)" stroke-width="3" stroke-dasharray="8 8"/>
+        <path data-s="2" class="fade" d="M560 360 V515 H900" stroke="var(--violet)" stroke-width="3" stroke-dasharray="3 9" fill="none"/>
+      </svg>
+      <div class="box" data-s="0" style="left:0;top:200px;width:240px;height:130px">Your app</div>
+      <div class="box" data-s="0" style="left:400px;top:170px;width:320px;height:190px;border-color:var(--orange);--d:.15s"><div>Agent loop<small>Runs at Anthropic</small></div></div>
+      <div class="lbl fade" data-s="1" style="position:absolute;left:740px;top:196px;font-size:15px">tool calls</div>
+      <div class="lbl fade" data-s="1" style="position:absolute;left:740px;top:304px;font-size:15px">results</div>
+      <div class="box" data-s="1" style="left:900px;top:120px;width:520px;height:290px;border-color:var(--sky)"><div>Sandbox<small>Your environment · files stay there</small>
+        <div class="prov"><span>Cloudflare</span><span>Daytona</span><span>Modal</span><span>Vercel</span><span>E2B</span></div>
+        <div style="margin-top:14px"><span class="pill" style="font-size:16px;padding:3px 12px">public beta</span></div></div></div>
+      <div class="lbl fade" data-s="2" style="position:absolute;left:600px;top:480px;font-size:15px;color:var(--violet)">MCP tunnel · outbound only</div>
+      <div class="box" data-s="2" style="left:900px;top:450px;width:520px;height:130px;border-color:var(--violet)"><div>Private MCP servers<small>No inbound firewall rules</small>
+        <div style="margin-top:8px"><span class="pill" style="font-size:16px;padding:3px 12px">research preview</span></div></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 03 Divider -->
+<section class="slide divider" data-hook="streaks" data-title="03 One plant, two lines" data-o="1100,640" data-dim="1">
+  <canvas class="streaks" width="1600" height="900"></canvas>
+  <div class="wm abs" style="left:83px;top:38px">WUNDERDOG</div>
+  <div class="div-num fade" data-s="0">03</div>
+  <h2 class="div-title" data-s="0" style="--d:.2s">One plant, two lines</h2>
+</section>
+
+<!-- P1 Meet the tire plant -->
+<section class="slide content" data-title="Meet the tire plant" data-hook="factory" data-pace="7300,6500">
+  <h2 class="t">Meet the tire plant</h2>
+  <div class="factory tplant" data-fx="1:show-harness|2:show-model" data-pins="1:harness|2:model" data-intro="1"></div>
+  <div class="cap">
+    <div class="capi fade" data-s="0" data-out="1" style="--d:.6s"><div class="fc1"><b>Tire plant</b><p><strong>Six stations</strong> from order terminal to shipping dock</p></div><div class="fc2"><b>Agentic SDLC</b><p><strong>Six steps</strong> from ticket to release</p></div></div>
+    <div class="capi fade" data-s="1" data-out="2" style="--d:.35s"><div class="fc1"><b>Tire plant</b><p><strong>Overhead chain</strong> carries every tire through every station</p></div><div class="fc2"><b>Agentic SDLC</b><p><strong>Harness, Claude Code</strong> carries every task: context, tools, permissions</p></div></div>
+    <div class="capi fade" data-s="2" style="--d:.35s"><div class="fc1"><b>Tire plant</b><p><strong>Robot arm</strong> does the building; swap it and the line still runs</p></div><div class="fc2"><b>Agentic SDLC</b><p><strong>Model</strong> does the work; the harness stays the same</p></div></div>
+    <div class="capdots"><i data-s="0" class="fade"></i><i data-s="1" class="fade"></i><i data-s="2" class="fade"></i></div>
+  </div>
+</section>
+
+<!-- P2 What runs the plant -->
+<section class="slide content" data-title="What runs the plant" data-hook="factory" data-pace="6500,6500,6500,6500,6500,6500">
+  <h2 class="t">What runs the plant</h2>
+  <div class="factory tplant" data-fx="1:show-rules|2:show-skills|3:show-hooks|4:show-track|5:show-night|6:show-routine" data-pins="1:rules|2:skills|3:hooks|4:evals|5:night|6:routine"></div>
+  <div class="cap">
+    <div class="capi fade" data-s="0" data-out="1" style="--d:.6s"><div class="fc1"><b>Tire plant</b><p>Standards, recipe binders, gauges, a test track, a night shift, a control centre</p></div><div class="fc2"><b>Agentic SDLC</b><p>Rules, skills, hooks, evals, scheduled tasks, routines</p></div></div>
+    <div class="capi fade" data-s="1" data-out="2" style="--d:.35s"><div class="fc1"><b>Tire plant</b><p><strong>Standards board</strong> the same rules for every tire</p></div><div class="fc2"><b>Agentic SDLC</b><p><strong>Rules, CLAUDE.md</strong> loaded into every session</p></div></div>
+    <div class="capi fade" data-s="2" data-out="3" style="--d:.35s"><div class="fc1"><b>Tire plant</b><p><strong>Recipe binders</strong> one per tire type, opened when needed</p></div><div class="fc2"><b>Agentic SDLC</b><p><strong>Skills</strong> one per product type, loaded on demand</p></div></div>
+    <div class="capi fade" data-s="3" data-out="4" style="--d:.35s"><div class="fc1"><b>Tire plant</b><p><strong>Scale and gauge</strong> measure every time, no judgement</p></div><div class="fc2"><b>Agentic SDLC</b><p><strong>Hooks</strong> deterministic checks on every edit or command</p></div></div>
+    <div class="capi fade" data-s="4" data-out="5" style="--d:.35s"><div class="fc1"><b>Tire plant</b><p><strong>Test track</strong> sample tires are driven before anyone trusts them</p></div><div class="fc2"><b>Agentic SDLC</b><p><strong>Evals</strong> graded cases before a change lands</p></div></div>
+    <div class="capi fade" data-s="5" data-out="6" style="--d:.35s"><div class="fc1"><b>Tire plant</b><p><strong>Night shift</strong> same line, set hours, nobody watching</p></div><div class="fc2"><b>Agentic SDLC</b><p><strong>Scheduled task</strong> a skill on a timer, on your machine</p></div></div>
+    <div class="capi fade" data-s="6" style="--d:.35s"><div class="fc1"><b>Tire plant</b><p><strong>Control centre</strong> runs the plant while you are off site</p></div><div class="fc2"><b>Agentic SDLC</b><p><strong>Routine</strong> in the cloud, on a schedule, an API call or a GitHub event</p></div></div>
+    <div class="capdots"><i data-s="0" class="fade"></i><i data-s="1" class="fade"></i><i data-s="2" class="fade"></i><i data-s="3" class="fade"></i><i data-s="4" class="fade"></i><i data-s="5" class="fade"></i><i data-s="6" class="fade"></i></div>
+  </div>
+</section>
+
+<!-- P3 When something changes -->
+<section class="slide content" data-title="When something changes" data-hook="factory" data-pace="6500,6500,6900,6900">
+  <h2 class="t">When something changes</h2>
+  <div class="factory tplant" data-fx="1:new-robot fast|2:wrong-tread|3:show-track track-active gate-on show-cmp|4:-gate-on -wrong-tread tuned show-skills" data-pins="1:model-new|2-4:tread|3:evals|4:skills"></div>
+  <div class="cap">
+    <div class="capi fade" data-s="0" data-out="1" style="--d:.6s"><div class="fc1"><b>Tire plant</b><p>An upgrade or a new spec changes what the line produces</p></div><div class="fc2"><b>Agentic SDLC</b><p>A model upgrade or a spec change changes what the agent produces</p></div></div>
+    <div class="capi fade" data-s="1" data-out="2" style="--d:.35s"><div class="fc1"><b>Tire plant</b><p><strong>New robot arm</strong> and the whole line runs faster</p></div><div class="fc2"><b>Agentic SDLC</b><p><strong>New model or a changed spec</strong> more output, faster</p></div></div>
+    <div class="capi fade" data-s="2" data-out="3" style="--d:.35s"><div class="fc1"><b>Tire plant</b><p><strong>A different tread</strong> and inspection still waves it through</p></div><div class="fc2"><b>Agentic SDLC</b><p><strong>Same skill, different result</strong> and the diff still looks fine in review</p></div></div>
+    <div class="capi fade" data-s="3" data-out="4" style="--d:.35s"><div class="fc1"><b>Tire plant</b><p><strong>Test track</strong> compares samples with the reference tread; the dock waits</p></div><div class="fc2"><b>Agentic SDLC</b><p><strong>Evals</strong> compare against the expected outcome; the release waits</p></div></div>
+    <div class="capi fade" data-s="4" style="--d:.35s"><div class="fc1"><b>Tire plant</b><p><strong>Recipe updated</strong> for the new robot: right tread at the new speed</p></div><div class="fc2"><b>Agentic SDLC</b><p><strong>Skill updated, evals green</strong> keep the speed-up, lose the drift</p></div></div>
+    <div class="capdots"><i data-s="0" class="fade"></i><i data-s="1" class="fade"></i><i data-s="2" class="fade"></i><i data-s="3" class="fade"></i><i data-s="4" class="fade"></i></div>
+  </div>
+</section>
+
+<!-- FL2 Review-comment cataloguer -->
+<section class="slide content" data-title="Line 1: Review-comment cataloguer" data-hook="factory" data-pace="6500,6500,6500,6500,6500,6500">
+  <h2 class="t">Line 1: Review-comment cataloguer</h2>
+  <div class="factory tplant" data-fx="1:show-reject|3:show-feedback show-rules show-skills show-hooks|5:show-track track-active|6:show-routine" data-pins="1:reject|3:rules|3:skills|3:hooks|4:score|5:evals|6:routine"></div>
+  <div class="cap">
+    <div class="capi fade" data-s="0" data-out="1" style="--d:.6s"><div class="fc1"><b>Tire plant</b><p>Reasons from the reject bin become better standards and recipes</p></div><div class="fc2"><b>Agentic SDLC</b><p>Review comments become better rules, skills and hooks</p></div></div>
+    <div class="capi fade" data-s="1" data-out="2" style="--d:.35s"><div class="fc1"><b>Tire plant</b><p><strong>Reject bin</strong> every rejected tire lands here with a reason</p></div><div class="fc2"><b>Agentic SDLC</b><p><strong>Changes requested</strong> last week's review comments on merged PRs</p></div></div>
+    <div class="capi fade" data-s="2" data-out="3" style="--d:.35s"><div class="fc1"><b>Tire plant</b><p><strong>Sort the reasons</strong> group the rejects by defect type</p></div><div class="fc2"><b>Agentic SDLC</b><p><strong>Catalogue</strong> by problem type: missing tests 14, error handling 9, naming 6</p></div></div>
+    <div class="capi fade" data-s="3" data-out="4" style="--d:.35s"><div class="fc1"><b>Tire plant</b><p><strong>Back to the binders</strong> each defect type points to a standard, recipe or gauge</p></div><div class="fc2"><b>Agentic SDLC</b><p><strong>Map to the harness</strong> each problem type points to a rule, skill or hook</p></div></div>
+    <div class="capi fade" data-s="4" data-out="5" style="--d:.35s"><div class="fc1"><b>Tire plant</b><p><strong>Biggest fix first</strong> ranked by the rejects it would prevent</p></div><div class="fc2"><b>Agentic SDLC</b><p><strong>Scored 100 to 0</strong> by impact; the top suggestion goes first</p></div></div>
+    <div class="capi fade" data-s="5" data-out="6" style="--d:.35s"><div class="fc1"><b>Tire plant</b><p><strong>Test track first</strong> a new recipe ships only if samples drive better</p></div><div class="fc2"><b>Agentic SDLC</b><p><strong>Eval gate</strong> a change lands only if the evals improve</p></div></div>
+    <div class="capi fade" data-s="6" style="--d:.35s"><div class="fc1"><b>Tire plant</b><p><strong>Weekly from the control centre</strong> nobody has to remember</p></div><div class="fc2"><b>Agentic SDLC</b><p><strong>Routine</strong> weekly: a retro board summary and a draft PR</p></div></div>
+    <div class="capdots"><i data-s="0" class="fade"></i><i data-s="1" class="fade"></i><i data-s="2" class="fade"></i><i data-s="3" class="fade"></i><i data-s="4" class="fade"></i><i data-s="5" class="fade"></i><i data-s="6" class="fade"></i></div>
+  </div>
+</section>
+
+<!-- FL1 CI health -->
+<section class="slide content" data-title="Line 2: CI health" data-hook="factory" data-pace="6500,6500,6500,6500,6500,6500">
+  <h2 class="t">Line 2: CI health</h2>
+  <div class="factory tplant" data-fx="1:alarm|2:show-tech|4:show-night|5:show-routine|6:-alarm fixed" data-pins="1-6:alarm|2:tech|3:ledger|4:night|5:routine|6:fixpr"></div>
+  <div class="cap">
+    <div class="capi fade" data-s="0" data-out="1" style="--d:.6s"><div class="fc1"><b>Tire plant</b><p>A stopped press gets a diagnosis, not a restart</p></div><div class="fc2"><b>Agentic SDLC</b><p>Red main gets triaged; flaky tests get a ledger</p></div></div>
+    <div class="capi fade" data-s="1" data-out="2" style="--d:.35s"><div class="fc1"><b>Tire plant</b><p><strong>Press alarm</strong> the line stops at curing</p></div><div class="fc2"><b>Agentic SDLC</b><p><strong>Main is red</strong> a CI run failed</p></div></div>
+    <div class="capi fade" data-s="2" data-out="3" style="--d:.35s"><div class="fc1"><b>Tire plant</b><p><strong>Maintenance tech</strong> diagnoses before anyone restarts</p></div><div class="fc2"><b>Agentic SDLC</b><p><strong>triage-ci skill</strong> reads the logs: flaky, broken or infra</p></div></div>
+    <div class="capi fade" data-s="3" data-out="4" style="--d:.35s"><div class="fc1"><b>Tire plant</b><p><strong>Fault log</strong> repeat faults get written down</p></div><div class="fc2"><b>Agentic SDLC</b><p><strong>Flaky-test ledger</strong> repeat offenders tracked across runs</p></div></div>
+    <div class="capi fade" data-s="4" data-out="5" style="--d:.35s"><div class="fc1"><b>Tire plant</b><p><strong>Morning round</strong> the same check every day</p></div><div class="fc2"><b>Agentic SDLC</b><p><strong>Scheduled task</strong> every morning: scan main, update the ledger</p></div></div>
+    <div class="capi fade" data-s="5" data-out="6" style="--d:.35s"><div class="fc1"><b>Tire plant</b><p><strong>Alarm calls the control centre</strong> answered any time</p></div><div class="fc2"><b>Agentic SDLC</b><p><strong>Routine via API</strong> a CI failure fires the trigger in the cloud</p></div></div>
+    <div class="capi fade" data-s="6" style="--d:.35s"><div class="fc1"><b>Tire plant</b><p><strong>Repair order</strong> press back in spec</p></div><div class="fc2"><b>Agentic SDLC</b><p><strong>Draft fix PR</strong> a human reviews it; main is green again</p></div></div>
+    <div class="capdots"><i data-s="0" class="fade"></i><i data-s="1" class="fade"></i><i data-s="2" class="fade"></i><i data-s="3" class="fade"></i><i data-s="4" class="fade"></i><i data-s="5" class="fade"></i><i data-s="6" class="fade"></i></div>
+  </div>
+</section>
+
+<!-- FL3 Evolution -->
+<section class="slide content" data-title="From skill to night shift to routine" data-pace="1100,1100,1100">
+  <h2 class="t">From skill to night shift to routine</h2>
+  <div class="body">
+    <div class="evo">
+      <div></div>
+      <div class="hd" data-s="0">Skill<small>On demand</small></div>
+      <div class="hd" data-s="1">Scheduled task<small>Your machine</small></div>
+      <div class="hd" data-s="2">Routine<small>Cloud</small></div>
+      <div class="rl" data-s="0">Review catalogue</div>
+      <div class="cell" data-s="0" style="--d:.1s"><code>/catalogue-reviews</code><br>Before a retro</div>
+      <div class="cell" data-s="1" style="--d:.1s">Friday afternoon: last week's comments</div>
+      <div class="cell" data-s="2" style="--d:.1s">Weekly schedule: retro board and a draft PR</div>
+      <div class="rl" data-s="0">CI health</div>
+      <div class="cell" data-s="0" style="--d:.2s"><code>/triage-ci &lt;run&gt;</code><br>When a build fails</div>
+      <div class="cell" data-s="1" style="--d:.2s">Every morning: scan main, update the ledger</div>
+      <div class="cell" data-s="2" style="--d:.2s">CI failure calls the API trigger; nightly ledger</div>
+      <div class="gatebar" data-s="3"><span class="mark ok sm" role="img" aria-label="pass"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.8l4.4 4.4L19 7.6"/></svg></span>Evals gate every step up</div>
+    </div>
+  </div>
+</section>
+
+<!-- 33 Trust before autonomy -->
+<section class="slide content" data-title="Trust before autonomy" data-pace="800">
+  <h2 class="t">Trust before autonomy</h2>
+  <div class="body">
+    <div class="loop fade" style="top:290px" data-s="0">
+      <div class="ring"></div><div class="orb" style="animation-duration:7s"></div>
+      <div class="center" style="width:280px"><div style="font-size:26px;font-weight:500">Each lap earns<br>more autonomy</div></div>
+    </div>
+    <div class="ln zoom" data-s="0" style="left:717px;top:50px"><div class="card" style="border-color:var(--lime)">Evals</div></div>
+    <div class="ln zoom" data-s="1" style="left:957px;top:290px"><div class="card">Confidence</div></div>
+    <div class="ln zoom" data-s="2" style="left:717px;top:530px"><div class="card" style="border-color:var(--orange)">Cloud agents</div></div>
+    <div class="ln zoom" data-s="3" style="left:477px;top:290px"><div class="card">Transcripts<small>become new cases</small></div></div>
+  </div>
+</section>
+
+<!-- More lines -->
+<section class="slide content" data-title="More lines for the same plant" data-pace="900,900,900">
+  <h2 class="t">More lines for the same plant</h2>
+  <div class="body">
+    <div class="lines3">
+      <div class="card" data-s="0"><h3>Library updates</h3><p>One upgrade per PR, changelog read, tests green</p><div class="tag">schedule · weekly</div></div>
+      <div class="card" data-s="1"><h3>SDLC observability</h3><p>Alert in, investigation done, draft fix PR out</p><div class="tag">API trigger · on alert</div></div>
+      <div class="card" data-s="2"><h3>Migrations at scale</h3><p>Playbook as a skill, evals first, then fan out</p><div class="tag">fan-out · per module</div></div>
+    </div>
+    <div class="statement" data-s="3" style="margin-top:56px;font-size:36px">Same machines. Same control system. New recipe.</div>
+  </div>
+</section>
+
+<!-- Teaser -->
+<section class="slide content" data-title="Your shift starts now" data-hook="factory" data-pace="6500,6500">
+  <h2 class="t">Your shift starts now</h2>
+  <div class="factory tplant" data-fx="0:show-rules show-skills show-hooks show-track show-night show-routine show-reject show-harness" data-pins=""></div>
+  <div class="cap">
+    <div class="capi fade" data-s="0" data-out="1" style="--d:.6s"><div class="fc1"><b>Tire plant</b><p><strong>Open floor</strong> start at any station you like</p></div><div class="fc2"><b>Agentic SDLC</b><p><strong>Your team decides</strong> skills and evals, the eval gate, schedules and routines, or a plugin</p></div></div>
+    <div class="capi fade" data-s="1" data-out="2" style="--d:.35s"><div class="fc1"><b>Tire plant</b><p><strong>One tire, end to end</strong> early in the shift</p></div><div class="fc2"><b>Agentic SDLC</b><p><strong>One working loop</strong> finished early, start to finish</p></div></div>
+    <div class="capi fade" data-s="2" style="--d:.35s"><div class="fc1"><b>Tire plant</b><p><strong>Then your own plant</strong> the same machines on your own line</p></div><div class="fc2"><b>Agentic SDLC</b><p><strong>Then your own team</strong> apply it to a real problem from your own context</p></div></div>
+    <div class="capdots"><i data-s="0" class="fade"></i><i data-s="1" class="fade"></i><i data-s="2" class="fade"></i></div>
+  </div>
+</section>
+
+<!-- 34 Thank you -->
+<section class="slide" data-title="Thank you">
+  <h2 class="thanks left" data-s="0">Thank you</h2>
+  <div class="stacklogo fade" data-s="0" style="--d:.3s">WUN<br>DER<br>DOG</div>
+</section>
+
+</div>
+
+<div class="prog" id="prog"></div>
+<div class="hint" id="hint">→ next slide · R replay · O overview</div>
+<div class="ui" id="ui">
+  <button type="button" id="b-prev" aria-label="Previous">←</button>
+  <span class="ctr" id="ctr">1 / 34</span>
+  <button type="button" id="b-next" aria-label="Next">→</button>
+  <button type="button" id="b-ov" aria-label="Overview">Overview</button>
+  <button type="button" id="b-fs" aria-label="Fullscreen">Full screen</button>
+  <a class="pdf" id="b-pdf" href="evals-cloud-agents.pdf" download>PDF</a>
+  <button type="button" id="b-notes" hidden>Notes</button>
+</div>
+<div class="np" id="np" hidden role="region" aria-label="Presenter notes">
+  <div class="np-head"><b id="np-title"></b><span><span id="np-status"></span> · only you see these · <button type="button" id="np-close">Close</button></span></div>
+  <textarea id="np-text" aria-label="Notes for this slide" placeholder="Write what you want to say on this slide"></textarea>
+</div>
+<div class="ov" id="ov" role="dialog" aria-label="Slide overview"><h2>Slides</h2><div class="grid" id="ovg"></div></div>
+
+<script>
+/* Tire plant v2: mechanical stations under a roof-hung chain conveyor (the harness).
+   Scene = SVG; station labels = HTML (so they can step in); legend + story live in each slide's markup. */
+(function(){
+  const CX = [110, 353, 596, 839, 1082, 1325];
+  const stage = f => f>=0.8 ? 'st-ok' : f>=0.58 ? 'st-cured' : f>=0.38 ? 'st-green' : 'st-tag';
+  const carrier = (i)=> '<g class="tp-car '+stage(i/8)+'" style="--dl:'+(-i*1.5)+'s;--px:'+(1215*i/8).toFixed(1)+'px">' +
+      '<line class="tp-rod" x1="110" y1="66" x2="110" y2="94"/><path class="tp-hook" d="M110 94 q0 8 -6 8"/>' +
+      '<g class="tp-tag"><rect x="98" y="98" width="24" height="30" rx="3"/><line x1="103" y1="108" x2="117" y2="108"/><line x1="103" y1="115" x2="117" y2="115"/><line x1="103" y1="122" x2="112" y2="122"/></g>' +
+      '<g class="tp-green"><circle cx="110" cy="132" r="25"/></g>' +
+      '<g class="tp-cured"><circle class="tp-cured-r" cx="110" cy="132" r="25"/><circle class="tp-tread" cx="110" cy="132" r="31"/><circle class="tp-crack" cx="110" cy="132" r="18"/></g>' +
+      '<g class="tp-ok"><circle cx="128" cy="112" r="8"/><path d="M124 112 l3 3 l6 -6"/></g>' +
+    '</g>';
+  let cars=''; for (let i=0;i<8;i++) cars += carrier(i);
+  const hangers = [160,400,640,880,1120,1360].map(x=>'<line class="tp-hanger" x1="'+x+'" y1="24" x2="'+x+'" y2="54"/>').join('');
+  const arm = (x, y, s, cls)=> '<g class="tp-arm '+cls+'" transform="translate('+x+' '+y+') scale('+s+')">' +
+      '<rect class="tp-arm-base" x="-22" y="-14" width="44" height="14" rx="3"/>' +
+      '<g class="tp-j1"><animateTransform attributeName="transform" type="rotate" values="-12 0 -10;14 0 -10;-12 0 -10" dur="3.2s" repeatCount="indefinite"/><rect class="tp-arm-seg" x="-7" y="-78" width="14" height="70" rx="6"/><circle class="tp-joint" cx="0" cy="-10" r="9"/>' +
+      '<g class="tp-j2" transform="translate(0 -74)"><animateTransform attributeName="transform" type="rotate" values="18;-28;18" dur="2.6s" additive="sum" repeatCount="indefinite"/><rect class="tp-arm-seg" x="-6" y="-6" width="64" height="12" rx="6"/><circle class="tp-joint" cx="0" cy="0" r="8"/><path class="tp-grip" d="M58 -8 v16 M58 -8 h10 M58 8 h10"/></g></g></g>';
+  const svg = '<svg class="tp-svg" viewBox="0 0 1434 400" width="1434" height="400" aria-hidden="true">' +
+  /* roof + chain conveyor (harness) */
+  '<rect class="tp-beam" x="0" y="12" width="1434" height="12"/>' + hangers +
+  '<g class="tp-harness"><rect class="tp-rail" x="60" y="54" width="1336" height="8" rx="3"/><line class="tp-chain" x1="60" y1="66" x2="1396" y2="66"/>' +
+  '<circle class="tp-sprocket" cx="60" cy="66" r="14"/><circle class="tp-sprocket" cx="1396" cy="66" r="14"/>' +
+  '<rect class="tp-drive" x="4" y="32" width="40" height="56" rx="6"/><circle class="tp-led" cx="24" cy="46" r="4"/><circle class="tp-led l2" cx="24" cy="60" r="4"/><circle class="tp-led l3" cx="24" cy="74" r="4"/></g>' +
+  cars +
+  /* roof-top extras: test track (evals), dish (routine) */
+  '<g class="tp-x tp-track"><ellipse class="tp-track-oval" cx="839" cy="-2" rx="64" ry="12"/><line class="tp-sample" x1="839" y1="10" x2="839" y2="94"/></g>' +
+  '<g class="tp-x tp-dish"><path class="tp-dish-b" d="M1288 10 q16 -22 36 -6 z"/><line class="tp-dish-p" x1="1306" y1="12" x2="1306" y2="2"/><path class="tp-wave" d="M1330 -6 q8 6 0 14 M1338 -12 q14 12 0 26"/></g>' +
+  /* evals readout: reference tread vs built tread */
+  '<g class="tp-x tp-cmp"><text class="tp-cmp-t" x="944" y="-40" text-anchor="middle">expected</text><circle class="tp-ci" cx="944" cy="-14" r="13"/><circle class="tp-ct ref" cx="944" cy="-14" r="19"/>' +
+  '<text class="tp-cmp-t vs" x="980" y="-8" text-anchor="middle">vs</text>' +
+  '<text class="tp-cmp-t" x="1016" y="-40" text-anchor="middle">built</text><circle class="tp-ci" cx="1016" cy="-14" r="13"/><circle class="tp-ct got" cx="1016" cy="-14" r="19"/>' +
+  '<g class="tp-mark bad"><circle cx="1060" cy="-14" r="13"/><path d="M1054 -20 l12 12 M1066 -20 l-12 12"/></g>' +
+  '<g class="tp-mark good"><circle cx="1060" cy="-14" r="13"/><path d="M1053 -14 l5 5 l9 -9"/></g></g>' +
+  /* night shift on the end wall */
+  '<g class="tp-x tp-night"><path class="tp-moon" d="M1372 196 a16 16 0 1 0 14 22 a12 12 0 1 1 -14 -22z"/><circle class="tp-clock" cx="1412" cy="210" r="16"/><line class="tp-hand" x1="1412" y1="210" x2="1412" y2="199"/><line class="tp-hand m" x1="1412" y1="210" x2="1420" y2="210"/></g>' +
+  /* floor */
+  '<line class="tp-floor" x1="0" y1="390" x2="1434" y2="390"/>' +
+  /* rules: standards board */
+  '<g class="tp-x tp-rules"><line class="tp-pole" x1="222" y1="262" x2="222" y2="390"/><rect class="tp-board" x="190" y="200" width="64" height="62" rx="4"/><rect class="tp-board-h" x="190" y="200" width="64" height="14" rx="4"/><line class="tp-bl" x1="198" y1="224" x2="246" y2="224"/><line class="tp-bl" x1="198" y1="236" x2="240" y2="236"/><line class="tp-bl" x1="198" y1="248" x2="246" y2="248"/></g>' +
+  /* 1 order terminal */
+  '<g class="tp-m"><rect class="tp-body" x="74" y="252" width="72" height="136" rx="6"/><rect class="tp-body" x="80" y="196" width="60" height="50" rx="5"/><rect class="tp-screen" x="86" y="202" width="48" height="36" rx="3"/><rect class="tp-slot" x="88" y="268" width="44" height="6" rx="2"/><rect class="tp-slip" x="98" y="274" width="24" height="26"/></g>' +
+  /* 2 spec station: desk, monitor, binders (skills), small robot arm */
+  '<g class="tp-m"><rect class="tp-body" x="276" y="300" width="160" height="10" rx="3"/><line class="tp-leg" x1="286" y1="310" x2="286" y2="388"/><line class="tp-leg" x1="426" y1="310" x2="426" y2="388"/>' +
+  '<rect class="tp-body" x="290" y="232" width="84" height="60" rx="5"/><rect class="tp-screen" x="296" y="238" width="72" height="46" rx="3"/><circle class="tp-blue" cx="318" cy="261" r="12"/><line class="tp-blue" x1="338" y1="250" x2="360" y2="250"/><line class="tp-blue" x1="338" y1="261" x2="360" y2="261"/><line class="tp-blue" x1="338" y1="272" x2="354" y2="272"/><rect class="tp-body" x="326" y="292" width="12" height="8"/>' +
+  '<g class="tp-binders"><rect class="tp-bind b1" x="386" y="256" width="13" height="44" rx="2"/><rect class="tp-bind b2" x="401" y="250" width="13" height="50" rx="2"/><rect class="tp-bind b3" x="416" y="258" width="13" height="42" rx="2"/></g></g>' +
+  /* 3 tire building machine + big robot arm */
+  '<g class="tp-m"><rect class="tp-body" x="520" y="360" width="152" height="28" rx="4"/><rect class="tp-body" x="528" y="236" width="16" height="124"/><rect class="tp-body" x="648" y="236" width="16" height="124"/>' +
+  '<rect class="tp-drum" x="544" y="262" width="104" height="56" rx="6"/><line class="tp-drum-l" x1="548" y1="276" x2="644" y2="276"/><line class="tp-drum-l" x1="548" y1="290" x2="644" y2="290"/><line class="tp-drum-l" x1="548" y1="304" x2="644" y2="304"/></g>' +
+  '<g class="tp-x tp-hook-scale"><rect class="tp-scale" x="556" y="348" width="80" height="10" rx="3"/><text class="tp-kg" x="596" y="342" text-anchor="middle">kg</text></g>' +
+  arm(498, 388, 1.05, 'a-big') +
+  /* 4 curing press + X-ray arch */
+  '<g class="tp-m"><rect class="tp-body" x="770" y="200" width="138" height="10" rx="3"/><rect class="tp-body" x="770" y="200" width="12" height="134"/><rect class="tp-body" x="896" y="200" width="12" height="134"/>' +
+  '<rect class="tp-body" x="764" y="330" width="150" height="58" rx="6"/><rect class="tp-heat" x="786" y="300" width="106" height="30" rx="4"/><g class="tp-lid"><rect class="tp-body" x="782" y="246" width="114" height="22" rx="4"/><rect class="tp-body" x="832" y="210" width="14" height="36"/></g>' +
+  '<circle class="tp-beacon" cx="839" cy="190" r="9"/></g>' +
+  '<g class="tp-m"><line class="tp-xpost" x1="942" y1="300" x2="942" y2="388"/><line class="tp-xpost" x1="982" y1="300" x2="982" y2="388"/><rect class="tp-body" x="936" y="292" width="52" height="10" rx="3"/><line class="tp-xbeam" x1="962" y1="302" x2="962" y2="384"/></g>' +
+  '<g class="tp-x tp-hook-gauge"><rect class="tp-gauge" x="742" y="262" width="14" height="66" rx="7"/><rect class="tp-gauge-fill" x="745" y="290" width="8" height="35" rx="4"/></g>' +
+  /* maintenance tech (CI health) */
+  '<g class="tp-x tp-tech"><circle class="tp-head" cx="712" cy="318" r="10"/><path class="tp-person" d="M698 388 v-40 q0 -18 14 -18 q14 0 14 18 v40z"/><path class="tp-wrench" d="M726 344 l16 -14 m-4 -3 a5 5 0 1 0 6 6"/></g>' +
+  /* 5 inspection: turntable, lamp, inspector; reject bin */
+  '<g class="tp-m"><rect class="tp-body" x="1072" y="350" width="20" height="38"/><ellipse class="tp-body" cx="1082" cy="350" rx="64" ry="11"/><g class="tp-turn"><ellipse class="tp-insp-tire" cx="1082" cy="334" rx="48" ry="14"/></g>' +
+  '<line class="tp-leg" x1="1158" y1="388" x2="1158" y2="216"/><line class="tp-leg" x1="1158" y1="216" x2="1094" y2="216"/><rect class="tp-body" x="1074" y="212" width="40" height="14" rx="4"/><polygon class="tp-cone" points="1080,226 1108,226 1136,318 1052,318"/>' +
+  '<circle class="tp-head" cx="1018" cy="300" r="11"/><path class="tp-person" d="M1003 388 v-50 q0 -22 15 -22 q15 0 15 22 v50z"/><circle class="tp-beacon b2" cx="1094" cy="204" r="8"/></g>' +
+  '<g class="tp-x tp-reject"><rect class="tp-bin" x="1176" y="334" width="50" height="54" rx="5"/><circle class="tp-rej" cx="1201" cy="300" r="14"/><circle class="tp-rej" cx="1201" cy="300" r="14" style="animation-delay:-1.2s"/></g>' +
+  '<path class="tp-x tp-feedback" d="M1196 396 H 410 V 300"/>' +
+  /* 6 shipping dock + truck + hold barrier */
+  '<g class="tp-m"><rect class="tp-body" x="1238" y="362" width="196" height="26" rx="3"/>' +
+  '<ellipse class="tp-stack" cx="1262" cy="352" rx="20" ry="7"/><ellipse class="tp-stack" cx="1262" cy="340" rx="20" ry="7"/><ellipse class="tp-stack" cx="1262" cy="328" rx="20" ry="7"/><ellipse class="tp-stack" cx="1306" cy="352" rx="20" ry="7"/><ellipse class="tp-stack" cx="1306" cy="340" rx="20" ry="7"/>' +
+  '<rect class="tp-body" x="1336" y="252" width="98" height="110" rx="4"/><rect class="tp-door" x="1344" y="262" width="82" height="92" rx="3"/></g>' +
+  '<g class="tp-x tp-hold"><rect class="tp-bar" x="1232" y="300" width="96" height="12" rx="3"/><text class="tp-hold-t" x="1280" y="292" text-anchor="middle">HOLD</text></g>' +
+  '</svg>';
+  /* in-scene annotations: [anchorX, anchorY, labelX, labelY, text-anchor, colour, text] (null anchor = no leader) */
+  const PINS = {
+    'harness':  [180,58, 180,-20, 'start','sky','Harness · Claude Code'],
+    'model':    [492,300, 478,214, 'middle','white','Model'],
+    'model-new':[492,300, 478,214, 'middle','violet','New model'],
+    'rules':    [null,0, 222,190, 'middle','sky','Rules'],
+    'skills':   [429,262, 438,272, 'start','violet','Skills'],
+    'hooks':    [749,262, 738,232, 'middle','amber','Hooks'],
+    'evals':    [null,0, 839,-26, 'middle','lime','Evals'],
+    'night':    [1366,208, 1346,208, 'end','orange','Scheduled task'],
+    'routine':  [null,0, 1276,0, 'end','pink','Routine'],
+    'reject':   [1201,334, 1201,258, 'middle','amber','Review comments'],
+    'score':    [null,0, 332,216, 'middle','orange','92 · 71 · 40'],
+    'tech':     [null,0, 712,290, 'middle','violet','triage-ci'],
+    'ledger':   [null,0, 962,282, 'middle','amber','Flaky ledger'],
+    'alarm':    [848,190, 862,190, 'start','red','Main is red'],
+    'fixpr':    [848,190, 862,190, 'start','lime','Fix PR · green'],
+    'tread':    [1000,166, 1000,188, 'middle','violet','Different tread'],
+    'crew-a':   [null,0, 392,204, 'crew','orange','A','Skill + evals','start'],
+    'crew-b':   [null,0, 1201,256, 'crew','orange','B','Scoring + gate','end'],
+    'crew-c':   [null,0, 1250,-6, 'crew','orange','C','Schedule, then routine','end'],
+    'crew-d':   [null,0, 1385,236, 'crew','orange','D','Plugin + retro','end'],
+  };
+  function pin(key, st, out){
+    const p = PINS[key]; if (!p) return '';
+    const [ax,ay,lx,ly,anc,col,txt] = p;
+    const at = ' data-s="'+st+'"'+(out!=null?' data-out="'+out+'"':'');
+    if (anc==='crew'){ const side=p[8], tx = side==='end' ? lx-22 : lx+22;
+      return '<g class="tp-pin crewpin fade c-orange"'+at+'><circle cx="'+lx+'" cy="'+ly+'" r="15"/><text class="tp-crew-l" x="'+lx+'" y="'+(ly+6)+'" text-anchor="middle">'+txt+'</text><text class="tp-pin-t" x="'+tx+'" y="'+(ly+6)+'" text-anchor="'+side+'">'+p[7]+'</text></g>'; }
+    let g = '<g class="tp-pin fade c-'+col+'"'+at+'>';
+    if (ax!=null){
+      g += '<circle class="tp-pulse" cx="'+ax+'" cy="'+ay+'" r="5"/><circle class="tp-dot" cx="'+ax+'" cy="'+ay+'" r="4"/>';
+      const ex = anc==='start' ? lx-6 : anc==='end' ? lx+6 : lx, ey = anc==='middle' ? (ly>ay? ly-16 : ly+4) : ly-6;
+      g += '<line class="tp-lead" x1="'+ax+'" y1="'+ay+'" x2="'+ex+'" y2="'+ey+'"/>';
+    }
+    return g + '<text class="tp-pin-t" x="'+lx+'" y="'+ly+'" text-anchor="'+anc+'">'+txt+'</text></g>';
+  }
+  const names = [['Order terminal','Ticket'],['Spec station','Planning agent'],['Tire builder','Coding agent'],['Curing press and X-ray','CI'],['Final inspection','Code review'],['Shipping dock','Release']];
+  function build(el){
+    const intro = el.dataset.intro === '1';
+    /* pins: "step:key" or "step-outstep:key" (shown from step, gone at outstep) */
+    let pins = '';
+    (el.dataset.pins||'').split('|').filter(Boolean).forEach(x=>{ const i=x.indexOf(':'), r=x.slice(0,i).split('-'); pins += pin(x.slice(i+1).trim(), +r[0], r[1]!=null ? +r[1] : null); });
+    let h = svg.replace('</svg>', pins + '</svg>');
+    names.forEach((n,i)=>{
+      const a = intro ? ' data-s="0" style="left:'+CX[i]+'px;--d:'+(i*0.15).toFixed(2)+'s"' : ' style="left:'+CX[i]+'px"';
+      h += '<div class="tp-lab"'+a+'><b>'+n[0]+'</b><span class="tp-sd'+(intro?' tp-late':'')+'" style="--d2:'+(0.9+i*0.12).toFixed(2)+'s">'+n[1]+'</span></div>';
+    });
+    el.insertAdjacentHTML('afterbegin', h);
+  }
+  document.querySelectorAll('.tplant').forEach(build);
+})();
+</script>
+
+<script>
+(function(){
+  const deck = document.getElementById('deck');
+  const slides = Array.from(deck.querySelectorAll('.slide'));
+  const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let cur = 0, step = 0, printing = false;
+
+  /* ---------- scale ---------- */
+  function fit(){
+    const open = document.body.classList.contains('notes-open');
+    const H = open ? window.innerHeight*0.64 : window.innerHeight;
+    const s = Math.min(window.innerWidth/1600, H/900);
+    deck.style.setProperty('--scale', s);
+    deck.style.top = open ? (H/2)+'px' : '50%';
+  }
+  window.addEventListener('resize', fit); fit();
+
+  /* ---------- chrome + page numbers ---------- */
+  slides.forEach((s,i)=>{
+    if (s.classList.contains('content')){
+      const c = document.createElement('div'); c.className='chrome';
+      c.innerHTML = '<div class="wm">WUNDERDOG</div><div class="pg">'+(i+1)+'</div>';
+      s.prepend(c);
+    }
+  });
+
+  /* ---------- typing / counters ---------- */
+  deck.querySelectorAll('.typing').forEach(e=>{ e.dataset.text = e.textContent; e.textContent=''; });
+  function typeIt(e, instant){
+    clearInterval(e._t); const txt = e.dataset.text || '';
+    if (instant || reduce){ e.textContent = txt; e.classList.remove('busy'); return; }
+    let i = 0; e.textContent=''; e.classList.add('busy');
+    e._t = setInterval(()=>{ i++; e.textContent = txt.slice(0,i); if (i>=txt.length){ clearInterval(e._t); setTimeout(()=>e.classList.remove('busy'),600);} }, 32);
+  }
+  function untype(e){ clearInterval(e._t); e.textContent=''; e.classList.remove('busy'); }
+  function fmt(e,v){ const d=+(e.dataset.dec||0); return v.toFixed(d) + (e.dataset.suffix||''); }
+  function countIt(e, instant){
+    cancelAnimationFrame(e._r);
+    const a=+(e.dataset.from||0), b=+(e.dataset.to||0);
+    if (instant || reduce){ e.textContent = fmt(e,b); return; }
+    const t0 = performance.now(), dur = 1300, delay = parseFloat(getComputedStyle(e).getPropertyValue('--d'))*1000 || 0;
+    e.textContent = fmt(e,a);
+    const tick = now=>{ const p = Math.min(1, Math.max(0,(now-t0-delay)/dur)); const k = 1-Math.pow(1-p,3);
+      e.textContent = fmt(e, a+(b-a)*k); if (p<1) e._r = requestAnimationFrame(tick); };
+    e._r = requestAnimationFrame(tick);
+  }
+  function uncount(e){ cancelAnimationFrame(e._r); e.textContent = fmt(e, +(e.dataset.from||0)); }
+  function owned(e, sel, attr){ // descendants (and self) whose nearest trigger is e
+    const list = []; if (e.matches(sel)) list.push(e);
+    e.querySelectorAll(sel).forEach(x=>{ if (x.closest('['+attr+']')===e) list.push(x); });
+    return list.filter(x=> x===e || !x.hasAttribute(attr) );
+  }
+  function activate(e, attr, on, instant){
+    owned(e,'.typing',attr).forEach(x=> on ? typeIt(x,instant) : untype(x));
+    owned(e,'.count',attr).forEach(x=> on ? countIt(x,instant) : uncount(x));
+  }
+  /* static counters (no trigger anywhere above) start at their final value */
+  deck.querySelectorAll('.count').forEach(x=>{ if(!x.closest('[data-s],[data-mv]')) x.textContent = fmt(x,+x.dataset.to); });
+
+  /* ---------- draw-path lengths ---------- */
+  function measure(root){ root.querySelectorAll('svg .draw').forEach(p=>{ try{ const L=p.getTotalLength(); p.style.setProperty('--len', Math.ceil(L)+1); }catch(_){} }); }
+
+  /* ---------- hooks ---------- */
+  const hooks = {};
+  const maxOf = s => { if (s._max!=null) return s._max; let m=0;
+    s.querySelectorAll('[data-s],[data-out],[data-mv]').forEach(e=>['s','out','mv'].forEach(k=>{ const v=parseInt(e.dataset[k],10); if(!isNaN(v)) m=Math.max(m,v); }));
+    return s._max=m; };
+
+  function applyStep(s, n, instant){
+    s.querySelectorAll('[data-s]').forEach(e=>{
+      const on = n >= +e.dataset.s, was = e.classList.contains('on');
+      if (on && !was){ e.classList.add('on'); activate(e,'data-s',true,instant); }
+      else if (!on && was){ e.classList.remove('on'); activate(e,'data-s',false); }
+      else if (on && instant) activate(e,'data-s',true,true);
+    });
+    s.querySelectorAll('[data-out]').forEach(e=> e.classList.toggle('gone', n >= +e.dataset.out));
+    s.querySelectorAll('[data-mv]').forEach(e=>{
+      const on = n >= +e.dataset.mv, was = e.classList.contains('mv');
+      if (on && !was){ e.classList.add('mv'); activate(e,'data-mv',true,instant); }
+      else if (!on && was){ e.classList.remove('mv'); activate(e,'data-mv',false); }
+    });
+    const h = hooks[s.dataset.hook]; if (h && h.step) h.step(s,n);
+  }
+
+  /* ---------- streak canvas (cover + dividers) ---------- */
+  function rnd(i){ const x = Math.sin(i*127.1+311.7)*43758.5453; return x-Math.floor(x); }
+  function drawStreaks(cv, t){
+    const ctx = cv.getContext('2d'), W=1600, H=900, s = cv.closest('.slide');
+    const [ox,oy] = (s.dataset.o||'980,520').split(',').map(Number); const dim = s.dataset.dim ? .72 : 1;
+    ctx.save(); ctx.globalCompositeOperation='source-over'; ctx.globalAlpha=1; ctx.filter='none';
+    let g = ctx.createLinearGradient(0,0,W,H); g.addColorStop(0,'#03060d'); g.addColorStop(.55,'#081430'); g.addColorStop(1,'#0a2a5e');
+    ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+    ctx.globalCompositeOperation='lighter';
+    // warm glow, top right
+    let r = ctx.createRadialGradient(W*.97,H*.02,0,W*.97,H*.02,W*.62);
+    r.addColorStop(0,`rgba(255,112,40,${.8*dim})`); r.addColorStop(.4,`rgba(190,60,50,${.28*dim})`); r.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=r; ctx.fillRect(0,0,W,H);
+    // blue beam toward lower left
+    ctx.save(); ctx.translate(ox,oy); ctx.rotate(Math.atan2(H+260-oy, -420-ox));
+    [[1700,70,.85,'rgba(150,210,255,1)'],[1700,190,.45,'rgba(60,130,255,1)'],[1700,420,.28,'rgba(30,80,220,1)']].forEach(([len,sp,a,c],k)=>{
+      const lg = ctx.createLinearGradient(0,0,len,0); lg.addColorStop(0,c); lg.addColorStop(.3,'rgba(40,110,255,.55)'); lg.addColorStop(1,'rgba(10,30,90,0)');
+      ctx.fillStyle=lg; ctx.globalAlpha=a*dim; ctx.beginPath(); ctx.moveTo(0,-4); ctx.lineTo(len,-sp); ctx.lineTo(len,sp*.55); ctx.lineTo(0,4); ctx.closePath(); ctx.fill();
+    });
+    ctx.restore();
+    // rays to the upper right
+    const N = 54;
+    for (let i=0;i<N;i++){
+      const f = i/(N-1), a = -0.80 + f*0.58 + 0.016*Math.sin(t*0.55 + i*1.9);
+      const hue = f<.35 ? [255,120+f*200,40] : f<.7 ? [255,90+ (f-.35)*120,160+(f-.35)*200] : [200-(f-.7)*200,170+(f-.7)*150,255];
+      const len = 900 + rnd(i)*900, w = 1 + rnd(i+9)*7, al = (.18 + rnd(i+3)*.45) * (.75 + .25*Math.sin(t*0.9 + i)) * dim;
+      ctx.save(); ctx.translate(ox,oy); ctx.rotate(a);
+      const lg = ctx.createLinearGradient(0,0,len,0);
+      lg.addColorStop(0,'rgba(255,255,255,0)'); lg.addColorStop(.06,`rgba(255,240,230,${al})`);
+      lg.addColorStop(.3,`rgba(${hue[0]|0},${hue[1]|0},${hue[2]|0},${al*.9})`); lg.addColorStop(1,`rgba(${hue[0]|0},${hue[1]|0},${hue[2]|0},0)`);
+      ctx.strokeStyle=lg; ctx.lineWidth=w; ctx.globalAlpha=1;
+      ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(len,0); ctx.stroke();
+      ctx.restore();
+    }
+    // hot core
+    let c = ctx.createRadialGradient(ox,oy,0,ox,oy,170); c.addColorStop(0,`rgba(255,235,210,${.95*dim})`); c.addColorStop(.2,`rgba(255,140,60,${.5*dim})`); c.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=c; ctx.fillRect(ox-200,oy-200,400,400);
+    ctx.restore();
+  }
+  let rafId = 0, lastDraw = 0;
+  hooks.streaks = {
+    enter(s){ const cv = s.querySelector('canvas'); cancelAnimationFrame(rafId);
+      const t0 = performance.now(); drawStreaks(cv,0);
+      if (reduce) return;
+      const loop = now=>{ if (now-lastDraw > 33){ drawStreaks(cv,(now-t0)/1000); lastDraw = now; } rafId = requestAnimationFrame(loop); };
+      rafId = requestAnimationFrame(loop); },
+    leave(){ cancelAnimationFrame(rafId); },
+    print(s){ drawStreaks(s.querySelector('canvas'), 0); }
+  };
+  slides.forEach(s=>{ const cv=s.querySelector('canvas.streaks'); if (cv) drawStreaks(cv,0); });
+
+  /* ---------- pass@k chart ---------- */
+  hooks.passk = (function(){
+    const X = k => 90 + (k-1)*80, Y = v => 470 - v*430;
+    let built = false;
+    function build(s){
+      if (built) return; built = true;
+      const ax = s.querySelector('.axes'); let h = '';
+      [0,.25,.5,.75,1].forEach(v=>{ h += `<line class="grid" x1="90" x2="810" y1="${Y(v)}" y2="${Y(v)}"/><text x="76" y="${Y(v)+6}" text-anchor="end">${v*100}%</text>`; });
+      for (let k=1;k<=10;k++) h += `<text x="${X(k)}" y="505" text-anchor="middle">${k}</text>`;
+      h += `<text x="450" y="545" text-anchor="middle">k = number of runs</text>`;
+      ax.innerHTML = h;
+      const inp = s.querySelector('#pk-p');
+      inp.addEventListener('input', ()=>{ draw(s, +inp.value, true); });
+      draw(s, +inp.value, false);
+    }
+    function draw(s, p, live){
+      const at = [], pw = [];
+      for (let k=1;k<=10;k++){ at.push([X(k), Y(1-Math.pow(1-p,k))]); pw.push([X(k), Y(Math.pow(p,k))]); }
+      const d = pts => 'M'+pts.map(q=>q[0].toFixed(1)+' '+q[1].toFixed(1)).join(' L');
+      const a = s.querySelector('.curve-at'), b = s.querySelector('.curve-pow');
+      a.setAttribute('d', d(at)); b.setAttribute('d', d(pw));
+      if (live){ a.style.strokeDasharray='none'; b.style.strokeDasharray='none'; } else measure(s);
+      const v3a = 1-Math.pow(1-p,3), v3p = Math.pow(p,3);
+      const set = (sel, attrs)=>{ const e=s.querySelector(sel); for (const k in attrs) e.setAttribute(k, attrs[k]); return e; };
+      set('.k3',{x1:X(3),x2:X(3),y1:Y(1),y2:Y(0)});
+      set('.dot-at',{cx:X(3),cy:Y(v3a)}); set('.dot-pow',{cx:X(3),cy:Y(v3p)});
+      set('.lab-at',{x:X(3)+20,y:Y(v3a)+32}).textContent = Math.round(v3a*100)+'%';
+      set('.lab-pow',{x:X(3)+20,y:Y(v3p)+9}).textContent = Math.round(v3p*100)+'% for 3 in a row';
+      s.querySelector('#pk-pv').textContent = Math.round(p*100)+'%';
+    }
+    return { enter: build, print: build };
+  })();
+
+  /* ---------- cookie factory: data-fx="0:alarm|2:show-lab sampling|4:-alarm fixed" ---------- */
+  hooks.factory = { step(s,n){
+    const f = s.querySelector('.factory'); if (!f) return;
+    const spec = (f.dataset.fx||'').split('|').filter(Boolean).map(x=>{ const i=x.indexOf(':'); return [+x.slice(0,i), x.slice(i+1).trim().split(/\s+/).filter(Boolean)]; });
+    const on = new Set(), all = new Set();
+    spec.forEach(([k,cls])=>cls.forEach(c=>all.add(c.replace(/^-/,''))));
+    spec.forEach(([k,cls])=>{ if (k<=n) cls.forEach(c=> c[0]==='-' ? on.delete(c.slice(1)) : on.add(c)); });
+    all.forEach(c=> f.classList.toggle(c, on.has(c)));
+    /* a faster line (new model) speeds every running animation without restarting it */
+    const rate = f.classList.contains('fast') ? 1.8 : 1;
+    if ((f._rate||1) !== rate){ f._rate = rate;
+      f.querySelectorAll('animateTransform').forEach(a=>{ if (!a.dataset.dur) a.dataset.dur = parseFloat(a.getAttribute('dur')); a.setAttribute('dur', (a.dataset.dur/rate).toFixed(2)+'s'); }); }
+    if (f.getAnimations) f.getAnimations({subtree:true}).forEach(a=>{ if (a.animationName && a.playbackRate !== rate) a.updatePlaybackRate(rate); });
+  } };
+  /* ---------- timeline ---------- */
+  hooks.timeline = { step(s,n){ s.querySelector('.fill').style.setProperty('--p', Math.min(.9, .1 + .2*n)); }, print(s){ s.querySelector('.fill').style.setProperty('--p', .9);} };
+
+  /* ---------- network levels ---------- */
+  hooks.net = (function(){
+    const allow = { none:[], trusted:['npm','pypi'], custom:['npm','pypi','corp'], full:['npm','pypi','corp','any'] };
+    let built=false;
+    function set(s, lvl){
+      s.querySelectorAll('.seg button').forEach(b=> b.setAttribute('aria-pressed', b.dataset.level===lvl ? 'true':'false'));
+      s.querySelectorAll('.host').forEach(h=>{ const ok = allow[lvl].includes(h.dataset.h);
+        h.classList.toggle('ok',ok); h.classList.toggle('no',!ok); h.querySelector('.st').textContent = ok ? 'allowed' : 'blocked'; });
+    }
+    function build(s){ if (built) return; built=true;
+      s.querySelectorAll('.seg button').forEach(b=> b.addEventListener('click', e=>{ e.stopPropagation(); set(s, b.dataset.level); }));
+      set(s,'trusted'); }
+    return { enter: build, print: build };
+  })();
+
+  /* ---------- module grid ---------- */
+  hooks.mods = (function(){ let built=false;
+    function build(s){ if (built) return; built=true; const g = s.querySelector('.mods'); let h='';
+      for (let i=0;i<48;i++) h += `<i style="--d:${(rnd(i+40)*2.6).toFixed(2)}s"></i>`; g.innerHTML = h; }
+    return { enter: build, print: build }; })();
+
+  /* ---------- navigation ---------- */
+  const prog = document.getElementById('prog'), ctr = document.getElementById('ctr');
+  function setHash(){ try{ history.replaceState(null,'','#s'+(cur+1)); }catch(_){} }
+  function render(){ prog.style.width = ((cur + (maxOf(slides[cur]) ? step/maxOf(slides[cur]) : 1)) / slides.length * 100) + '%';
+    ctr.textContent = (cur+1)+' / '+slides.length; }
+  let onSlide = ()=>{};
+  let bc = null; try{ bc = new BroadcastChannel('wd-evals-cloud-deck'); }catch(_){}
+  function go(i, n, instant, remote){
+    i = Math.max(0, Math.min(slides.length-1, i));
+    const prev = slides[cur];
+    if (i !== cur){
+      const h = hooks[prev.dataset.hook]; if (h && h.leave) h.leave(prev);
+      prev.classList.remove('active');
+      const p = prev; setTimeout(()=>{ if (!p.classList.contains('active')) applyStep(p,-1); }, 600);
+    }
+    const s = slides[i]; cur = i; step = Math.max(0, Math.min(maxOf(s), n));
+    const h = hooks[s.dataset.hook];
+    if (!s.classList.contains('active')){
+      if (h && h.enter) h.enter(s);
+      applyStep(s, -1); s.classList.add('active');
+      measure(s);
+      requestAnimationFrame(()=>requestAnimationFrame(()=>applyStep(s, step, instant)));
+    } else applyStep(s, step, instant);
+    render(); setHash(); onSlide();
+    if (!remote && bc) { try{ bc.postMessage({i:cur, n:step}); }catch(_){} }
+  }
+  /* autoplay: every step on a slide plays by itself once the slide opens */
+  let timers = [];
+  function stopAuto(){ timers.forEach(clearTimeout); timers = []; }
+  function paceOf(s, k){ // delay (ms) before step k (1-based)
+    const list = (s.dataset.pace||'').split(',').map(Number).filter(x=>!isNaN(x) && x>0);
+    return list[k-1] || list[list.length-1] || 950;
+  }
+  function autoplay(){
+    stopAuto(); const s = slides[cur], mx = maxOf(s), idx = cur; let t = 0;
+    for (let k = step+1; k <= mx; k++){
+      t += reduce ? 250 : paceOf(s,k);
+      const kk = k; timers.push(setTimeout(()=>{ if (cur===idx){ step = kk; applyStep(s, kk); render(); } }, t));
+    }
+  }
+  function next(){
+    const mx = maxOf(slides[cur]);
+    if (step < mx){ stopAuto(); go(cur, mx, true); }          // first press finishes the current animation
+    else if (cur < slides.length-1){ go(cur+1, 0); autoplay(); }
+  }
+  function prev(){ stopAuto(); if (cur > 0) go(cur-1, maxOf(slides[cur-1]), true); }
+
+  document.addEventListener('keydown', e=>{
+    if (e.target.closest && e.target.closest('textarea,[contenteditable="true"]')) { if (e.key==='Escape') e.target.blur(); return; }
+    if (e.target.closest && e.target.closest('input')) { if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)) return; }
+    const ov = document.getElementById('ov');
+    if (ov.classList.contains('open')){ if (e.key==='Escape' || e.key==='o' || e.key==='O'){ toggleOv(false); } return; }
+    if (['ArrowRight','ArrowDown','PageDown',' ','Enter'].includes(e.key)){ if (e.key==='Enter' && e.target.closest('button')) return; e.preventDefault(); next(); }
+    else if (['ArrowLeft','ArrowUp','PageUp','Backspace'].includes(e.key)){ e.preventDefault(); prev(); }
+    else if (e.key==='Home'){ stopAuto(); go(0,0); autoplay(); } else if (e.key==='End'){ stopAuto(); go(slides.length-1, 0); autoplay(); }
+    else if (e.key==='r' || e.key==='R'){ replay(); }
+    else if (e.key==='o' || e.key==='O'){ toggleOv(true); }
+    else if (e.key==='f' || e.key==='F'){ fs(); }
+    else if ((e.key==='n' || e.key==='N') && notesOn){ toggleNotes(); }
+    else if (e.key==='Escape' && notesOpen){ toggleNotes(false); }
+  });
+  deck.addEventListener('click', e=>{ if (e.target.closest('.interactive,button,a,input,label')) return; next(); });
+  let tx=null, ty=null;
+  deck.addEventListener('touchstart', e=>{ tx=e.touches[0].clientX; ty=e.touches[0].clientY; }, {passive:true});
+  deck.addEventListener('touchend', e=>{ if (tx==null) return; const dx=e.changedTouches[0].clientX-tx, dy=e.changedTouches[0].clientY-ty;
+    if (Math.abs(dx)>40 && Math.abs(dx)>Math.abs(dy)){ dx<0 ? next() : prev(); } tx=null; });
+  document.getElementById('b-next').onclick = next;
+  document.getElementById('b-prev').onclick = prev;
+  document.getElementById('b-ov').onclick = ()=>toggleOv(true);
+  document.getElementById('b-fs').onclick = fs;
+  function fs(){ try{ if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(()=>{}); else document.exitFullscreen(); }catch(_){} }
+
+  /* overview */
+  const ovg = document.getElementById('ovg');
+  slides.forEach((s,i)=>{ const b=document.createElement('button'); b.type='button';
+    b.innerHTML = '<span>'+String(i+1).padStart(2,'0')+'</span>'+ (s.dataset.title||'');
+    b.onclick = ()=>{ toggleOv(false); stopAuto(); go(i,0); autoplay(); }; ovg.appendChild(b); });
+  function replay(){ stopAuto(); const s = slides[cur]; applyStep(s,-1); step = 0;
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{ applyStep(s,0); render(); autoplay(); })); }
+  function toggleOv(open){ const ov=document.getElementById('ov'); ov.classList.toggle('open',open);
+    if (open){ ovg.querySelectorAll('button').forEach((b,i)=>b.classList.toggle('cur',i===cur)); const c=ovg.children[cur]; c && c.focus(); } }
+
+  /* idle UI */
+  let idle; function poke(){ document.body.classList.add('show-ui'); clearTimeout(idle); idle=setTimeout(()=>document.body.classList.remove('show-ui'),2500); }
+  ['mousemove','touchstart','keydown'].forEach(ev=>document.addEventListener(ev,poke,{passive:true})); poke();
+
+  /* print: every slide in its final state */
+  function prepPrint(){ printing = true; stopAuto(); cancelAnimationFrame(rafId);
+    slides.forEach(s=>{ const h=hooks[s.dataset.hook]; if (h && h.print) h.print(s); measure(s); applyStep(s, maxOf(s), true); s.classList.add('active'); }); }
+  function endPrint(){ printing = false; slides.forEach((s,i)=>{ if (i!==cur){ s.classList.remove('active'); applyStep(s,-1);} }); go(cur, step, true); const h=hooks[slides[cur].dataset.hook]; if (h && h.enter) h.enter(slides[cur]); }
+  window.addEventListener('beforeprint', prepPrint);
+  window.addEventListener('afterprint', endPrint);
+  window.__prepPrint = prepPrint;
+
+  /* ---------- presenter sync between tabs ---------- */
+  if (bc) bc.onmessage = e=>{ const d = e.data||{}; if (typeof d.i !== 'number') return; stopAuto(); go(d.i, d.n|0, true, true); if ((d.n|0)===0) autoplay(); };
+
+  /* ---------- presenter notes: owner only, kept in the artifact's db ---------- */
+  const slug = t => (t||'').toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,80);
+  slides.forEach((s,i)=>{ s.dataset.key = slug(s.dataset.title) || ('slide-'+(i+1)); });
+  const np = document.getElementById('np'), nta = document.getElementById('np-text'), nst = document.getElementById('np-status'), nti = document.getElementById('np-title'), bnotes = document.getElementById('b-notes');
+  let notesOn = false, notesOpen = false, notesDb = null, notes = {}, dirty = false, saveT = null, saving = Promise.resolve();
+  function showNote(){
+    if (!notesOn) return;
+    const s = slides[cur], key = s.dataset.key;
+    nti.textContent = (cur+1)+' · '+(s.dataset.noteTitle||s.dataset.title||'');
+    if (nta.dataset.key !== key || !dirty){ nta.value = notes[key] || ''; nta.dataset.key = key; dirty = false; }
+    nst.textContent = notes[key] ? 'Saved' : 'No notes yet';
+  }
+  onSlide = showNote;
+  function toggleNotes(open){
+    if (!notesOn) return;
+    notesOpen = open === undefined ? !notesOpen : open;
+    np.hidden = !notesOpen; document.body.classList.toggle('notes-open', notesOpen); fit();
+    if (notesOpen) showNote();
+  }
+  async function saveNote(key, text){
+    nst.textContent = 'Saving…';
+    try{
+      const title = (slides.find(x=>x.dataset.key===key)||{dataset:{}}).dataset.title || '';
+      await notesDb.doc('notes/'+key).set({text, title, updatedAt: new Date().toISOString()});
+      notes[key] = text; if (slides[cur].dataset.key === key) nst.textContent = 'Saved';
+    }catch(err){ nst.textContent = 'Not saved ('+((err&&err.code)||'error')+')'; }
+  }
+  nta.addEventListener('input', ()=>{
+    dirty = true; const key = nta.dataset.key, text = nta.value; nst.textContent = 'Editing…';
+    clearTimeout(saveT); saveT = setTimeout(()=>{ saving = saving.then(()=>saveNote(key, text)); if (nta.dataset.key===key) dirty = false; }, 900);
+  });
+  bnotes.onclick = ()=>toggleNotes();
+  document.getElementById('np-close').onclick = ()=>toggleNotes(false);
+  (async function enableNotes(){
+    try{
+      if (!window.claude || !window.claude.use) return;
+      const user = await window.claude.use('user'); if (!user || !((await user.isOwner()) || (await user.canEdit()))) return;
+      const db = await window.claude.use('db'); if (!db) return;
+      notesDb = db; notesOn = true; bnotes.hidden = false;
+      document.getElementById('hint').textContent = '→ next slide · R replay · O overview · N notes';
+      db.collection('notes').onSnapshot(snap=>{
+        snap.docs.forEach(d=>{ const v = d.data(); if (v && typeof v.text === 'string') notes[d.id] = v.text; });
+        if (notesOpen) showNote();
+      }, ()=>{});
+    }catch(_){}
+  })();
+
+  /* start */
+  const m = /^#s(\d+)$/.exec(location.hash||'');
+  go(m ? (+m[1]-1) : 0, 0); autoplay();
+})();
+</script>
+
+</body></html>

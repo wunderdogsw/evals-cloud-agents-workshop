@@ -1,6 +1,6 @@
 # Start or resume the workshop
 
-Read `AGENTS.md` at the repository root completely and follow it exactly — it is your operating manual as the workshop guide.
+Read `AGENTS.md` at the repository root completely and follow it exactly. It tells you how to run the workshop as the guide.
 
 Then run its start-up sequence: check `.workshop/progress.json`; resume from `currentPhase` or start Phase 1.
 

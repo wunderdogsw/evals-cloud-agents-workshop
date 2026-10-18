@@ -1,24 +1,39 @@
 /**
  * Workshop helper used by the guide. Run via:  pnpm workshop <command> …
  *
- *   attach <git-url | local-path | sample> [--name n] [--participant p]
+ *   attach <git-url | local-path | sample> [--name n] [--participant p] [--setup broken|good|none]
+ *       --setup (sample only): the sample's agent setup — broken (default), good (reference fix) or none
  *   profile <name> [--redetect]          (keeps manually corrected commands unless --redetect)
  *   install <name> <component…> [--suite s] [--force]
- *       components: evals | subject-cost-coder | ci-evals | cursor-env | agents-section | review-md | agent-tasks
+ *       components: evals | subject-cost-coder | ci-evals | cursor-env | agents-section | review-md | agent-tasks | agent-suite | ci-agent-evals
                    optional, only where Claude may run in CI: ci-evals-live | ci-claude | ci-review
  *   delegate <name> (--issue n | --task "…" | --task-file f) [--agent claude|cursor] [--no-push]
  *       run Claude Code or the Cursor CLI headless on a fresh branch, then push it and open an MR/PR
  *   review <name> <branch> [--agent claude|cursor] [--post]
  *       read-only agent review of a branch; --post puts it on the MR/PR via glab/gh
  *   catchup <phase> [--participant p]
+ *   ci-check <name>
+ *       list CI lines that look like deploys, so nobody's push to a real repo triggers production
+ *   cleanup <name> [--yes]
+ *       list (dry run) or undo everything the workshop created: MRs/PRs, dev-days-workshop/* branches
+ *       (remote and local), the start tag, worktrees, and the backed-up ~/.claude / ~/.cursor files
  *   status
+ *
+ * Safety on real repos: all work happens on dev-days-workshop/<participant> branches, every push this
+ * helper makes goes through .agents/assets/push-guard.mjs, and MRs/PRs target the workshop branch,
+ * never the default branch.
  */
 import { execSync, spawnSync } from "node:child_process";
-import { tmpdir } from "node:os";
-import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { homedir, tmpdir } from "node:os";
+import { copyFileSync, cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
+// @ts-ignore — plain ESM module shared with the Claude Code / Cursor hooks.
+import { checkCommand, contextFor, explain, PREFIX } from "./push-guard.mjs";
+
+/** Every workshop branch starts with this, e.g. dev-days-workshop/mikko. */
+const BRANCH_PREFIX: string = PREFIX;
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const TARGETS = join(ROOT, "targets");
@@ -51,6 +66,14 @@ function ok(cmd: string, cwd = ROOT): boolean {
   }
 }
 
+/** Push through the same guard the agent hooks use; refuses anything outside dev-days-workshop/* on real repos. */
+function guardedPush(args: string, dir: string): string {
+  const cmd = `git push ${args}`;
+  const res = checkCommand(cmd, dir, contextFor);
+  if (!res.allowed) die(explain(res.problems));
+  return run(cmd, dir);
+}
+
 function readJson<T = any>(p: string, fallback: T): T {
   return existsSync(p) ? JSON.parse(readFileSync(p, "utf8")) : fallback;
 }
@@ -59,9 +82,19 @@ function writeJson(p: string, v: unknown) {
   writeFileSync(p, JSON.stringify(v, null, 2) + "\n");
 }
 
+/** Number of phases, read from the AGENTS.md phase map so it never drifts from the docs. */
+function phaseCount(): number {
+  const md = readFileSync(join(ROOT, "AGENTS.md"), "utf8");
+  const sec = md.split(/^## /m).find((x) => x.startsWith("Phase map"));
+  const nums = [...(sec ?? "").matchAll(/^\|\s*(\d+)\s*\|/gm)].map((m) => Number(m[1]));
+  if (!nums.length) die("AGENTS.md has no phase map");
+  return Math.max(...nums);
+}
+
 function initialProgress() {
   const phases: Record<string, unknown> = {};
-  for (let i = 1; i <= 10; i++) phases[String(i)] = { status: "not_started", startedAt: null, completedAt: null };
+  const count = phaseCount();
+  for (let i = 1; i <= count; i++) phases[String(i)] = { status: "not_started", startedAt: null, completedAt: null };
   return { version: 1, participant: null, activeTarget: null, targets: {}, currentPhase: 1, phases };
 }
 
@@ -83,15 +116,24 @@ function slug(s: string) {
   return s.toLowerCase().replace(/\.git$/, "").replace(/[^a-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "") || "target";
 }
 
-function attach(src: string, opts: { name?: string; participant?: string }) {
+function attach(src: string, opts: { name?: string; participant?: string; setup?: string }) {
   mkdirSync(TARGETS, { recursive: true });
   const participant = slug(opts.participant ?? (tryRun("git config user.name") || process.env.USER || "me"));
-  const branch = `workshop/${participant}`;
+  const branch = `${BRANCH_PREFIX}${participant}`;
+  // Marks where the workshop started, so `cleanup` (or a person) can see and undo everything after it.
+  const startTag = `${BRANCH_PREFIX}${participant}-start`;
+  const tagStart = (repo: string, at: string) => {
+    if (!tryRun(`git rev-parse --verify --quiet refs/tags/${startTag}`, repo)) run(`git tag ${startTag} ${at}`, repo);
+  };
   let name: string;
   let source: Profile["source"];
 
   if (src === "sample") {
-    name = opts.name ?? "cost-coder";
+    // Three agent setups, so each path of Phases 2–5 can be tried on the sample:
+    //   broken (default) — problems added on purpose; good — the reference fix; none — no CLAUDE.md or AGENTS.md.
+    const setup = opts.setup ?? "broken";
+    if (!["broken", "good", "none"].includes(setup)) die(`--setup must be broken, good or none (got "${setup}")`);
+    name = opts.name ?? (setup === "broken" ? "cost-coder" : `cost-coder-${setup}`);
     source = "sample";
     const dest = join(TARGETS, name);
     if (existsSync(dest)) die(`targets/${name} already exists. Pick another --name or remove it.`);
@@ -99,8 +141,12 @@ function attach(src: string, opts: { name?: string; participant?: string }) {
       recursive: true,
       filter: (p) => !/(^|\/)(node_modules|\.eval-runs|\.agent-runs)(\/|$)/.test(relative(join(ROOT, "samples"), p)),
     });
+    if (setup === "good") cpSync(join(KIT, "catchup", "cost-coder", "agent-setup"), dest, { recursive: true, force: true });
+    if (setup === "none") for (const f of ["CLAUDE.md", "AGENTS.md"]) rmSync(join(dest, f), { force: true });
+    if (setup !== "broken") log(`✓ sample agent setup: ${setup}`);
     run(`git init -q -b main`, dest);
     run(`git add -A && git -c user.email=workshop@example.invalid -c user.name=workshop commit -qm "Initial commit: cost-coder sample"`, dest);
+    tagStart(dest, "HEAD");
     run(`git checkout -q -b ${branch}`, dest);
   } else if (/^(https?:\/\/|git@|ssh:\/\/)/.test(src)) {
     name = opts.name ?? slug(basename(src));
@@ -108,6 +154,7 @@ function attach(src: string, opts: { name?: string; participant?: string }) {
     const dest = join(TARGETS, name);
     if (existsSync(dest)) die(`targets/${name} already exists. Pick another --name or remove it.`);
     run(`git clone ${JSON.stringify(src)} ${JSON.stringify(dest)}`);
+    tagStart(dest, "HEAD");
     if (tryRun(`git rev-parse --verify --quiet refs/remotes/origin/${branch}`, dest)) run(`git checkout -q -b ${branch} --track origin/${branch}`, dest);
     else run(`git checkout -q -b ${branch}`, dest);
   } else {
@@ -119,14 +166,41 @@ function attach(src: string, opts: { name?: string; participant?: string }) {
     if (existsSync(dest)) die(`targets/${name} already exists. Pick another --name or remove it.`);
     // A worktree keeps the participant's own checkout untouched and shares its objects and remotes.
     const exists = tryRun(`git rev-parse --verify --quiet refs/heads/${branch}`, abs);
+    tagStart(abs, exists ? branch : "HEAD");
     run(`git worktree add ${exists ? "" : `-b ${branch}`} ${JSON.stringify(dest)} ${exists ? branch : ""}`.replace(/\s+/g, " "), abs);
   }
 
   const progress = readJson<any>(PROGRESS, initialProgress());
   progress.participant ??= participant;
   writeJson(PROGRESS, progress);
-  log(`✓ attached targets/${name} (${source}) on branch ${branch}`);
-  profile(name, { source, workBranch: branch });
+  log(`✓ attached targets/${name} (${source}) on branch ${branch}, start marked by tag ${startTag}`);
+  profile(name, { source, workBranch: branch, startTag });
+  backupUserSettings();
+  ciCheck(name);
+}
+
+/**
+ * Claude Code and Cursor commands (/doctor, /update-config, /fewer-permission-prompts …) can change files
+ * in the participant's home folder, outside any branch. Keep a copy of each from before the workshop.
+ */
+function backupUserSettings() {
+  const home = homedir();
+  const files = [join(home, ".claude", "settings.json"), join(home, ".claude", "CLAUDE.md"), join(home, ".cursor", "hooks.json")];
+  const progress = readJson<any>(PROGRESS, initialProgress());
+  progress.backups ??= [];
+  for (const from of files) {
+    if (progress.backups.some((b: any) => b.from === from)) continue;
+    if (!existsSync(from)) {
+      progress.backups.push({ from, to: null, at: new Date().toISOString() });
+      continue;
+    }
+    const to = join(STATE, "backups", relative(home, from).replace(/[\\/]/g, "__"));
+    mkdirSync(dirname(to), { recursive: true });
+    copyFileSync(from, to);
+    progress.backups.push({ from, to: relative(ROOT, to), at: new Date().toISOString() });
+    log(`✓ backed up ${from.replace(home, "~")} → ${relative(ROOT, to)}`);
+  }
+  writeJson(PROGRESS, progress);
 }
 
 // ───────────────────────────── profile ─────────────────────────────
@@ -141,6 +215,8 @@ interface Profile {
   projectPath: string | null;
   defaultBranch: string;
   workBranch: string;
+  startTag: string | null;
+  ciCheck: { checkedAt: string; verdict: string; deployLines: number } | null;
   languages: string[];
   packageManager: string | null;
   commands: { install: string | null; build: string | null; test: string | null };
@@ -184,11 +260,11 @@ function detectCommands(dir: string, files: string[]): Pick<Profile, "languages"
     const pkg = readJson<any>(join(dir, "package.json"), {});
     pm = has("pnpm-lock.yaml") ? "pnpm" : has("yarn.lock") ? "yarn" : has("bun.lockb") || has("bun.lock") ? "bun" : "npm";
     const runner = pm === "npm" ? "npm run" : pm;
-    // pnpm targets without their own workspace file would be swallowed by the control room's workspace.
+    // pnpm targets without their own workspace file would be swallowed by the workshop repo's workspace.
     cmd.install = pm === "pnpm" ? (has("pnpm-workspace.yaml") ? "pnpm install" : "pnpm install --ignore-workspace") : pm === "npm" ? (has("package-lock.json") ? "npm ci" : "npm install") : `${pm} install`;
     if (pkg.scripts?.build) cmd.build = `${runner} build`;
     if (pkg.scripts?.test) cmd.test = pm === "npm" ? "npm test" : `${pm} test`;
-    if (pm === "pnpm" && !has("pnpm-workspace.yaml")) notes.push("pnpm target without pnpm-workspace.yaml: install with --ignore-workspace inside the control room.");
+    if (pm === "pnpm" && !has("pnpm-workspace.yaml")) notes.push("pnpm target without pnpm-workspace.yaml: install with --ignore-workspace inside the workshop repo.");
   }
   if (files.some((f) => f.endsWith(".sln") || f.endsWith(".csproj"))) {
     languages.add("csharp");
@@ -273,7 +349,9 @@ function profile(name: string, extra: Partial<Profile> = {}, redetect = false) {
     remote,
     ...detectHost(remote, dir),
     defaultBranch,
-    workBranch: extra.workBranch ?? prev.workBranch ?? (tryRun("git branch --show-current", dir) || "workshop/me"),
+    workBranch: extra.workBranch ?? prev.workBranch ?? (tryRun("git branch --show-current", dir) || `${BRANCH_PREFIX}me`),
+    startTag: extra.startTag ?? prev.startTag ?? null,
+    ciCheck: prev.ciCheck ?? null,
     ...det,
     // Phase 1.4 corrections survive re-profiling.
     commands: !redetect && prev.commands ? prev.commands : det.commands,
@@ -332,6 +410,20 @@ function ensureGitlabInclude(dir: string, localPath: string, p: Profile, stage: 
   return out;
 }
 
+/** Agent files the agent-eval recording tracks, when the target has them. */
+const AGENT_TRACK_CANDIDATES = ["CLAUDE.md", "AGENTS.md", ".claude", ".cursor/rules", ".cursor/hooks.json", ".cursor/hooks", ".mcp.json"];
+
+/** Copy the eval runner into <target>/evals/ so CI can run `pnpm verify` without the workshop repo. */
+function vendorRunner(ev: string, T: string, vars: Record<string, string>, force: boolean, done: string[]) {
+  for (const f of ["package.json", "README.md", ".gitignore", "pnpm-workspace.yaml"]) done.push(`evals/${f}: ${copyTemplate(join(T, "evals-folder", f), join(ev, f), vars, force)}`);
+  mkdirSync(join(ev, "runner"), { recursive: true });
+  for (const f of readdirSync(join(KIT, "evals", "src"))) {
+    const body = readFileSync(join(KIT, "evals", "src", f), "utf8");
+    writeFileSync(join(ev, "runner", f), `// Vendored from the Evals & Cloud Agents Workshop kit (kit/evals/src/${f}). Update there, not here.\n${body.replace(/^#!.*\n/, "")}`);
+  }
+  done.push("evals/runner/: vendored");
+}
+
 function install(name: string, components: string[], opts: { suite?: string; force?: boolean }) {
   for (const c of components) installOne(name, c, opts);
 }
@@ -356,13 +448,7 @@ function installOne(name: string, component: string, opts: { suite?: string; for
   switch (component) {
     case "evals": {
       const ev = join(dir, "evals");
-      for (const f of ["package.json", "README.md", ".gitignore", "pnpm-workspace.yaml"]) done.push(`evals/${f}: ${copyTemplate(join(T, "evals-folder", f), join(ev, f), vars, force)}`);
-      mkdirSync(join(ev, "runner"), { recursive: true });
-      for (const f of readdirSync(join(KIT, "evals", "src"))) {
-        const body = readFileSync(join(KIT, "evals", "src", f), "utf8");
-        writeFileSync(join(ev, "runner", f), `// Vendored from the Evals & Cloud Agents Workshop kit (kit/evals/src/${f}). Update there, not here.\n${body.replace(/^#!.*\n/, "")}`);
-      }
-      done.push("evals/runner/: vendored");
+      vendorRunner(ev, T, vars, force, done);
       const sdir = join(ev, "suites", suite);
       if (!existsSync(sdir)) {
         mkdirSync(sdir, { recursive: true });
@@ -371,6 +457,31 @@ function installOne(name: string, component: string, opts: { suite?: string; for
         done.push(`evals/suites/${suite}/: skeleton`);
       } else done.push(`evals/suites/${suite}/: exists`);
       done.push(ok(`pnpm install`, ev) ? "evals/: pnpm install done" : "evals/: run `pnpm install` there by hand (corepack enable first)");
+      break;
+    }
+    case "agent-suite": {
+      // Phase 9 on: rule graders, rubrics and (from Phase 14) the CI recording for the agent evals.
+      const sdir = join(dir, "evals", "suites", "agent");
+      const tracks = AGENT_TRACK_CANDIDATES.filter((t) => existsSync(join(dir, t))).map((t) => `../../../${t}`);
+      const agentVars = { ...vars, TRACKS: JSON.stringify(tracks) };
+      for (const f of ["README.md", "rules.mjs", "agent-suite.json"]) done.push(`evals/suites/agent/${f}: ${copyTemplate(join(T, "agent-suite", f), join(sdir, f), agentVars, force)}`);
+      if (!tracks.length) done.push("NOTE: no agent files found to track; add them to agent-suite.json → tracks");
+      break;
+    }
+    case "ci-agent-evals": {
+      // The agent-eval gate: verifies evals/suites/agent/last-run.json. No model or secrets in CI.
+      if (!existsSync(join(dir, "evals", "suites", "agent", "agent-suite.json"))) die("install `agent-suite` first");
+      vendorRunner(join(dir, "evals"), T, vars, force, done);
+      done.push(ok(`pnpm install`, join(dir, "evals")) ? "evals/: pnpm install done" : "evals/: run `pnpm install` there by hand (corepack enable first)");
+      const file = "workshop-agent-evals.yml";
+      if (p.host === "github") {
+        done.push(`.github/workflows/${file}: ${copyTemplate(join(T, "ci", "github", file), join(dir, ".github", "workflows", file), vars, force)}`);
+      } else {
+        const rel = `.gitlab/ci/${file}`;
+        done.push(`${rel}: ${copyTemplate(join(T, "ci", "gitlab", file), join(dir, rel), vars, force)}`);
+        done.push(...ensureGitlabInclude(dir, rel, p, "test"));
+        if (p.host === "none") done.push("NOTE: target has no remote yet — CI runs once it's pushed to GitLab.");
+      }
       break;
     }
     case "subject-cost-coder": {
@@ -451,7 +562,8 @@ function installOne(name: string, component: string, opts: { suite?: string; for
 // ───────────────────────────── catchup ─────────────────────────────
 
 function catchup(phase: number, participant?: string) {
-  if (!(phase >= 2 && phase <= 10)) die("catchup <phase>: phase 2–10 = the phase you want to START");
+  const count = phaseCount();
+  if (!(Number.isInteger(phase) && phase >= 2 && phase <= count)) die(`catchup <phase>: phase 2–${count} = the phase you want to START`);
   let name = "cost-coder-catchup";
   for (let i = 2; existsSync(join(TARGETS, name)); i++) name = `cost-coder-catchup-${i}`;
   attach("sample", { name, participant });
@@ -463,33 +575,58 @@ function catchup(phase: number, participant?: string) {
   run(`git checkout -q main`, dir);
   const commit = (m: string) => run(`git add -A && git -c user.email=workshop@example.invalid -c user.name=workshop commit -qm ${JSON.stringify(m)} --allow-empty`, dir);
 
-  if (phase > 2) {
-    install(name, ["evals"], { suite: "cost-coder" });
-    const src = join(KIT, "catchup", "cost-coder", "evals", "suites", "cost-coder");
-    const dest = join(dir, "evals", "suites", "cost-coder");
-    cpSync(src, dest, { recursive: true, force: true });
-    writeFileSync(join(dest, "suite.ts"), readFileSync(join(dest, "suite.ts"), "utf8").replace("__CLASSIFY_IMPORT__", "../../../src/classify.ts").replace("__TRACKS__", JSON.stringify(["../../../src/classify.ts", "../../../src/codes.ts", "../../../src/llm"])));
-    commit("workshop: eval suite (catch-up)");
-  }
+  // Evals section reference work (Phases 4–7): the fixed agent setup and the expectations.
+  const setup = join(KIT, "catchup", "cost-coder", "agent-setup");
+  const copy = (rel: string) => cpSync(join(setup, rel), join(dir, rel), { recursive: true, force: true });
   if (phase > 4) {
-    // Phase 4 reference change: tighter rationale rules (v1 → v2 takes the reference suite from ~0% to ~80%).
-    const cls = join(dir, "src", "classify.ts");
-    const v2 = readFileSync(join(KIT, "catchup", "cost-coder", "prompt-v2.txt"), "utf8").replace(/\n+$/, "");
-    writeFileSync(cls, readFileSync(cls, "utf8").replace("Pick the single best cost code for the line.`;", `Pick the single best cost code for the line.${v2}\`;`));
-    commit("feature: rationale rules (prompt v2, catch-up)");
+    for (const rel of ["CLAUDE.md", "AGENTS.md", ".claude/rules"]) copy(rel);
+    commit("workshop: fix agent instructions (catch-up)");
   }
-  if (phase > 6) install(name, ["agent-tasks"], {});
+  if (phase > 5) {
+    for (const rel of [".claude/skills", ".claude/hooks", ".claude/settings.json"]) copy(rel);
+    commit("workshop: agent skill, hook and permissions (catch-up)");
+  }
+  if (phase > 6) {
+    cpSync(join(KIT, "catchup", "cost-coder", "expectations.md"), join(STATE, "targets", name, "expectations.md"));
+    log(`✓ .workshop/targets/${name}/expectations.md (reference)`);
+  }
+  if (phase > 7) install(name, ["agent-tasks"], {});
+  if (phase > 8) {
+    // Facilitators record the sample's baseline runs before the workshop (see kit/catchup/cost-coder/baseline/README.md).
+    const base = join(KIT, "catchup", "cost-coder", "baseline");
+    const runs = existsSync(base) ? readdirSync(base).filter((d) => existsSync(join(base, d, "results.json"))) : [];
+    for (const d of runs) cpSync(join(base, d), join(ROOT, ".eval-runs", d), { recursive: true, force: true });
+    log(runs.length ? `✓ .eval-runs/: precomputed baseline (${runs.join(", ")})` : "! No precomputed baseline in kit/catchup/cost-coder/baseline/ — run Phase 8's two runs now, or ask a facilitator.");
+  }
+  // Phases 9–14 reference work: the agent suite folder with rules, rubrics and threshold.
+  const suiteRef = join(KIT, "catchup", "cost-coder", "agent-suite");
+  const suiteDir = join(dir, "evals", "suites", "agent");
   if (phase > 9) {
+    install(name, ["agent-suite"], {});
+    cpSync(join(suiteRef, "rules.mjs"), join(suiteDir, "rules.mjs"));
+    commit("workshop: rule graders (catch-up)");
+  }
+  if (phase > 10) {
+    for (const f of ["rubric-r5.md", "rubric-r6.md"]) cpSync(join(suiteRef, f), join(suiteDir, f));
+    commit("workshop: judge rubrics (catch-up)");
+  }
+  if (phase > 13) {
+    cpSync(join(suiteRef, "agent-suite.json"), join(suiteDir, "agent-suite.json"));
+    commit("workshop: agent eval threshold (catch-up)");
+  }
+
+  if (phase > 18) {
     install(name, ["agents-section", "review-md"], {});
     commit("workshop: agent instructions (catch-up)");
   }
   run(`git checkout -q -B ${p.workBranch}`, dir);
 
   // CI and cloud-agent files depend on the host, which is unknown until the sample is pushed somewhere.
-  const later = [phase > 5 && "ci-evals", phase > 7 && "cursor-env"].filter(Boolean) as string[];
+  const later = [phase > 14 && "ci-agent-evals", phase > 16 && "cursor-env"].filter(Boolean) as string[];
 
   const progress = readJson<any>(PROGRESS, initialProgress());
   const now = new Date().toISOString();
+  for (let i = 1; i <= count; i++) progress.phases[String(i)] ??= { status: "not_started", startedAt: null, completedAt: null };
   for (let i = 1; i < phase; i++) {
     const ph = progress.phases[String(i)];
     if (ph.status !== "complete") Object.assign(ph, { status: "complete", completedAt: now, note: "catch-up" });
@@ -500,14 +637,14 @@ function catchup(phase: number, participant?: string) {
   writeJson(PROGRESS, progress);
   log(`\n✓ catch-up target targets/${name} ready to start Phase ${phase}.`);
   if (later.length) {
-    log(`! Needs a remote first (Phase 5 doc, "No remote yet"). Then, on main:`);
+    log(`! Needs a remote first (Phase 14 doc, "No remote yet"). Then, on main:`);
     log(`    pnpm workshop profile ${name}`);
     log(`    pnpm workshop install ${name} ${later.join(" ")}`);
     log(`    cd targets/${name} && git checkout main && git add -A && git commit -m "workshop: CI + agents (catch-up)" && git push && git checkout ${p.workBranch} && git merge -q main`);
   }
-  if (phase > 5) {
-    log(`! The CI gate needs a recording made with a real model (your Claude Code or Cursor login):`);
-    log(`    pnpm --dir targets/${name}/evals eval suites/cost-coder/suite.ts --record   # then commit evals/suites/cost-coder/last-run.json on main`);
+  if (phase > 14) {
+    log(`! The agent gate needs a recording made with your own Claude Code or Cursor login:`);
+    log(`    pnpm agent-evals run targets/${name} --tasks .workshop/targets/${name}/agent-tasks/tasks.jsonl --agent claude --setup "pnpm install --ignore-workspace" --record targets/${name}/evals/suites/agent`);
   }
 }
 
@@ -546,11 +683,16 @@ function lastJson(s: string): any {
   return {};
 }
 
+/** The push guard as a Claude Code hook, for headless runs that start outside the workshop repo. */
+const GUARD_SETTINGS = JSON.stringify({
+  hooks: { PreToolUse: [{ matcher: "Bash", hooks: [{ type: "command", command: `node ${JSON.stringify(join(ROOT, ".agents", "assets", "push-guard.mjs"))}` }] }] },
+});
+
 function agentRun(agent: AgentCli, prompt: string, cwd: string, mode: "write" | "read"): { ok: boolean; summary: string; costUsd?: number } {
   if (agent === "claude") {
     const args =
       mode === "write"
-        ? ["-p", prompt, "--output-format", "json", "--permission-mode", "acceptEdits", "--allowedTools", "Read,Edit,Write,Glob,Grep,Bash", "--max-turns", "80"]
+        ? ["-p", prompt, "--output-format", "json", "--permission-mode", "acceptEdits", "--allowedTools", "Read,Edit,Write,Glob,Grep,Bash", "--max-turns", "80", "--settings", GUARD_SETTINGS]
         : ["-p", prompt, "--output-format", "json", "--permission-mode", "dontAsk", "--allowedTools", "Read,Glob,Grep,Bash(git diff *),Bash(git log *),Bash(git show *)", "--max-turns", "30"];
     const r = runArgs("claude", args, cwd);
     const out = lastJson(r.stdout);
@@ -591,10 +733,15 @@ function delegate(name: string, o: { task?: string; taskFile?: string; issue?: s
     title = oneLine(o.task, 70);
   } else return die("delegate needs --issue <n>, --task \"…\" or --task-file <file>");
 
+  // Agent work branches off the participant's workshop branch and its MR/PR targets that branch,
+  // so nothing an agent does can land on the default branch of a real repo.
   const hasRemote = Boolean(p.remote);
-  if (hasRemote) tryRun(`git fetch -q origin ${p.defaultBranch}`, dir);
-  const base = hasRemote ? `origin/${p.defaultBranch}` : p.defaultBranch;
-  const branch = `agent/${agent}-${o.issue ? `issue-${o.issue}-` : ""}${slug(title).slice(0, 30)}-${Date.now().toString(36).slice(-4)}`;
+  if (hasRemote) {
+    if (!tryRun(`git ls-remote --heads origin ${p.workBranch}`, dir)) guardedPush(`-u origin ${p.workBranch}`, dir);
+    tryRun(`git fetch -q origin ${p.workBranch}`, dir);
+  }
+  const base = hasRemote ? `origin/${p.workBranch}` : p.workBranch;
+  const branch = `${p.workBranch}-agent-${agent}-${o.issue ? `issue-${o.issue}-` : ""}${slug(title).slice(0, 30)}-${Date.now().toString(36).slice(-4)}`;
   const wt = join(tmpdir(), "workshop-delegate", branch.replace(/\//g, "_"));
   run(`git worktree add -q -b ${branch} ${JSON.stringify(wt)} ${base}`, dir);
   log(`✓ ${agent} works in ${wt} on ${branch} (from ${base})`);
@@ -608,7 +755,7 @@ ${body}
 You are working unattended on branch ${branch}; nobody can answer questions, so make reasonable assumptions and list them at the end.
 - Follow AGENTS.md / CLAUDE.md.
 - Run the tests.
-- Before you finish, run the eval gate exactly as CI will: \`pnpm --dir evals verify suites/<suite>/suite.ts\` for each suite in evals/suites/. If it says "stale", re-run that suite with \`--record\` (see evals/README.md), and commit the updated last-run.json. If the recorded run misses the threshold, fix the cause — never edit cases, thresholds or last-run.json by hand.
+- Do not edit evals/suites/agent/ (rule graders, rubrics, thresholds, last-run.json). If evals/suites/agent/last-run.json exists, run the agent eval gate exactly as CI will: \`pnpm --dir evals verify suites/agent\`. If it says "stale" because you changed an agent file (CLAUDE.md, AGENTS.md, .claude/, .cursor/), say so in your summary: a person must record the agent evals again.
 - Commit your work with clear messages. Do not push.
 - Finish with a short summary: what you changed, what you assumed, what you did not do.`;
   log(`… running ${agent} (this can take several minutes)`);
@@ -629,19 +776,19 @@ You are working unattended on branch ${branch}; nobody can answer questions, so 
   }
   const mrTitle = `${agent === "claude" ? "Claude" : "Cursor"}: ${title}`;
   if (p.host === "gitlab") {
-    run(
-      `git push -q -u origin ${branch} -o merge_request.create -o merge_request.target=${p.defaultBranch} ` +
+    guardedPush(
+      `-q -u origin ${branch} -o merge_request.create -o merge_request.target=${p.workBranch} ` +
         `-o merge_request.title=${JSON.stringify(oneLine(mrTitle, 120))} -o merge_request.label=agent:${agent} ` +
-        `-o merge_request.description=${JSON.stringify(oneLine(`Delegated to ${agent} from the workshop.${o.issue ? ` Closes #${o.issue}.` : ""} Agent summary is in the first comment / commit message.`, 300))}`,
+        `-o merge_request.description=${JSON.stringify(oneLine(`Delegated to ${agent} from the workshop.${o.issue ? ` Refs #${o.issue}.` : ""} Agent summary is in the first comment / commit message.`, 300))}`,
       wt,
     );
-    log(`✓ pushed ${branch} and opened an MR (GitLab prints its link above). Paste the summary above as the first MR comment.`);
+    log(`✓ pushed ${branch} and opened an MR into ${p.workBranch} (GitLab prints its link above). Paste the summary above as the first MR comment.`);
   } else {
-    run(`git push -q -u origin ${branch}`, wt);
+    guardedPush(`-q -u origin ${branch}`, wt);
     if (onPath("gh")) {
       const bodyFile = join(wt, "..", `${branch.replace(/\//g, "_")}.summary.md`);
-      log(run(`gh pr create --base ${p.defaultBranch} --head ${branch} --title ${JSON.stringify(mrTitle)} --body-file ${JSON.stringify(bodyFile)}`, wt));
-    } else log(`✓ pushed ${branch}. Open the PR: ${p.hostUrl}/${p.projectPath}/compare/${p.defaultBranch}...${branch}`);
+      log(run(`gh pr create --base ${p.workBranch} --head ${branch} --title ${JSON.stringify(mrTitle)} --body-file ${JSON.stringify(bodyFile)}`, wt));
+    } else log(`✓ pushed ${branch}. Open the PR into ${p.workBranch}: ${p.hostUrl}/${p.projectPath}/compare/${p.workBranch}...${branch}`);
   }
   log(`Workspace kept at ${wt} (git worktree of targets/${name}).`);
 }
@@ -650,9 +797,10 @@ function review(name: string, branch: string, o: { agent?: string; post?: boolea
   const dir = targetDir(name);
   const p = profileOf(name);
   const agent = pickAgent(o.agent);
-  if (p.remote) tryRun(`git fetch -q origin ${p.defaultBranch} ${branch}`, dir);
+  if (p.remote) tryRun(`git fetch -q origin ${p.workBranch} ${branch}`, dir);
   const head = p.remote ? `origin/${branch}` : branch;
-  const base = p.remote ? `origin/${p.defaultBranch}` : p.defaultBranch;
+  // Agent MRs/PRs target the workshop branch, so that's what the review compares against.
+  const base = p.remote ? `origin/${p.workBranch}` : p.workBranch;
   const wt = join(tmpdir(), "workshop-review", slug(branch));
   if (existsSync(wt)) tryRun(`git worktree remove --force ${JSON.stringify(wt)}`, dir);
   run(`git worktree add -q --detach ${JSON.stringify(wt)} ${head}`, dir);
@@ -671,6 +819,118 @@ Report only real problems (bugs, missing tests, broken conventions, risky change
   else log(`! no ${p.host === "github" ? "gh" : "glab"} CLI — paste ${out} into the MR/PR by hand.`);
 }
 
+// ───────────────────────────── ci-check / cleanup ─────────────────────────────
+
+const DEPLOY_LINE =
+  /\b(deploy\w*|release|publish|production|prod|helm\s+(upgrade|install)|kubectl\s+(apply|rollout|set)|terraform\s+apply|serverless\s+deploy|docker\s+push|npm\s+publish|az\s+webapp|aws\s+s3\s+(sync|cp))\b|^\s*environment:/i;
+const HIDDEN_CI = /^\s*-?\s*(project|remote|template|component):|^\s*uses:\s*[\w.-]+\/[\w.-]+\/\.github\/workflows\//;
+
+/**
+ * Pushing a workshop branch or opening an MR runs the repo's existing pipelines. List the CI lines that
+ * look like deploys so a human can confirm they only run on the default branch, tags or by hand.
+ */
+function ciCheck(name: string) {
+  const dir = targetDir(name);
+  const p = profileOf(name);
+  const hits: string[] = [];
+  const hidden: string[] = [];
+  for (const f of p.ci.files) {
+    readFileSync(join(dir, f), "utf8")
+      .split("\n")
+      .forEach((l, i) => {
+        if (/^\s*#/.test(l)) return;
+        if (DEPLOY_LINE.test(l)) hits.push(`${f}:${i + 1}  ${l.trim().slice(0, 110)}`);
+        if (HIDDEN_CI.test(l)) hidden.push(`${f}:${i + 1}  ${l.trim().slice(0, 110)}`);
+      });
+  }
+  const ctx = contextFor(dir);
+  let verdict: string;
+  if (!p.remote) verdict = "no remote: pushes and pipelines can't happen yet";
+  else if (ctx?.unrestricted) verdict = "throwaway or mirror target: its pipelines can't reach production";
+  else if (hits.length) verdict = "REVIEW: deploy-like CI lines found; confirm they never run on dev-days-workshop/* branches or MRs, or use a mirror";
+  else if (hidden.length) verdict = "REVIEW: CI includes jobs defined elsewhere; check those before the first push";
+  else verdict = "no deploy-like CI lines found";
+  log(`\nCI check for targets/${name}: ${verdict}`);
+  for (const h of hits) log(`  deploy?  ${h}`);
+  for (const h of hidden) log(`  include  ${h}`);
+  const f = join(STATE, "targets", name, "profile.json");
+  writeJson(f, { ...readJson<any>(f, {}), ciCheck: { checkedAt: new Date().toISOString(), verdict, deployLines: hits.length } });
+}
+
+function cleanup(name: string, yes: boolean) {
+  const dir = targetDir(name);
+  const p = profileOf(name);
+  const common = tryRun("git rev-parse --path-format=absolute --git-common-dir", dir);
+  const mainRepo = common ? dirname(common) : dir;
+  const refs = (prefix: string) => tryRun(`git for-each-ref --format="%(refname:short)" ${prefix}`, dir).split("\n").filter(Boolean);
+  // for-each-ref matches a pattern "up to a slash", so pass the prefix without its trailing slash.
+  const ns = BRANCH_PREFIX.replace(/\/$/, "");
+  const localBranches = refs(`refs/heads/${ns}`).filter((b) => b.startsWith(BRANCH_PREFIX));
+  const tags = refs(`refs/tags/${ns}`).filter((t) => t.startsWith(BRANCH_PREFIX));
+  const remoteBranches = p.remote
+    ? tryRun(`git ls-remote --heads origin "${BRANCH_PREFIX}*"`, dir).split("\n").filter(Boolean).map((l) => l.split("refs/heads/")[1]!).filter(Boolean)
+    : [];
+  const worktrees = tryRun("git worktree list --porcelain", dir)
+    .split("\n\n")
+    .map((b) => ({ path: /^worktree (.+)$/m.exec(b)?.[1], branch: /^branch refs\/heads\/(.+)$/m.exec(b)?.[1] }))
+    .filter((w) => w.path && w.branch?.startsWith(BRANCH_PREFIX) && resolve(w.path) !== resolve(mainRepo)) as { path: string; branch: string }[];
+  let reviews: { id: string; head: string }[] = [];
+  let reviewNote = "";
+  if (p.host === "github" && onPath("gh")) {
+    const j = tryRun(`gh pr list --state open --limit 200 --json number,headRefName`, dir);
+    reviews = j ? JSON.parse(j).filter((r: any) => String(r.headRefName).startsWith(BRANCH_PREFIX)).map((r: any) => ({ id: String(r.number), head: r.headRefName })) : [];
+  } else if (p.host === "gitlab" && onPath("glab")) {
+    const j = tryRun(`glab mr list --per-page 100 --output json`, dir);
+    reviews = j ? JSON.parse(j).filter((r: any) => String(r.source_branch).startsWith(BRANCH_PREFIX)).map((r: any) => ({ id: String(r.iid), head: r.source_branch })) : [];
+  } else if (p.remote) reviewNote = `close open MRs/PRs from ${BRANCH_PREFIX}* branches by hand (no ${p.host === "github" ? "gh" : "glab"} CLI)`;
+  const home = homedir();
+  const backups = (readJson<any>(PROGRESS, {}).backups ?? []) as { from: string; to: string | null }[];
+  const restore = backups.filter((b) => b.to && existsSync(b.from) && readFileSync(b.from, "utf8") !== readFileSync(join(ROOT, b.to), "utf8"));
+  const created = backups.filter((b) => !b.to && existsSync(b.from));
+
+  log(`Cleanup plan for targets/${name}:`);
+  const list = (title: string, items: string[]) => items.length && log(`  ${title}:\n${items.map((i) => `    - ${i}`).join("\n")}`);
+  list("close MRs/PRs", reviews.map((r) => `#${r.id} (${r.head})`));
+  list("delete remote branches", remoteBranches);
+  list("remove worktrees", worktrees.map((w) => `${w.path} (${w.branch})`));
+  list("delete local branches", localBranches);
+  list("delete tags", tags);
+  list("restore from backup", restore.map((b) => `${b.from.replace(home, "~")} ← ${b.to}`));
+  if (created.length) log(`  created during the workshop (review and remove by hand if unwanted):\n${created.map((b) => `    - ${b.from.replace(home, "~")}`).join("\n")}`);
+  if (reviewNote) log(`  manual: ${reviewNote}`);
+  if (!yes) return log(`\nDry run — nothing changed. Run \`pnpm workshop cleanup ${name} --yes\` to do it.`);
+
+  for (const r of reviews) {
+    if (p.host === "github") tryRun(`gh pr close ${r.id}`, dir);
+    else tryRun(`glab mr close ${r.id}`, dir);
+    log(`✓ closed #${r.id}`);
+  }
+  for (const b of remoteBranches) {
+    guardedPush(`-q origin --delete ${b}`, dir);
+    log(`✓ deleted remote branch ${b}`);
+  }
+  for (const w of worktrees) {
+    run(`git worktree remove --force ${JSON.stringify(w.path)}`, mainRepo);
+    log(`✓ removed worktree ${w.path}`);
+  }
+  if (existsSync(dir) && tryRun("git branch --show-current", dir).startsWith(BRANCH_PREFIX)) run(`git checkout -q ${p.defaultBranch}`, dir);
+  for (const b of localBranches) {
+    if (tryRun(`git branch -D ${b}`, mainRepo)) log(`✓ deleted local branch ${b}`);
+    else log(`! could not delete ${b} (still checked out somewhere?)`);
+  }
+  for (const t of tags) {
+    run(`git tag -d ${t}`, mainRepo);
+    log(`✓ deleted tag ${t}`);
+  }
+  for (const b of restore) {
+    const before = join(STATE, "backups", `${basename(b.to!)}.before-restore`);
+    copyFileSync(b.from, before);
+    copyFileSync(join(ROOT, b.to!), b.from);
+    log(`✓ restored ${b.from.replace(home, "~")} (the workshop version is kept in ${relative(ROOT, before)})`);
+  }
+  if (existsSync(dir)) log(`\nThe folder targets/${name} is still there; delete it when you no longer need it.`);
+}
+
 // ───────────────────────────── main ─────────────────────────────
 
 const [cmd, ...rest] = process.argv.slice(2);
@@ -680,6 +940,7 @@ const { values, positionals } = parseArgs({
   options: {
     name: { type: "string" },
     participant: { type: "string" },
+    setup: { type: "string" },
     suite: { type: "string" },
     force: { type: "boolean" },
     redetect: { type: "boolean" },
@@ -689,6 +950,7 @@ const { values, positionals } = parseArgs({
     agent: { type: "string" },
     "no-push": { type: "boolean" },
     post: { type: "boolean" },
+    yes: { type: "boolean" },
   },
 });
 
@@ -696,7 +958,7 @@ try {
   switch (cmd) {
     case "attach":
       if (!positionals[0]) die("attach <git-url | local-path | sample>");
-      attach(positionals[0]!, { name: values.name, participant: values.participant });
+      attach(positionals[0]!, { name: values.name, participant: values.participant, setup: values.setup });
       break;
     case "profile":
       profile(positionals[0] ?? readJson<any>(PROGRESS, {}).activeTarget ?? die("profile <name>"), {}, Boolean(values.redetect));
@@ -720,6 +982,12 @@ try {
       break;
     case "catchup":
       catchup(Number(positionals[0]), values.participant);
+      break;
+    case "ci-check":
+      ciCheck(positionals[0] ?? readJson<any>(PROGRESS, {}).activeTarget ?? die("ci-check <name>"));
+      break;
+    case "cleanup":
+      cleanup(positionals[0] ?? readJson<any>(PROGRESS, {}).activeTarget ?? die("cleanup <name> [--yes]"), Boolean(values.yes));
       break;
     case "status": {
       const pr = readJson<any>(PROGRESS, null);

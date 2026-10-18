@@ -1,7 +1,7 @@
 import { defineSuite, exactMatch, hasShape, shellTask } from "../../runner/index.ts";
 
 /**
- * Skeleton suite. Phase 2 replaces every TODO.
+ * Skeleton suite. Replace every TODO.
  *
  * The task adapter decides how the eval reaches your feature:
  *   - TypeScript target: import the function directly.
@@ -19,6 +19,6 @@ export default defineSuite({
     hasShape({ answer: "string" }), // TODO: the fields your feature returns
     exactMatch("answer"), // TODO: compare the field that has a right answer
   ],
-  threshold: { passRate: 0.8 }, // TODO: Phase 5 — pick a number you can defend
-  tracks: [], // TODO: Phase 5 — files/folders of the feature under test, e.g. ["../../../src/classify.ts"]
+  threshold: { passRate: 0.8 }, // TODO: pick a number you can defend
+  tracks: [], // TODO: files/folders of the feature under test, e.g. ["../../../src/classify.ts"]
 });

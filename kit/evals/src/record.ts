@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join, relative, resolve, sep } from "node:path";
@@ -50,17 +51,29 @@ function walk(dir: string, acc: string[] = []): string[] {
   return acc;
 }
 
+/**
+ * Drop files git ignores (e.g. .claude/settings.local.json, .DS_Store): CI never sees them, so hashing them
+ * would make every recording stale there. Outside a git repo nothing is dropped.
+ */
+function withoutIgnored(files: string[], cwd: string): string[] {
+  if (!files.length) return files;
+  const r = spawnSync("git", ["check-ignore", "--stdin"], { cwd, input: files.join("\n"), encoding: "utf8" });
+  if (r.error || (r.status !== 0 && r.status !== 1)) return files;
+  const ignored = new Set(r.stdout.split("\n").filter(Boolean).map((p) => resolve(cwd, p)));
+  return files.filter((f) => !ignored.has(resolve(cwd, f)));
+}
+
 /** Hash the suite folder plus every tracked file/directory. Missing tracked paths are an error. */
 export function fingerprint(suiteDir: string, tracks: string[] = []): Record<string, string> {
   const out: Record<string, string> = {};
-  for (const f of walk(suiteDir)) {
+  for (const f of withoutIgnored(walk(suiteDir), suiteDir)) {
     const rel = posix(relative(suiteDir, f));
     if (!IGNORED_IN_SUITE.has(rel)) out[rel] = sha(f);
   }
   for (const t of tracks) {
     const abs = resolve(suiteDir, t);
     if (!existsSync(abs)) throw new Error(`tracked path not found: ${t} (relative to ${suiteDir})`);
-    const files = statSync(abs).isDirectory() ? walk(abs) : [abs];
+    const files = withoutIgnored(statSync(abs).isDirectory() ? walk(abs) : [abs], suiteDir);
     for (const f of files) out[posix(relative(suiteDir, f))] = sha(f);
   }
   return Object.fromEntries(Object.entries(out).sort(([a], [b]) => a.localeCompare(b)));

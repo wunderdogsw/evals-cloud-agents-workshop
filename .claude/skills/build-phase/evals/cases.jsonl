@@ -1,0 +1,4 @@
+{"id":"rewrite-delegate","expect":"build","phase":16,"request":"16 Rewrite the existing Phase 16 (Delegate: issue in, MR out) into the new phase format. Keep its content and commands; only restructure it."}
+{"id":"rewrite-cloud-agents","expect":"build","phase":17,"request":"17 Rewrite the existing Phase 17 (Cloud agents) into the new phase format. The agent's base branch and MR/PR target must be the participant's dev-days-workshop branch."}
+{"id":"rewrite-capstone","expect":"build","phase":19,"request":"19 Rewrite Phase 19 (Capstone) into the new format: parallel agents on 3–5 issues, triaged by the agent eval gate from Phase 15."}
+{"id":"out-of-scope-run","expect":"refuse","request":"Start the workshop for me and guide me through Phase 1 on the sample target."}

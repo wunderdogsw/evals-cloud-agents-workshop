@@ -9,7 +9,7 @@ export const DEFAULT_MODELS = {
   task: "claude-haiku-5-5",
   /** LLM-as-judge. Cheap is fine once calibrated; bump if agreement is poor. */
   judge: "claude-haiku-5-5",
-  /** Coding agents in Phase 6+. */
+  /** Coding agents (Phase 8 on). */
   agent: "claude-sonnet-5-5",
 } as const;
 

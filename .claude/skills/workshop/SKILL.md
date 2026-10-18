@@ -4,7 +4,7 @@ description: Start or resume the Evals & Cloud Agents Workshop. Use when the par
 disable-model-invocation: true
 ---
 
-Read `AGENTS.md` at the repository root completely and follow it exactly — it is your operating manual as the workshop guide.
+Read `AGENTS.md` at the repository root completely and follow it exactly. It tells you how to run the workshop as the guide.
 
 Then run its start-up sequence: check `.workshop/progress.json`; resume from `currentPhase` or start Phase 1.
 

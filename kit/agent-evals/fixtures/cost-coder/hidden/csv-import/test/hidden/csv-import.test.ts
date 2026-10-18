@@ -18,4 +18,10 @@ describe("parseInvoiceCsv", () => {
   it("omits empty cells", () => {
     expect(parseInvoiceCsv(CSV)[2]).toEqual({ description: "Kuljetus", amount: 180.5 });
   });
+  it("throws on an unknown column", () => {
+    expect(() => parseInvoiceCsv("description;colour\nKipsilevy;white\n")).toThrow();
+  });
+  it("throws on a number it can't parse", () => {
+    expect(() => parseInvoiceCsv("description;amount\nKipsilevy;abc\n")).toThrow();
+  });
 });

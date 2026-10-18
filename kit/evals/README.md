@@ -1,6 +1,8 @@
 # @workshop/evals
 
-A deliberately small eval runner — small enough to read in one sitting, so nobody treats it as magic.
+A small eval runner. It is short on purpose, so you can read all of it and see exactly what it does.
+
+The agent evals (`kit/agent-evals`) use it for judges, `compare`, `calibrate`, `record` and `verify`. The suite format below is for evals of an app's own LLM feature.
 
 ```ts
 import { defineSuite, exactMatch, hasShape, llmJudge, shellTask } from "./runner/index.ts";
