@@ -21,7 +21,8 @@
  *       list CI lines that look like deploys, so nobody's push to a real repo triggers production
  *   cleanup <name> [--yes]
  *       list (dry run) or undo everything the workshop created: MRs/PRs, dev-days-workshop/* branches
- *       (remote and local), the start tag, worktrees, and the backed-up ~/.claude / ~/.cursor files
+ *       (remote and local), the start tag, worktrees, and the backed-up ~/.claude / ~/.cursor files;
+ *       also lists what only the participant can remove (cloud job, local schedule, skill-creator)
  *   status
  *
  * Safety on real repos: all work happens on dev-days-workshop/<participant> branches, every push this
@@ -672,10 +673,6 @@ function catchup(phase: number, participant?: string) {
     log(`✓ .workshop/targets/${name}/review-lessons/${today}.md (reference report)`);
   }
 
-  if (phase > 18) {
-    install(name, ["agents-section", "review-md"], {});
-    commit("workshop: agent instructions (catch-up)");
-  }
   run(`git checkout -q -B ${p.workBranch}`, dir);
   checkOutWorkBranch(name);
 
@@ -1023,6 +1020,15 @@ function ciCheck(name: string) {
   writeJson(f, { ...readJson<any>(f, {}), ciCheck: { checkedAt: new Date().toISOString(), verdict, deployLines: hits.length } });
 }
 
+/** Things the Day 2 phases create outside git, which only the participant can remove. */
+function manualCleanup(name: string): string[] {
+  return [
+    "the Phase 18 cloud job, if you made one: pause or delete the Claude Code routine (claude.ai/code/routines) or the Cursor automation (cursor.com/automations) before its workshop branch is deleted",
+    "the Phase 17 local schedule, if you made one: the Desktop app's local routine, the line in `crontab -l`, or the launchd job",
+    `skill-creator, if you installed it in Phase 16: in targets/${name}, run \`claude plugin uninstall skill-creator@claude-plugins-official --scope local\``,
+  ];
+}
+
 function cleanup(name: string, yes: boolean) {
   const dir = targetDir(name);
   const p = profileOf(name);
@@ -1064,6 +1070,7 @@ function cleanup(name: string, yes: boolean) {
   list("restore from backup", restore.map((b) => `${b.from.replace(home, "~")} ← ${b.to}`));
   if (created.length) log(`  created during the workshop (review and remove by hand if unwanted):\n${created.map((b) => `    - ${b.from.replace(home, "~")}`).join("\n")}`);
   if (reviewNote) log(`  manual: ${reviewNote}`);
+  list("manual, outside git (--yes does not do these)", manualCleanup(name));
   if (!yes) return log(`\nDry run — nothing changed. Run \`pnpm workshop cleanup ${name} --yes\` to do it.`);
 
   for (const r of reviews) {

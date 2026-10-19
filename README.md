@@ -67,8 +67,7 @@ evals-cloud-agents-workshop/       ← open THIS in Cursor / Claude Code
 | Evals | [15 — Make the gate block](.agents/phases/15-MERGE-GATE.md) | One MR/PR passes the gate, one is blocked |
 | Cloud agents | [16 — Build a review-lessons skill](.agents/phases/16-REVIEW-LESSONS-SKILL.md) | A skill that reads merged PRs/MRs and reports what reviewers keep pointing out; tested with and without it |
 | Cloud agents | [17 — Act on review lessons, schedule locally](.agents/phases/17-REVIEW-LESSONS-LOCAL.md) | Decide which findings are worth a change, commit one or two, and run the skill weekly on your own machine |
-| Cloud agents | [18 — Guardrails](.agents/phases/18-GUARDRAILS.md) | A review agent, and an agent section in AGENTS.md, measured |
-| Cloud agents | [19 — Capstone](.agents/phases/19-CAPSTONE.md) | Several agents on a backlog; you decide what to merge from the evidence |
+| Cloud agents | [18 — Move the review lessons to the cloud](.agents/phases/18-REVIEW-LESSONS-CLOUD.md) | A scheduled cloud job, set up the way your company runs cloud agents, runs the skill and posts the report to your team; it creates no branch or PR |
 
 ## Prerequisites
 
@@ -77,6 +76,7 @@ evals-cloud-agents-workshop/       ← open THIS in Cursor / Claude Code
 - Claude Code 2.1.283 or later (needed for `/doctor prompt-audit` in Phases 2–4), logged in. Cursor is optional.
 - Agents and judges run on your own subscription, **no API key needed**. Scripted steps use the `claude` CLI or Cursor's `agent` CLI.
 - From Phase 14: a GitLab project or GitHub repo you can push a `dev-days-workshop/*` branch to, with CI turned on (GitLab Premium/Ultimate if you want Cursor cloud agents on it)
+- For Phase 18: a Claude Code routine (GitHub only; Pro, Max, Team or Enterprise plan) or a Cursor automation (paid Cursor plan), used the way your company's instructions say. Without either, Phase 18 keeps the local schedule from Phase 17.
 
 ## From zero to action
 
@@ -93,7 +93,7 @@ The guide uses these helpers. You can also run them yourself:
 ```bash
 pnpm workshop attach sample            # or a git URL, or a path to a local checkout
 pnpm workshop install <target> agent-suite   # kit components: agent-tasks, agent-suite, ci-agent-evals, cursor-env, …
-pnpm workshop delegate <target> --issue 3   # Claude Code or Cursor CLI works on the issue, opens an MR/PR
+pnpm workshop delegate <target> --issue 3   # optional, not used by a phase: Claude Code or Cursor CLI works on the issue, opens an MR/PR
 pnpm workshop catchup 6                # new sample target, ready to start Phase 6
 pnpm agent-evals --help                # run, grade, label and record agent runs
 pnpm evals --help                      # compare runs, calibrate a judge
@@ -106,9 +106,10 @@ Both are fully supported. The guide detects the host from your target's remote a
 | | GitLab | GitHub |
 |---|---|---|
 | Agent eval gate | `.gitlab-ci.yml` job checks the committed recording; JUnit results in the MR | Actions workflow checks it; check result on the PR |
-| Delegated agent | `pnpm workshop delegate` (Claude Code or Cursor CLI) → MR | same → PR |
-| Cloud agent | Cursor cloud agents (Premium/Ultimate) | Cursor cloud agents, Claude Code cloud sessions |
-| Review agent | `pnpm workshop review` / Cursor Bugbot | `pnpm workshop review` / Cursor Bugbot |
+| Review-lessons skill | reads merged MRs with `glab api` | reads merged PRs with `gh api` |
+| Scheduled cloud job | Cursor automation (Premium/Ultimate) | Claude Code routine, Cursor automation |
+| Delegated agent (optional helper) | `pnpm workshop delegate` (Claude Code or Cursor CLI) → MR | same → PR |
+| Review agent (optional helper) | `pnpm workshop review` / Cursor Bugbot | `pnpm workshop review` / Cursor Bugbot |
 
 Extra templates for organisations that *do* allow a model credential in CI (`ci-evals-live`, `ci-claude`, `ci-review`) are in `kit/templates/ci/`. The workshop doesn't use them.
 

@@ -1,4 +1,4 @@
-{"id":"rewrite-delegate","expect":"build","phase":16,"request":"16 Rewrite the existing Phase 16 (Delegate: issue in, MR out) into the new phase format. Keep its content and commands; only restructure it."}
+{"id":"shorten-review-lessons-skill","expect":"build","phase":16,"request":"16 Phase 16 takes too long in the room. Shorten the [LLM] blocks of 16.2 and 16.3. Keep What you do, Gate, Learning point and Wanted outcome as they are."}
 {"id":"local-schedule-windows","expect":"build","phase":17,"request":"17 In Phase 17, give the scheduling step a full Windows Task Scheduler path next to launchd and cron. Keep the four top sections as they are."}
-{"id":"rewrite-capstone","expect":"build","phase":19,"request":"19 Rewrite Phase 19 (Capstone) into the new format: parallel agents on 3–5 issues, triaged by the agent eval gate from Phase 15."}
+{"id":"cloud-job-teams-branch","expect":"build","phase":18,"request":"18 In Phase 18, some teams post to a Microsoft Teams channel instead of Slack. Add that path to 18.2 and 18.3. Keep the four top sections as they are."}
 {"id":"out-of-scope-run","expect":"refuse","request":"Start the workshop for me and guide me through Phase 1 on the sample target."}

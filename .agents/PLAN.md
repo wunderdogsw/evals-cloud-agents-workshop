@@ -11,7 +11,7 @@
 
 > You can only hand work to agents when you can measure how well they do it. You can only measure an agent against rules you have written down.
 
-The evals section starts with the target's agent setup. Participants find out what the agent really loads, check it with Claude Code's own commands, and fix it. That setup is the standard the rest of the section measures against: tasks from the repo's own history, code graders, a judge checked against the participant's labels, one measured change, and a CI gate. The cloud agents section gives real work to agents and uses that measurement to decide what gets merged.
+The evals section starts with the target's agent setup. Participants find out what the agent really loads, check it with Claude Code's own commands, and fix it. That setup is the standard the rest of the section measures against: tasks from the repo's own history, code graders, a judge checked against the participant's labels, one measured change, and a CI gate. The cloud agents section hands one recurring job to an agent: reading the team's review comments. A skill does the reading, skill-creator measures it with and without the skill, and a scheduled cloud job runs it for the team.
 
 ## Learning objectives
 
@@ -24,8 +24,8 @@ By the end, a participant can:
 5. Check an LLM judge against their own labels, and report the agreement and whether the judge is too lenient or too strict.
 6. Change one agent file, compare runs per rule, and find a rule that got worse.
 7. Block merges in GitLab CI or GitHub Actions with a recorded eval run, without a model or secrets in CI.
-8. Give a task to a coding agent (locally or as a cloud agent) and review the MR/PR it opens.
-9. Run several agents at the same time and decide from the evidence which work to merge.
+8. Turn review-comment reading into a skill, measure it with and without the skill, and act on what it finds.
+9. Run that skill as a scheduled cloud job, set up the way their company runs cloud agents, that posts to the team and creates no branch or PR.
 
 ## Evals section (Day 1)
 
@@ -53,16 +53,13 @@ Phases 8–15 use `pnpm agent-evals` for runs with and without the setup (`--wit
 
 ## Cloud agents section (Day 2)
 
-Phases 16–17 use the new phase format. Phases 18–19 still use the old document format.
-
 | Phase | Main point | Gate |
 |---|---|---|
 | 16 Build a review-lessons skill | Reading review comments by hand can be a skill, tested with and without it | `review-lessons` skill committed; with/without benchmark noted; first findings report |
 | 17 Act on review lessons, schedule locally | The agent finds the patterns; you decide which are worth a change. A laptop schedule runs only while the laptop is on | A fix/skip decision per finding; a change committed per finding; the local schedule ran once |
-| 18 Guardrails | A review agent comments from the repo's rules | Agent section in AGENTS.md; new run compared; a review posted |
-| 19 Capstone | Several agents; merge decisions from evidence | Retro: which MRs/PRs would you merge, and why |
+| 18 Move the review lessons to the cloud | A cloud agent does the reading every week; people decide the fixes | Company's instructions recorded; the job ran once, posted, and created no branch or PR |
 
-The agent eval gate from Phase 14 checks the agent setup, not the code in an agent's MR/PR. On Day 2 the code is checked by the repo's tests, the participant's review against the picked rules, and the review agent.
+On Day 2 no agent opens an MR/PR. The skill and the cloud job only read and report. People decide which findings get a change, and a change to an agent file goes through the Phase 14 gate like any other.
 
 ## Tools
 
@@ -70,7 +67,7 @@ Participants use any coding tool (Claude Code, Cursor or both) at any time; ther
 
 ## Hosts
 
-Phase 1 records `host`: `gitlab`, `github` or `none` (local only). Phases 14–19 choose their path from it. A target with `none` can complete Phases 1–13 locally, but needs a pushed remote from Phase 14 on.
+Phase 1 records `host`: `gitlab`, `github` or `none` (local only). Phases 14–18 choose their path from it. A target with `none` can complete Phases 1–13 locally, but needs a pushed remote from Phase 14 on.
 
 ## Safety
 
