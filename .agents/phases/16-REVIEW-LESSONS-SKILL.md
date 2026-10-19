@@ -58,6 +58,12 @@ In the target session they run:
 
 This command opens the plugin's details. It doesn't install anything yet. They read what the plugin adds, then choose **Install for you, in this repo only (local scope)**. They check the scope in the **Installed** tab of `/plugin`. They can also run `claude plugin list` in `targets/<name>`, which prints a `Scope` line for each plugin.
 
+From a terminal instead of the session, the scope must be given, because the CLI installs at user scope by default. Run it in `targets/<name>`:
+
+```bash
+claude plugin install skill-creator@claude-plugins-official --scope local
+```
+
 ### [BRANCH]
 
 - **Claude Code says `Marketplace "claude-plugins-official" not found`** → `/plugin marketplace add anthropics/claude-plugins-official` fixes it, but it registers the marketplace in user settings. Ask the participant first. If they say no, they pair with someone who has the plugin, or take the Cursor path below.
@@ -98,7 +104,9 @@ Explain the requirements the skill must meet. Don't write the request for them.
 
 ### [HUMAN]
 
-In the target session they ask skill-creator for the skill in their own words. For example, they start with "Use skill-creator to create a new skill called review-lessons in .claude/skills/review-lessons/" and add the requirements as they understand them.
+In the target session they ask skill-creator for the skill in their own words. For example, they start with "Use skill-creator to create a new skill called review-lessons in .claude/skills/review-lessons/" and add the requirements as they understand them. They also tell it where to keep its test workspace: `<absolute path of the workshop repo>/.workshop/targets/<name>/review-lessons-workspace`. Then nothing from the tests ends up in the target.
+
+Claude Code asks before it writes inside `.claude/`. They approve the writes to `.claude/skills/review-lessons/`.
 
 skill-creator interviews them. They answer the questions themselves. Two decisions are theirs:
 
@@ -111,14 +119,20 @@ They read the `SKILL.md` it writes before they accept it. Then they run the skil
 /review-lessons <absolute path of the workshop repo>/.workshop/targets/<name>/review-lessons/<YYYY-MM-DD>.md
 ```
 
+For the sample or a catch-up target, the data folder comes first:
+
+```text
+/review-lessons <absolute path of the workshop repo>/.workshop/targets/<name>/review-history <absolute path of the workshop repo>/.workshop/targets/<name>/review-lessons/<YYYY-MM-DD>.md
+```
+
 They read the report and check each finding against the format. Does it have all three parts? Does "where" name one file that could stop the problem? Is a code file listed only as evidence? They open two evidence links and check that the comments say what the finding says.
 
 ### [BRANCH]
 
 - **GitHub** (`host: github`) → the skill uses `gh api`. Check `gh auth status` first. On GitHub Enterprise, `gh` needs to be logged in to that host.
 - **GitLab** (`host: gitlab`) → the skill uses `glab api`. Check `glab auth status` first.
-- **Target is `sample` or a catch-up target** → it has no PRs. Run `pnpm workshop install <name> review-history`. It copies a made-up review history to `.workshop/targets/<name>/review-history/`, in the same shapes `gh api` returns. They tell skill-creator: "when a data folder is given, read these files instead of calling `gh api`". They pass the folder's absolute path when they run the skill.
-- **No remote** (`host: none`) → there is no PR/MR history to read. Build the skill for the host the team uses, and test it against `kit/catchup/cost-coder/review-history/` in the workshop repo, read in place.
+- **Target is `sample` or a catch-up target** → it has no PRs. This path applies even though the profile says `host: none`. For `sample`, run `pnpm workshop install <name> review-history`; a catch-up target already has it. It copies a made-up review history to `.workshop/targets/<name>/review-history/`, in the same shapes `gh api` returns. They tell skill-creator: "when a data folder is given, read these files instead of calling `gh api`". They pass the folder's absolute path when they run the skill.
+- **Own repo with no remote** (`host: none`) → there is no PR/MR history to read. Build the skill for the host the team uses, and test it against `kit/catchup/cost-coder/review-history/` in the workshop repo, read in place.
 - **Very few review comments** → widen the window (for example the last 100 merged PRs/MRs, or 180 days), and make sure the skill reads review bodies and top-level comments too. If there are still fewer than about 10 comments, say so: a report from so few comments shows little. They also test the skill against `kit/catchup/cost-coder/review-history/`, read in place.
 - **Only Cursor, no Claude Code** → in Cursor's agent chat, in the target, they attach `.workshop/targets/<name>/skill-creator.md` and ask the agent to follow those instructions to build `.claude/skills/review-lessons/`. They answer its questions themselves. To run the skill they type `/review-lessons` in Cursor's agent chat, with the same path argument.
 
@@ -148,18 +162,18 @@ They write the assertions themselves too. Examples:
 
 Before the run, ask: "What difference do you expect between with and without?" Then they ask skill-creator to run the eval: "Test the review-lessons skill with my prompts, with and without the skill, and show the benchmark." They skip the description optimization step that skill-creator may offer: it runs many `claude -p` calls, and Phase 17 starts the skill by name.
 
-They read `benchmark.md` and the viewer. They write one line in `.workshop/targets/<name>/findings.md` under `## review-lessons benchmark`: the pass rate with and without, the tokens, and what they changed in the skill because of it. If they changed the skill, they run 16.2's command again, so the saved report comes from the final skill.
+They read `benchmark.md` and the viewer. They write one line in `.workshop/targets/<name>/findings.md` (create the file if it doesn't exist) under `## review-lessons benchmark`: the pass rate with and without, the tokens, and what they changed in the skill because of it. If they changed the skill, they run 16.2's command again, so the saved report comes from the final skill.
 
-Then they move the workspace out of the target and commit only the skill:
+Then they commit only the skill. `evals/evals.json` in the skill folder holds the test prompts. If it contains absolute paths from their machine, they replace them with a placeholder such as `<data folder>` first. If skill-creator put the workspace inside the target after all, they move it out before the commit:
 
 ```bash
-mv targets/<name>/.claude/skills/review-lessons-workspace .workshop/targets/<name>/review-lessons-workspace
+[ -d targets/<name>/.claude/skills/review-lessons-workspace ] && mv targets/<name>/.claude/skills/review-lessons-workspace .workshop/targets/<name>/review-lessons-workspace
 git -C targets/<name> add .claude/skills/review-lessons
 git -C targets/<name> status --short
 git -C targets/<name> commit -m "workshop: review-lessons skill"
 ```
 
-If the workspace is not in that folder, they ask skill-creator where it wrote it. Don't commit `.claude/settings.local.json`. Don't push: Phase 17 uses the skill locally.
+If the workspace is in neither place, they ask skill-creator where it wrote it. Don't commit `.claude/settings.local.json`. Don't push: Phase 17 uses the skill locally.
 
 ### [BRANCH]
 
@@ -182,7 +196,7 @@ If the workspace is not in that folder, they ask skill-creator where it wrote it
 
 The participant confirms, and you verify:
 
-- [ ] `.claude/skills/review-lessons/SKILL.md` is committed on the workshop branch. — `git -C targets/<name> log --stat -1 -- .claude/skills/review-lessons` on `dev-days-workshop/<participant>`, and `git -C targets/<name> ls-files | grep -e -workspace -e settings.local` prints nothing
+- [ ] `.claude/skills/review-lessons/SKILL.md` is committed on the workshop branch. — `git -C targets/<name> log --stat -1 -- .claude/skills/review-lessons` on `dev-days-workshop/<participant>`, and `git -C targets/<name> ls-files | grep -e review-lessons-workspace -e settings.local.json` prints nothing
 - [ ] The with/without benchmark ran, and its result is noted. — read `## review-lessons benchmark` in `.workshop/targets/<name>/findings.md` and the latest `.workshop/targets/<name>/review-lessons-workspace/iteration-*/benchmark.md`; on the Cursor path, the `with-skill.md` and `without-skill.md` reports
 - [ ] The first report exists, and each finding has its three parts: what the comments were about, where a change could help, and the evidence. — read `.workshop/targets/<name>/review-lessons/<YYYY-MM-DD>.md`: every `###` finding has the three lines, and each evidence entry is a link to one comment
 
