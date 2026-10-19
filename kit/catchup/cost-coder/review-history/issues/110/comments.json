@@ -1,0 +1,34 @@
+[
+  {
+    "url": "https://github.example.invalid/api/v3/repos/workshop/cost-coder/issues/comments/3011000",
+    "html_url": "https://github.example.invalid/workshop/cost-coder/pull/110#issuecomment-3011000",
+    "issue_url": "https://github.example.invalid/api/v3/repos/workshop/cost-coder/issues/110",
+    "id": 3011000,
+    "user": {
+      "login": "renovate[bot]",
+      "id": 29139614,
+      "type": "Bot",
+      "html_url": "https://github.example.invalid/apps/renovate"
+    },
+    "created_at": "2026-10-06T03:00:30Z",
+    "updated_at": "2026-10-06T03:00:30Z",
+    "author_association": "NONE",
+    "body": "### Configuration\n\n📅 **Schedule**: Branch creation - At any time. Automerge - Disabled.\n\n🔕 **Ignore**: Close this PR and you won't be reminded about these updates again."
+  },
+  {
+    "url": "https://github.example.invalid/api/v3/repos/workshop/cost-coder/issues/comments/3011001",
+    "html_url": "https://github.example.invalid/workshop/cost-coder/pull/110#issuecomment-3011001",
+    "issue_url": "https://github.example.invalid/api/v3/repos/workshop/cost-coder/issues/110",
+    "id": 3011001,
+    "user": {
+      "login": "sara-k",
+      "id": 5105,
+      "type": "User",
+      "html_url": "https://github.example.invalid/sara-k"
+    },
+    "created_at": "2026-10-08T14:00:00Z",
+    "updated_at": "2026-10-08T14:00:00Z",
+    "author_association": "MEMBER",
+    "body": "I read the vitest 5 release notes. Nothing in them affects our tests."
+  }
+]

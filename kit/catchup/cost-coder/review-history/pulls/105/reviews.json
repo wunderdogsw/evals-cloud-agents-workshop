@@ -1,0 +1,34 @@
+[
+  {
+    "id": 4010500,
+    "user": {
+      "login": "mikko-l",
+      "id": 5104,
+      "type": "User",
+      "html_url": "https://github.example.invalid/mikko-l"
+    },
+    "body": "Please add the CHANGELOG line, and move the tests as Sara said.",
+    "state": "CHANGES_REQUESTED",
+    "html_url": "https://github.example.invalid/workshop/cost-coder/pull/105#pullrequestreview-4010500",
+    "pull_request_url": "https://github.example.invalid/api/v3/repos/workshop/cost-coder/pulls/105",
+    "submitted_at": "2026-08-22T10:00:00Z",
+    "commit_id": "e38bf805c78e94869c0d4f76b65c044fc0bedc48",
+    "author_association": "MEMBER"
+  },
+  {
+    "id": 4010501,
+    "user": {
+      "login": "mikko-l",
+      "id": 5104,
+      "type": "User",
+      "html_url": "https://github.example.invalid/mikko-l"
+    },
+    "body": "",
+    "state": "APPROVED",
+    "html_url": "https://github.example.invalid/workshop/cost-coder/pull/105#pullrequestreview-4010501",
+    "pull_request_url": "https://github.example.invalid/api/v3/repos/workshop/cost-coder/pulls/105",
+    "submitted_at": "2026-08-25T11:20:00Z",
+    "commit_id": "e38bf805c78e94869c0d4f76b65c044fc0bedc48",
+    "author_association": "MEMBER"
+  }
+]

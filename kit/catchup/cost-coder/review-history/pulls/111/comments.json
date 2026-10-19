@@ -1,0 +1,29 @@
+[
+  {
+    "url": "https://github.example.invalid/api/v3/repos/workshop/cost-coder/pulls/comments/2011100",
+    "pull_request_review_id": 4011190,
+    "id": 2011100,
+    "diff_hunk": "@@ -44,3 +44,10 @@ describe(\"MODEL\", () => {\n+it(\"answers in Finnish\", async () => {\n+  const r = await classifyLine({ description: \"Kipsilevy 13 mm\" });",
+    "path": "test/classify.test.ts",
+    "commit_id": "582a952dc2dc3cff6df334d7be7f3ba42e41ccf1",
+    "original_commit_id": "582a952dc2dc3cff6df334d7be7f3ba42e41ccf1",
+    "user": {
+      "login": "aino-v",
+      "id": 5103,
+      "type": "User",
+      "html_url": "https://github.example.invalid/aino-v"
+    },
+    "body": "This test needs the real model. Please use the mock, or move it to the eval suite.",
+    "created_at": "2026-10-08T09:30:00Z",
+    "updated_at": "2026-10-08T09:30:00Z",
+    "html_url": "https://github.example.invalid/workshop/cost-coder/pull/111#discussion_r2011100",
+    "pull_request_url": "https://github.example.invalid/api/v3/repos/workshop/cost-coder/pulls/111",
+    "author_association": "MEMBER",
+    "start_line": null,
+    "original_start_line": null,
+    "line": 48,
+    "original_line": 48,
+    "side": "RIGHT",
+    "subject_type": "line"
+  }
+]

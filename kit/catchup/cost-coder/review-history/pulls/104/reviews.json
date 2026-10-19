@@ -1,0 +1,18 @@
+[
+  {
+    "id": 4010400,
+    "user": {
+      "login": "aino-v",
+      "id": 5103,
+      "type": "User",
+      "html_url": "https://github.example.invalid/aino-v"
+    },
+    "body": "",
+    "state": "APPROVED",
+    "html_url": "https://github.example.invalid/workshop/cost-coder/pull/104#pullrequestreview-4010400",
+    "pull_request_url": "https://github.example.invalid/api/v3/repos/workshop/cost-coder/pulls/104",
+    "submitted_at": "2026-08-12T08:10:00Z",
+    "commit_id": "0671871c1b6eaa494bc0e1b75bf55f7dff798e90",
+    "author_association": "MEMBER"
+  }
+]

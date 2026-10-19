@@ -1,0 +1,34 @@
+[
+  {
+    "id": 4010100,
+    "user": {
+      "login": "mikko-l",
+      "id": 5104,
+      "type": "User",
+      "html_url": "https://github.example.invalid/mikko-l"
+    },
+    "body": "Works for me locally. CHANGELOG.md has no line under `## Unreleased` for this. People who script the CLI will want to know `--json` exists.",
+    "state": "CHANGES_REQUESTED",
+    "html_url": "https://github.example.invalid/workshop/cost-coder/pull/101#pullrequestreview-4010100",
+    "pull_request_url": "https://github.example.invalid/api/v3/repos/workshop/cost-coder/pulls/101",
+    "submitted_at": "2026-07-11T09:30:00Z",
+    "commit_id": "c79f33d6cf304dae58d74b2a05daa23edc392aa1",
+    "author_association": "MEMBER"
+  },
+  {
+    "id": 4010101,
+    "user": {
+      "login": "mikko-l",
+      "id": 5104,
+      "type": "User",
+      "html_url": "https://github.example.invalid/mikko-l"
+    },
+    "body": "",
+    "state": "APPROVED",
+    "html_url": "https://github.example.invalid/workshop/cost-coder/pull/101#pullrequestreview-4010101",
+    "pull_request_url": "https://github.example.invalid/api/v3/repos/workshop/cost-coder/pulls/101",
+    "submitted_at": "2026-07-14T12:55:00Z",
+    "commit_id": "c79f33d6cf304dae58d74b2a05daa23edc392aa1",
+    "author_association": "MEMBER"
+  }
+]

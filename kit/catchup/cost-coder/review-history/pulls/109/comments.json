@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://github.example.invalid/api/v3/repos/workshop/cost-coder/pulls/comments/2010900",
+    "pull_request_review_id": 4010900,
+    "id": 2010900,
+    "diff_hunk": "@@ -1,5 +1,5 @@\n-{\"id\":\"seed-03\",\"input\":{\"description\":\"Työmaa-aita 50 m\"},\"expected\":\"3200\"}\n+{\"id\":\"seed-03\",\"input\":{\"description\":\"Työmaa-aita 50 m, vuokra\"},\"expected\":\"3100\"}",
+    "path": "data/seed-cases.jsonl",
+    "commit_id": "cb3e0797ea7080060dd21c657759e513396d51a6",
+    "original_commit_id": "cb3e0797ea7080060dd21c657759e513396d51a6",
+    "user": {
+      "login": "aino-v",
+      "id": 5103,
+      "type": "User",
+      "html_url": "https://github.example.invalid/aino-v"
+    },
+    "body": "data/ is the eval reference set. We don't edit it in feature PRs. Please revert this file and open an issue if a seed case is wrong.",
+    "created_at": "2026-09-30T10:10:00Z",
+    "updated_at": "2026-09-30T10:10:00Z",
+    "html_url": "https://github.example.invalid/workshop/cost-coder/pull/109#discussion_r2010900",
+    "pull_request_url": "https://github.example.invalid/api/v3/repos/workshop/cost-coder/pulls/109",
+    "author_association": "MEMBER",
+    "start_line": null,
+    "original_start_line": null,
+    "line": 3,
+    "original_line": 3,
+    "side": "RIGHT",
+    "subject_type": "line"
+  },
+  {
+    "url": "https://github.example.invalid/api/v3/repos/workshop/cost-coder/pulls/comments/2010901",
+    "pull_request_review_id": 4010991,
+    "id": 2010901,
+    "diff_hunk": "@@ -1,5 +1,6 @@\n # Changelog\n \n ## Unreleased\n+- Update mockClassify regexes",
+    "path": "CHANGELOG.md",
+    "commit_id": "cb3e0797ea7080060dd21c657759e513396d51a6",
+    "original_commit_id": "cb3e0797ea7080060dd21c657759e513396d51a6",
+    "user": {
+      "login": "mikko-l",
+      "id": 5104,
+      "type": "User",
+      "html_url": "https://github.example.invalid/mikko-l"
+    },
+    "body": "\"Update mockClassify regexes\" is for developers. Write what changes for the user, for example: \"Offline runs now classify site fences and cabins as site facilities (3200).\"",
+    "created_at": "2026-09-30T10:40:00Z",
+    "updated_at": "2026-09-30T10:40:00Z",
+    "html_url": "https://github.example.invalid/workshop/cost-coder/pull/109#discussion_r2010901",
+    "pull_request_url": "https://github.example.invalid/api/v3/repos/workshop/cost-coder/pulls/109",
+    "author_association": "MEMBER",
+    "start_line": null,
+    "original_start_line": null,
+    "line": 4,
+    "original_line": 4,
+    "side": "RIGHT",
+    "subject_type": "line"
+  }
+]

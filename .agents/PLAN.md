@@ -53,11 +53,11 @@ Phases 8–15 use `pnpm agent-evals` for runs with and without the setup (`--wit
 
 ## Cloud agents section (Day 2)
 
-These phases still use the old document format.
+Phase 16 uses the new phase format. Phases 17–19 still use the old document format.
 
 | Phase | Main point | Gate |
 |---|---|---|
-| 16 Delegate | An issue becomes an MR/PR while you do something else | An agent MR/PR into the workshop branch exists, and its CI ran |
+| 16 Build a review-lessons skill | Reading review comments by hand can be a skill, tested with and without it | `review-lessons` skill committed; with/without benchmark noted; first findings report |
 | 17 Cloud agents | The same task handover, on another company's machine | A second MR/PR; comparison table written |
 | 18 Guardrails | A review agent comments from the repo's rules | Agent section in AGENTS.md; new run compared; a review posted |
 | 19 Capstone | Several agents; merge decisions from evidence | Retro: which MRs/PRs would you merge, and why |

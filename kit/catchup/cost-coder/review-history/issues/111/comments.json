@@ -1,0 +1,18 @@
+[
+  {
+    "url": "https://github.example.invalid/api/v3/repos/workshop/cost-coder/issues/comments/3011100",
+    "html_url": "https://github.example.invalid/workshop/cost-coder/pull/111#issuecomment-3011100",
+    "issue_url": "https://github.example.invalid/api/v3/repos/workshop/cost-coder/issues/111",
+    "id": 3011100,
+    "user": {
+      "login": "ella-dev",
+      "id": 5101,
+      "type": "User",
+      "html_url": "https://github.example.invalid/ella-dev"
+    },
+    "created_at": "2026-10-12T15:58:00Z",
+    "updated_at": "2026-10-12T15:58:00Z",
+    "author_association": "MEMBER",
+    "body": "Closing. We do this through the eval suite instead."
+  }
+]

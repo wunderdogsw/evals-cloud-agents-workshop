@@ -1,0 +1,57 @@
+[
+  {
+    "url": "https://github.example.invalid/api/v3/repos/workshop/cost-coder/pulls/comments/2010100",
+    "pull_request_review_id": 4010190,
+    "id": 2010100,
+    "diff_hunk": "@@ -10,8 +10,14 @@ async function main() {\n   const args = process.argv.slice(2);\n   let line: InvoiceLine;\n+  if (args.includes(\"--json\")) {\n+    let s = \"\";\n+    for await (const chunk of process.stdin) s += chunk;",
+    "path": "src/cli.ts",
+    "commit_id": "c79f33d6cf304dae58d74b2a05daa23edc392aa1",
+    "original_commit_id": "c79f33d6cf304dae58d74b2a05daa23edc392aa1",
+    "user": {
+      "login": "aino-v",
+      "id": 5103,
+      "type": "User",
+      "html_url": "https://github.example.invalid/aino-v"
+    },
+    "body": "Nit: `s` could be `input`. It reads better when the loop gets longer.",
+    "created_at": "2026-07-11T09:02:00Z",
+    "updated_at": "2026-07-11T09:02:00Z",
+    "html_url": "https://github.example.invalid/workshop/cost-coder/pull/101#discussion_r2010100",
+    "pull_request_url": "https://github.example.invalid/api/v3/repos/workshop/cost-coder/pulls/101",
+    "author_association": "MEMBER",
+    "start_line": null,
+    "original_start_line": null,
+    "line": 14,
+    "original_line": 14,
+    "side": "RIGHT",
+    "subject_type": "line"
+  },
+  {
+    "url": "https://github.example.invalid/api/v3/repos/workshop/cost-coder/pulls/comments/2010101",
+    "pull_request_review_id": 4010191,
+    "id": 2010101,
+    "diff_hunk": "@@ -10,8 +10,14 @@ async function main() {\n   const args = process.argv.slice(2);\n   let line: InvoiceLine;\n+  if (args.includes(\"--json\")) {\n+    let s = \"\";\n+    for await (const chunk of process.stdin) s += chunk;",
+    "path": "src/cli.ts",
+    "commit_id": "c79f33d6cf304dae58d74b2a05daa23edc392aa1",
+    "original_commit_id": "c79f33d6cf304dae58d74b2a05daa23edc392aa1",
+    "user": {
+      "login": "ella-dev",
+      "id": 5101,
+      "type": "User",
+      "html_url": "https://github.example.invalid/ella-dev"
+    },
+    "body": "Renamed.",
+    "created_at": "2026-07-11T10:15:00Z",
+    "updated_at": "2026-07-11T10:15:00Z",
+    "html_url": "https://github.example.invalid/workshop/cost-coder/pull/101#discussion_r2010101",
+    "pull_request_url": "https://github.example.invalid/api/v3/repos/workshop/cost-coder/pulls/101",
+    "author_association": "MEMBER",
+    "in_reply_to_id": 2010100,
+    "start_line": null,
+    "original_start_line": null,
+    "line": 14,
+    "original_line": 14,
+    "side": "RIGHT",
+    "subject_type": "line"
+  }
+]

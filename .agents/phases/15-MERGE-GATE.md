@@ -18,7 +18,7 @@ An eval that never blocks a merge only reports numbers; it doesn't protect anyth
 
 ## Wanted outcome
 
-You have a merge gate on the workshop branch that you have seen pass, block a stale recording and block a weaker setup, and the cloud agents section uses this gate to check agent work.
+You have a merge gate on the workshop branch that you have seen pass, block a stale recording and block a weaker setup, and it ends the evals section.
 
 ---
 
@@ -110,4 +110,4 @@ This is the end of the evals section. Facilitators show each table's scores for 
 
 ## Phase Complete
 
-Mark Phase 15 complete. Preview: "Phase 16 — give an issue to a coding agent, and let the gate you built check its MR/PR."
+Mark Phase 15 complete. Preview: "Phase 16 — start the cloud agents section: build a skill that reads your merged PRs/MRs and reports what reviewers keep pointing out."

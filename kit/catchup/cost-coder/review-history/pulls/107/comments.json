@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://github.example.invalid/api/v3/repos/workshop/cost-coder/pulls/comments/2010700",
+    "pull_request_review_id": 4010700,
+    "id": 2010700,
+    "diff_hunk": "@@ -49,7 +49,7 @@ export function formatLine(line: InvoiceLine): string {\n-  if (line.amount !== undefined) parts.push(`Amount: ${line.amount.toFixed(2)} EUR`);\n+  if (line.amount !== undefined) parts.push(`Amount: ${line.amount.toLocaleString(\"fi-FI\", { minimumFractionDigits: 2 })} EUR`);",
+    "path": "src/classify.ts",
+    "commit_id": "0aac30b673fb52be0aadcc7c020a8548733cb59d",
+    "original_commit_id": "0aac30b673fb52be0aadcc7c020a8548733cb59d",
+    "user": {
+      "login": "aino-v",
+      "id": 5103,
+      "type": "User",
+      "html_url": "https://github.example.invalid/aino-v"
+    },
+    "body": "`toLocaleString(\"fi-FI\")` puts a decimal comma into the prompt from inside classify.ts. Keep amounts as plain numbers in the core code, and format them for people in cli.ts only.",
+    "created_at": "2026-09-12T10:40:00Z",
+    "updated_at": "2026-09-12T10:40:00Z",
+    "html_url": "https://github.example.invalid/workshop/cost-coder/pull/107#discussion_r2010700",
+    "pull_request_url": "https://github.example.invalid/api/v3/repos/workshop/cost-coder/pulls/107",
+    "author_association": "MEMBER",
+    "start_line": null,
+    "original_start_line": null,
+    "line": 52,
+    "original_line": 52,
+    "side": "RIGHT",
+    "subject_type": "line"
+  },
+  {
+    "url": "https://github.example.invalid/api/v3/repos/workshop/cost-coder/pulls/comments/2010701",
+    "pull_request_review_id": 4010791,
+    "id": 2010701,
+    "diff_hunk": "@@ -49,7 +49,7 @@ export function formatLine(line: InvoiceLine): string {",
+    "path": "src/classify.ts",
+    "commit_id": "0aac30b673fb52be0aadcc7c020a8548733cb59d",
+    "original_commit_id": "0aac30b673fb52be0aadcc7c020a8548733cb59d",
+    "user": {
+      "login": "mikko-l",
+      "id": 5104,
+      "type": "User",
+      "html_url": "https://github.example.invalid/mikko-l"
+    },
+    "body": "Same point as on #102: commas belong at the edges. The model has read `1980.00 EUR` well so far.",
+    "created_at": "2026-09-12T11:15:00Z",
+    "updated_at": "2026-09-12T11:15:00Z",
+    "html_url": "https://github.example.invalid/workshop/cost-coder/pull/107#discussion_r2010701",
+    "pull_request_url": "https://github.example.invalid/api/v3/repos/workshop/cost-coder/pulls/107",
+    "author_association": "MEMBER",
+    "start_line": null,
+    "original_start_line": null,
+    "line": 52,
+    "original_line": 52,
+    "side": "RIGHT",
+    "subject_type": "line"
+  }
+]

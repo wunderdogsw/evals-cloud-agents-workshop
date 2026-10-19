@@ -5,7 +5,7 @@
  *       --setup (sample only): the sample's agent setup — broken (default), good (reference fix) or none
  *   profile <name> [--redetect]          (keeps manually corrected commands unless --redetect)
  *   install <name> <component…> [--suite s] [--force]
- *       components: evals | subject-cost-coder | ci-evals | cursor-env | agents-section | review-md | agent-tasks | agent-suite | ci-agent-evals
+ *       components: evals | subject-cost-coder | ci-evals | cursor-env | agents-section | review-md | agent-tasks | agent-suite | ci-agent-evals | review-history
                    optional, only where Claude may run in CI: ci-evals-live | ci-claude | ci-review
  *   delegate <name> (--issue n | --task "…" | --task-file f) [--agent claude|cursor] [--no-push]
  *       run Claude Code or the Cursor CLI headless on a fresh branch, then push it and open an MR/PR
@@ -588,6 +588,15 @@ function installOne(name: string, component: string, opts: { suite?: string; for
       done.push(`.workshop/targets/${name}/agent-tasks/tasks.jsonl (hidden tests stay outside the target)`);
       break;
     }
+    case "review-history": {
+      // Phase 16: the sample has no pull requests, so the review-lessons skill reads this made-up history instead of `gh api`.
+      if (p.source !== "sample" && p.source !== "catchup") die("review-history exists only for the sample target. For your repo, the skill reads merged PRs/MRs with gh api or glab api.");
+      const dest = join(STATE, "targets", name, "review-history");
+      // Only the data files: the skill reads every file in the folder.
+      cpSync(join(KIT, "catchup", "cost-coder", "review-history"), dest, { recursive: true, force: true, filter: (src) => !src.endsWith(".md") });
+      done.push(`.workshop/targets/${name}/review-history/ (pulls.json and per-PR comments in gh api shapes; outside the target)`);
+      break;
+    }
     default:
       die(`unknown component "${component}"`);
   }
@@ -626,6 +635,8 @@ function catchup(phase: number, participant?: string) {
     log(`✓ .workshop/targets/${name}/expectations.md (reference)`);
   }
   if (phase > 7) install(name, ["agent-tasks"], {});
+  // Phase 16 on: the review history the review-lessons skill reads.
+  if (phase >= 16) install(name, ["review-history"], {});
   if (phase > 8) {
     // Facilitators record the sample's baseline runs before the workshop (see kit/catchup/cost-coder/baseline/README.md).
     const base = join(KIT, "catchup", "cost-coder", "baseline");
@@ -658,7 +669,8 @@ function catchup(phase: number, participant?: string) {
   checkOutWorkBranch(name);
 
   // CI and cloud-agent files depend on the host, which is unknown until the sample is pushed somewhere.
-  const later = [phase > 14 && "ci-agent-evals", phase > 16 && "cursor-env"].filter(Boolean) as string[];
+  // The cloud agents section (Phase 16 on) needs neither the CI job nor the agent gate recording.
+  const later = [phase === 15 && "ci-agent-evals"].filter(Boolean) as string[];
 
   const progress = readJson<any>(PROGRESS, initialProgress());
   const now = new Date().toISOString();
@@ -678,7 +690,7 @@ function catchup(phase: number, participant?: string) {
     log(`    pnpm workshop install ${name} ${later.join(" ")}`);
     log(`    cd targets/${name} && git checkout main && git add -A && git commit -m "workshop: CI + agents (catch-up)" && git push && git checkout ${p.workBranch} && git merge -q main`);
   }
-  if (phase > 14) {
+  if (phase === 15) {
     log(`! The agent gate needs a recording made with your own Claude Code or Cursor login:`);
     log(`    pnpm agent-evals run targets/${name} --tasks .workshop/targets/${name}/agent-tasks/tasks.jsonl --agent claude --setup "pnpm install --ignore-workspace" --record targets/${name}/evals/suites/agent`);
   }

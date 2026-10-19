@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://github.example.invalid/api/v3/repos/workshop/cost-coder/pulls/comments/2010600",
+    "pull_request_review_id": 4010600,
+    "id": 2010600,
+    "diff_hunk": "@@ -108,6 +108,14 @@ export function llm(): LlmClient {\n+async function withRetry<T>(call: () => Promise<T>): Promise<T> {\n+  try {\n+    return await call();\n+  } catch (e) {\n+    if (!String(e).includes(\"529\")) throw e;\n+    await new Promise((r) => setTimeout(r, 2000));\n+    return call();\n+  }\n+}",
+    "path": "src/llm/llm.ts",
+    "commit_id": "8990b6ba6bf8b1d97399bfecaca64c4716c16cd7",
+    "original_commit_id": "8990b6ba6bf8b1d97399bfecaca64c4716c16cd7",
+    "user": {
+      "login": "mikko-l",
+      "id": 5104,
+      "type": "User",
+      "html_url": "https://github.example.invalid/mikko-l"
+    },
+    "body": "There is no test for the retry. Please add test/llm.test.ts with a fake client, so it runs offline and doesn't wait for a real 529.",
+    "created_at": "2026-09-01T09:30:00Z",
+    "updated_at": "2026-09-01T09:30:00Z",
+    "html_url": "https://github.example.invalid/workshop/cost-coder/pull/106#discussion_r2010600",
+    "pull_request_url": "https://github.example.invalid/api/v3/repos/workshop/cost-coder/pulls/106",
+    "author_association": "MEMBER",
+    "start_line": null,
+    "original_start_line": null,
+    "line": 112,
+    "original_line": 112,
+    "side": "RIGHT",
+    "subject_type": "line"
+  },
+  {
+    "url": "https://github.example.invalid/api/v3/repos/workshop/cost-coder/pulls/comments/2010601",
+    "pull_request_review_id": 4010691,
+    "id": 2010601,
+    "diff_hunk": "@@ -108,6 +108,14 @@ export function llm(): LlmClient {\n+    await new Promise((r) => setTimeout(r, 2000));",
+    "path": "src/llm/llm.ts",
+    "commit_id": "8990b6ba6bf8b1d97399bfecaca64c4716c16cd7",
+    "original_commit_id": "8990b6ba6bf8b1d97399bfecaca64c4716c16cd7",
+    "user": {
+      "login": "aino-v",
+      "id": 5103,
+      "type": "User",
+      "html_url": "https://github.example.invalid/aino-v"
+    },
+    "body": "Make the 2000 ms a named constant at the top of the file.",
+    "created_at": "2026-09-01T10:05:00Z",
+    "updated_at": "2026-09-01T10:05:00Z",
+    "html_url": "https://github.example.invalid/workshop/cost-coder/pull/106#discussion_r2010601",
+    "pull_request_url": "https://github.example.invalid/api/v3/repos/workshop/cost-coder/pulls/106",
+    "author_association": "MEMBER",
+    "start_line": null,
+    "original_start_line": null,
+    "line": 117,
+    "original_line": 117,
+    "side": "RIGHT",
+    "subject_type": "line"
+  }
+]
