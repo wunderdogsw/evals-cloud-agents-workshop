@@ -55,10 +55,10 @@ The guide doesn't read the evidence for them. If they ask, the guide may show ho
 
 - **GitHub** (`host: github`) → the evidence links open in the browser. On GitHub Enterprise, they log in to that host first.
 - **GitLab** (`host: gitlab`) → the evidence links end in `#note_<id>` and open the merge request at that comment.
-- **Target is `sample` or a catch-up target** → the links point at `github.example.invalid`, which doesn't exist. The number at the end of a link is the comment's `id`. They find the comment in the review history and read its `body`:
+- **Target is `sample` or a catch-up target** → the links point at `github.example.invalid`, which doesn't exist. The number at the end of a link is the comment's `id`. They find the comment in the review history and read its `body`. This prints the body of comment 2010400:
 
   ```bash
-  grep -rn '"id": 2010400' .workshop/targets/<name>/review-history/
+  grep -rh -A20 '"id": 2010400' .workshop/targets/<name>/review-history/ | grep -m1 '"body"'
   ```
 
 - **The report has no findings, or only one** → that is a result too. Ask whether the window was too small. They run the skill again with a wider window (16.2). If there is still no finding, they write one finding into the report themselves: a review comment they know comes back in their team, in the same format, with at least one evidence link.
@@ -121,7 +121,7 @@ If it exists and the change touches an agent file, say this once: the agent eval
 
 They write the change themselves, for one or two "fix" findings.
 
-Before they commit, the guide checks the change against the finding: would it have stopped the comments in the evidence? If a comment would still be possible after the change, the guide says which one. They run the target's own tests, and its lint or typecheck if the profile or the target's `AGENTS.md` lists one.
+Before they commit, the guide checks the change against the finding: would it have stopped the comments in the evidence? If a comment would still be possible after the change, the guide says which one. They run the target's own tests, and its lint or typecheck if the profile or the target's `AGENTS.md` lists one. They follow the target's own rules for a change too, for example a CHANGELOG line. If such a rule doesn't fit a change to an agent file, they decide, and say why in the commit message.
 
 Then they commit each change on its own:
 
@@ -185,9 +185,11 @@ claude -p "/review-lessons $REPORT" \
   --output-format json \
   --add-dir "$STATE" \
   --allowedTools "Bash(gh api *)" "Bash(glab api *)" "Bash(git remote get-url *)" "Edit(/$STATE/review-lessons/**)" \
-  > "$STATE/review-lessons/scheduled-run.json"
+  < /dev/null > "$STATE/review-lessons/scheduled-run.json"
 test -s "$REPORT"
 ```
+
+If the skill runs a helper script of its own (skill-creator often adds one under `scripts/`), add its command to `--allowedTools` too, for example `"Bash(python3 .claude/skills/review-lessons/scripts/* *)"`. Look in the skill's `SKILL.md` for the exact command.
 
 Explain the script line by line:
 
@@ -197,14 +199,17 @@ Explain the script line by line:
 - `Bash(gh api *)` and `Bash(glab api *)` allow the API calls. They also allow write calls, so the skill's own read-only rule is what keeps the run to reads.
 - `Edit(//<path>/**)` allows writing only in the report folder. The `//` means an absolute path. In the script, `/` plus `$STATE` gives `//`.
 - `--max-budget-usd 2` stops the run at about 2 dollars. `scheduled-run.json` has the cost in `total_cost_usd`. Report it after each test run.
+- `< /dev/null` gives the run an empty input. Without it, `claude -p` waits 3 seconds for input and logs a warning on every run.
 
-The log may say `Ignoring … permissions.allow entries from .claude/settings.json: this workspace has not been trusted`. This happens when nobody has opened Claude Code in the target interactively and accepted the trust question. The run still works, because the script lists everything it may do. To remove the message, open Claude Code in `targets/<name>` once and accept.
+After each test run, check `permission_denials` in `scheduled-run.json`. It must be empty. A denied call doesn't stop the run: the agent works around it, for example by reading every file by hand instead of running the skill's script. The report still looks right, but the run takes more turns and costs about twice as much. Add the denied command to `--allowedTools` and run again.
+
+The log may say `Ignoring … permissions.allow entries from .claude/settings.json: this workspace has not been trusted`. This happens when nobody accepted the trust question in the target session (16.1). The run still works, because the script lists everything it may do. To remove the message, open Claude Code in `targets/<name>` once and accept.
 
 ### [HUMAN]
 
 They choose the path that fits their machine, read the entry the guide shows, and say yes before anything is added. Then they run the schedule once and read the new report.
 
-They check the new report the same way as in 17.1: does every finding have its three parts? Is a finding they fixed in 17.3 still there? It should be, because the old comments are still in the window. It goes away only when new PRs/MRs push them out.
+They check the new report the same way as in 17.1: does every finding have its three parts? Is a finding they fixed in 17.3 still there? It should be, because the old comments are still in the window. It goes away only when new PRs/MRs push them out. The skill may notice their change and say so under "where". That is fine too.
 
 ### [BRANCH]
 
@@ -279,7 +284,7 @@ They check the new report the same way as in 17.1: does every finding have its t
 
   `--force` lets the agent run `gh api` or `glab api` without asking, as in 16.3. `git status` at the end must print nothing. The Cursor docs recommend an API key for scripts. If the test run says the agent is not logged in, the participant creates a key in the Cursor dashboard and saves it in a file outside any repo, readable only by them: `chmod 600`. The script reads it with `export CURSOR_API_KEY="$(cat <that file>)"`. The key never goes into the schedule entry, the target or the chat. If they prefer no key on disk, they take the Claude Desktop path. The Cursor CLI prints no cost figure. Say so.
 - **GitLab** (`host: gitlab`) → the same schedule. The skill uses `glab api`, which the allow list already has. If the API calls fail in the test run, run `glab auth status`.
-- **Target is `sample` or a catch-up target** → add the review-history folder to the skill's arguments, in the script's `claude -p` line and in the Desktop instructions. With the reference skill from catch-up, the script's line is:
+- **Target is `sample` or a catch-up target** → add the review-history folder to the skill's arguments, in the script's `claude -p` line and in the Desktop instructions, in the form their skill takes. For example, with the reference skill from catch-up, the script's line is:
 
   ```sh
   claude -p "/review-lessons $REPORT --data $STATE/review-history" \
@@ -293,7 +298,7 @@ The participant confirms, and you verify:
 
 - [ ] Every finding has a decision (fix / skip) and a reason. — in the Phase 16 report `.workshop/targets/<name>/review-lessons/<YYYY-MM-DD>.md`, every `###` finding has a `- Decision: fix — …` or `- Decision: skip — …` line with a reason after the dash
 - [ ] At least one change is committed and names its finding. — `git -C targets/<name> log --stat --grep "review-lessons:"` on `dev-days-workshop/<participant>` shows the commit, its message names a finding title from the report, and the report has its `- Change:` line
-- [ ] The local schedule has run once and written a new report. — `ls -l .workshop/targets/<name>/review-lessons/scheduled-*.md` shows a file written after the schedule was added, with findings in the Phase 16 format; the schedule exists: the routine in Claude Desktop's **Routines** list with a run in its history, `launchctl print gui/$(id -u)/workshop.review-lessons.<name>`, or `crontab -l | grep review-lessons.sh`; on the CLI paths, report `total_cost_usd` from `scheduled-run.json`
+- [ ] The local schedule has run once and written a new report. — `ls -l .workshop/targets/<name>/review-lessons/scheduled-*.md` shows a file written after the schedule was added, with findings in the Phase 16 format (a test run by hand on the same day writes the same name, so compare the file's time with the time the schedule was added); the schedule exists: the routine in Claude Desktop's **Routines** list with a run in its history, `launchctl print gui/$(id -u)/workshop.review-lessons.<name>`, or `crontab -l | grep review-lessons.sh`; on the CLI paths, report `total_cost_usd` from `scheduled-run.json`, and its `permission_denials` is empty
 
 ---
 
