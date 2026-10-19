@@ -38,6 +38,7 @@ import { parseArgs } from "node:util";
 import { checkCommand, contextFor, explain, PREFIX } from "./push-guard.mjs";
 import { cursorArgs, REVIEW_TIMEOUT_MS, reviewPrompt } from "./agent-cli.ts";
 import { changeRequestProblems, cloudBranchName, cloudTaskPrompt, cursorAgentRequest, CURSOR_AGENTS_URL, remoteWebUrl, type ChangeRequest } from "./cloud-agent.ts";
+import { backupStep, mergeBackupRecords, type BackupRecord } from "./settings-backup.ts";
 
 /** Every workshop branch starts with this, e.g. dev-days-workshop/mikko. */
 const BRANCH_PREFIX: string = PREFIX;
@@ -46,6 +47,8 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const TARGETS = join(ROOT, "targets");
 const STATE = join(ROOT, ".workshop");
 const PROGRESS = join(STATE, "progress.json");
+/** Backup records kept next to the backups themselves, so they outlive a reset progress.json. */
+const BACKUP_INDEX = join(STATE, "backups", "index.json");
 const KIT = join(ROOT, "kit");
 
 const log = (s: string) => console.log(s);
@@ -211,20 +214,23 @@ function backupUserSettings() {
   const home = homedir();
   const files = [join(home, ".claude", "settings.json"), join(home, ".claude", "CLAUDE.md"), join(home, ".cursor", "hooks.json")];
   const progress = readJson<any>(PROGRESS, initialProgress());
-  progress.backups ??= [];
-  for (const from of files) {
-    if (progress.backups.some((b: any) => b.from === from)) continue;
-    if (!existsSync(from)) {
-      progress.backups.push({ from, to: null, at: new Date().toISOString() });
-      continue;
-    }
+  // The index next to the backups keeps the records when progress.json is reset, so a restart never re-backs-up.
+  const known = mergeBackupRecords(progress.backups ?? [], readJson<BackupRecord[]>(BACKUP_INDEX, []));
+  const now = new Date().toISOString();
+  const records = files.map((from) => {
     const to = join(STATE, "backups", relative(home, from).replace(/[\\/]/g, "__"));
-    mkdirSync(dirname(to), { recursive: true });
-    copyFileSync(from, to);
-    progress.backups.push({ from, to: relative(ROOT, to), at: new Date().toISOString() });
-    log(`✓ backed up ${from.replace(home, "~")} → ${relative(ROOT, to)}`);
-  }
+    const s = backupStep({ from, to: relative(ROOT, to), known, sourceExists: existsSync(from), backupFileTime: existsSync(to) ? statSync(to).mtime.toISOString() : null, now });
+    if (s.kind === "copy") {
+      mkdirSync(dirname(to), { recursive: true });
+      copyFileSync(from, to);
+      log(`✓ backed up ${from.replace(home, "~")} → ${relative(ROOT, to)}`);
+    }
+    if (s.kind === "adopt") log(`✓ kept the earlier backup of ${from.replace(home, "~")} in ${relative(ROOT, to)} (from ${s.record.at})`);
+    return s.record;
+  });
+  progress.backups = mergeBackupRecords(records, known);
   writeJson(PROGRESS, progress);
+  writeJson(BACKUP_INDEX, progress.backups);
 }
 
 // ───────────────────────────── profile ─────────────────────────────
@@ -1021,7 +1027,7 @@ function cleanup(name: string, yes: boolean) {
     reviews = j ? JSON.parse(j).filter((r: any) => String(r.source_branch).startsWith(BRANCH_PREFIX)).map((r: any) => ({ id: String(r.iid), head: r.source_branch })) : [];
   } else if (p.remote) reviewNote = `close open MRs/PRs from ${BRANCH_PREFIX}* branches by hand (no ${p.host === "github" ? "gh" : "glab"} CLI)`;
   const home = homedir();
-  const backups = (readJson<any>(PROGRESS, {}).backups ?? []) as { from: string; to: string | null }[];
+  const backups = mergeBackupRecords(readJson<any>(PROGRESS, {}).backups ?? [], readJson<BackupRecord[]>(BACKUP_INDEX, []));
   const restore = backups.filter((b) => b.to && existsSync(b.from) && readFileSync(b.from, "utf8") !== readFileSync(join(ROOT, b.to), "utf8"));
   const created = backups.filter((b) => !b.to && existsSync(b.from));
 
