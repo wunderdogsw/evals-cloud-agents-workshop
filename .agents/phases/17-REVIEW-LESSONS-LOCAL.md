@@ -95,6 +95,8 @@ They write a decision and a reason under every finding. The reason refers to wha
 
 The guide reads the decisions and asks a question when a reason is missing or doesn't match the evidence. For example: "The rule is already in `AGENTS.md`, and it came back three times. Would more text in `AGENTS.md` stop it?" The guide doesn't change a decision.
 
+On the sample or a catch-up target, the report names `AGENTS.md` as the place where a rule already exists for most findings. A good "fix" reason then says why the new place is stronger than `AGENTS.md`.
+
 ## 17.3 Change the files
 
 ### [LLM]
@@ -119,7 +121,7 @@ If it exists and the change touches an agent file, say this once: the agent eval
 
 They write the change themselves, for one or two "fix" findings.
 
-Before they commit, the guide checks the change against the finding: would it have stopped the comments in the evidence? If a comment would still be possible after the change, the guide says which one. They run the target's own tests and lint, with the commands from the profile.
+Before they commit, the guide checks the change against the finding: would it have stopped the comments in the evidence? If a comment would still be possible after the change, the guide says which one. They run the target's own tests, and its lint or typecheck if the profile or the target's `AGENTS.md` lists one.
 
 Then they commit each change on its own:
 
@@ -139,7 +141,7 @@ Under the finding in the report, they add one line with the commit:
 
 - **The change is a CI job** → it runs only after a push. They commit it on the workshop branch and run the same command on their machine once. They don't push in this phase.
 - **The change needs the team first** (for example, a lint rule that fails on old code) → they change the decision to `skip — needs the team first`, and pick a smaller finding for today.
-- **Target is `sample` or a catch-up target** → the same task. The report names `AGENTS.md` as the place where a rule already exists for most findings. A good reason in 17.2 says why the new place is stronger. The sample has no `.github/` folder. They can still add a file there.
+- **Target is `sample` or a catch-up target** → the same task. The sample has no `.github/` folder. They can still add a file there.
 
 ## 17.4 Schedule it locally
 
@@ -164,7 +166,7 @@ Each scheduled run writes `scheduled-<YYYY-MM-DD>.md` next to the Phase 16 repor
 
 A schedule is persistent configuration on the participant's machine, outside any repo. **Before you add one, show the exact entry and ask once.** Use a weekly schedule. Phase Complete tells them how to remove it.
 
-For the launchd and cron paths, write a small script outside the target, so the schedule entry stays short. Fill in the absolute paths and the `PATH` from their shell (`echo $PATH`), because launchd and cron start with an almost empty environment. Use the arguments their own skill takes, from 16.2, with the new report path. Claude Code version, saved as `.workshop/targets/<name>/review-lessons.sh`:
+For the launchd and cron paths, write a small script outside the target, so the schedule entry stays short. Fill in the absolute paths and the `PATH` from their shell (`echo $PATH`), because launchd and cron start with an almost empty environment. Replace any folder that belongs to one shell session or one tool version, for example a `fnm_multishells` or `nvm/versions` folder, with a stable folder that has `node`, `claude` and `gh` (`command -v node claude gh` shows where they are). Use the arguments their own skill takes, from 16.2, with the new report path. Claude Code version, saved as `.workshop/targets/<name>/review-lessons.sh`:
 
 ```sh
 #!/bin/sh
@@ -195,6 +197,8 @@ Explain the script line by line:
 - `Bash(gh api *)` and `Bash(glab api *)` allow the API calls. They also allow write calls, so the skill's own read-only rule is what keeps the run to reads.
 - `Edit(//<path>/**)` allows writing only in the report folder. The `//` means an absolute path. In the script, `/` plus `$STATE` gives `//`.
 - `--max-budget-usd 2` stops the run at about 2 dollars. `scheduled-run.json` has the cost in `total_cost_usd`. Report it after each test run.
+
+The log may say `Ignoring … permissions.allow entries from .claude/settings.json: this workspace has not been trusted`. This happens when nobody has opened Claude Code in the target interactively and accepted the trust question. The run still works, because the script lists everything it may do. To remove the message, open Claude Code in `targets/<name>` once and accept.
 
 ### [HUMAN]
 
@@ -235,8 +239,15 @@ They check the new report the same way as in 17.1: does every finding have its t
   plutil -lint ~/Library/LaunchAgents/workshop.review-lessons.<name>.plist
   launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/workshop.review-lessons.<name>.plist
   launchctl kickstart gui/$(id -u)/workshop.review-lessons.<name>
+  ```
+
+  `kickstart` returns at once, but the run takes a few minutes. Wait until `scheduled-run.json` is written and `launchd.log` stops growing, then check the result. `last exit code = 0` means it worked:
+
+  ```bash
   launchctl print gui/$(id -u)/workshop.review-lessons.<name> | grep -i "last exit"
   ```
+
+  To change the plist later, unload it first with `launchctl bootout gui/$(id -u)/workshop.review-lessons.<name>`. A second `bootstrap` of a loaded job fails with `Bootstrap failed: 5`.
 
   If `launchd.log` says `Operation not permitted`, the workshop repo is probably in `~/Documents`, `~/Desktop` or `~/Downloads`, which macOS protects. Take the Claude Desktop path instead.
 - **Claude Code CLI on Linux** → cron. The guide writes the script above, then adds this line after the participant says yes. It runs every Monday at 9:00:
@@ -249,7 +260,7 @@ They check the new report the same way as in 17.1: does every finding have its t
   (crontab -l 2>/dev/null; echo "<the line above>") | crontab -
   ```
 
-  cron can't be started on demand. To run it once, they run the script with an empty environment, the way cron starts it:
+  cron can't be started on demand. To run it once, they run the script with an empty environment, the way cron starts it. This proves the script and the entry, not that cron itself has run it. To see cron run it too, add a second line for a few minutes from now, wait for `cron.log`, then remove that line:
 
   ```bash
   env -i HOME="$HOME" /bin/sh .workshop/targets/<name>/review-lessons.sh
@@ -268,7 +279,13 @@ They check the new report the same way as in 17.1: does every finding have its t
 
   `--force` lets the agent run `gh api` or `glab api` without asking, as in 16.3. `git status` at the end must print nothing. The Cursor docs recommend an API key for scripts. If the test run says the agent is not logged in, the participant creates a key in the Cursor dashboard and saves it in a file outside any repo, readable only by them: `chmod 600`. The script reads it with `export CURSOR_API_KEY="$(cat <that file>)"`. The key never goes into the schedule entry, the target or the chat. If they prefer no key on disk, they take the Claude Desktop path. The Cursor CLI prints no cost figure. Say so.
 - **GitLab** (`host: gitlab`) → the same schedule. The skill uses `glab api`, which the allow list already has. If the API calls fail in the test run, run `glab auth status`.
-- **Target is `sample` or a catch-up target** → add the review-history folder to the skill's arguments, for example `--data <absolute path of the workshop repo>/.workshop/targets/<name>/review-history`. The report is the same each week, because the history doesn't change. That is fine for this phase.
+- **Target is `sample` or a catch-up target** → add the review-history folder to the skill's arguments, in the script's `claude -p` line and in the Desktop instructions. With the reference skill from catch-up, the script's line is:
+
+  ```sh
+  claude -p "/review-lessons $REPORT --data $STATE/review-history" \
+  ```
+
+  The findings stay much the same each week, because the history doesn't change. Wording, counts and the suggested file can differ between runs, and a file they changed in 17.3 changes what the report suggests. That is fine for this phase.
 
 ## 17.5 Gate check
 
