@@ -66,7 +66,7 @@ evals-cloud-agents-workshop/       ← open THIS in Cursor / Claude Code
 | Evals | [14 — Record evals for CI](.agents/phases/14-RECORD-FOR-CI.md) | Record a run with a hash of each tracked file; CI checks it without a model |
 | Evals | [15 — Make the gate block](.agents/phases/15-MERGE-GATE.md) | One MR/PR passes the gate, one is blocked |
 | Cloud agents | [16 — Build a review-lessons skill](.agents/phases/16-REVIEW-LESSONS-SKILL.md) | A skill that reads merged PRs/MRs and reports what reviewers keep pointing out; tested with and without it |
-| Cloud agents | [17 — Cloud agents](.agents/phases/17-CLOUD-AGENTS.md) | The same task handover, in a cloud VM |
+| Cloud agents | [17 — Act on review lessons, schedule locally](.agents/phases/17-REVIEW-LESSONS-LOCAL.md) | Decide which findings are worth a change, commit one or two, and run the skill weekly on your own machine |
 | Cloud agents | [18 — Guardrails](.agents/phases/18-GUARDRAILS.md) | A review agent, and an agent section in AGENTS.md, measured |
 | Cloud agents | [19 — Capstone](.agents/phases/19-CAPSTONE.md) | Several agents on a backlog; you decide what to merge from the evidence |
 

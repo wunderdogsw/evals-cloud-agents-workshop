@@ -125,11 +125,11 @@ Initial `.workshop/progress.json`:
 | 14 | Evals | Record evals for CI | `.agents/phases/14-RECORD-FOR-CI.md` |
 | 15 | Evals | Make the gate block | `.agents/phases/15-MERGE-GATE.md` |
 | 16 | Cloud agents | Build a review-lessons skill | `.agents/phases/16-REVIEW-LESSONS-SKILL.md` |
-| 17 | Cloud agents | Cloud agents | `.agents/phases/17-CLOUD-AGENTS.md` |
+| 17 | Cloud agents | Act on review lessons, schedule locally | `.agents/phases/17-REVIEW-LESSONS-LOCAL.md` |
 | 18 | Cloud agents | Guardrails | `.agents/phases/18-GUARDRAILS.md` |
 | 19 | Cloud agents | Capstone | `.agents/phases/19-CAPSTONE.md` |
 
-Phases 17–19 still use the old format.
+Phases 18–19 still use the old format.
 
 The full plan and learning objectives are in `.agents/PLAN.md`. Read it once at start-up, not per phase.
 

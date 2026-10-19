@@ -660,6 +660,17 @@ function catchup(phase: number, participant?: string) {
     cpSync(join(suiteRef, "agent-suite.json"), join(suiteDir, "agent-suite.json"));
     commit("workshop: agent eval threshold (catch-up)");
   }
+  // Phase 16 reference work: the review-lessons skill in the target, and its first report outside it.
+  if (phase > 16) {
+    cpSync(join(KIT, "catchup", "cost-coder", "review-lessons"), join(dir, ".claude", "skills", "review-lessons"), { recursive: true, force: true });
+    commit("workshop: review-lessons skill (catch-up)");
+    const reports = join(STATE, "targets", name, "review-lessons");
+    mkdirSync(reports, { recursive: true });
+    // The "sv-SE" locale writes the local date as YYYY-MM-DD, the report's file name.
+    const today = new Date().toLocaleDateString("sv-SE");
+    cpSync(join(KIT, "catchup", "cost-coder", "review-lessons-report.md"), join(reports, `${today}.md`));
+    log(`✓ .workshop/targets/${name}/review-lessons/${today}.md (reference report)`);
+  }
 
   if (phase > 18) {
     install(name, ["agents-section", "review-md"], {});
