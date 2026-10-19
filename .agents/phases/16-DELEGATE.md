@@ -64,7 +64,7 @@ pnpm agent-evals grade-patch targets/<name> --tasks .workshop/targets/<name>/age
   --patch .workshop/targets/<name>/agent-change.diff --rules targets/<name>/evals/suites/agent/rules.mjs
 ```
 
-They leave at least one review comment. Then they ask for one more round: `pnpm workshop delegate <name> --task "Address review on <branch>: …"` creates a follow-up branch. They can also check out the agent's branch and continue in their editor with any assistant. Both are fine. The goal is to see how much help the agent needed.
+They leave at least one review comment. The MR/PR was opened with their own login, so they are its author. GitHub and GitLab don't let the author approve or "request changes", so they leave a normal comment with what must change. Then they ask for one more round: `pnpm workshop delegate <name> --task "Address review on <branch>: …"` creates a follow-up branch. They can also check out the agent's branch and continue in their editor with any assistant. Both are fine. The goal is to see how much help the agent needed.
 
 ## Gate 16
 

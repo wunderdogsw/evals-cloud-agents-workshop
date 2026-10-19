@@ -71,10 +71,24 @@ export function resolveProvider(): Provider {
   );
 }
 
+/**
+ * The provider for judges in a coding-agent run: EVALS_PROVIDER when set, otherwise the provider that
+ * belongs to the agent CLI, so a Cursor run is graded on the Cursor login rather than on Claude Code.
+ */
+export function providerForAgent(agent: string): Provider {
+  if (process.env.EVALS_PROVIDER) return resolveProvider();
+  if (agent === "cursor") return "cursor";
+  if (agent === "claude") return "claude-code";
+  return resolveProvider();
+}
+
+export function clientFor(p: Provider): LlmClient {
+  return p === "claude-code" ? claudeCodeClient() : p === "cursor" ? cursorClient() : anthropicClient();
+}
+
 export function llm(): LlmClient {
   if (shared) return shared;
-  const p = resolveProvider();
-  shared = p === "claude-code" ? claudeCodeClient() : p === "cursor" ? cursorClient() : anthropicClient();
+  shared = clientFor(resolveProvider());
   return shared;
 }
 
@@ -182,7 +196,8 @@ export function claudeCodeClient(bin = process.env.EVALS_CLAUDE_BIN ?? "claude")
 }
 
 /**
- * Cursor CLI headless, no --force (cannot edit files). Model: EVALS_CURSOR_MODEL, or Cursor's default.
+ * Cursor CLI headless in ask mode, no --force: read-only, and it never waits for a tool approval.
+ * Model: EVALS_CURSOR_MODEL, or Cursor's default.
  * Cursor model names differ from Anthropic IDs, so call.model is ignored unless EVALS_CURSOR_MODEL is set.
  */
 export function cursorClient(bin = process.env.EVALS_CURSOR_BIN ?? "agent"): LlmClient {
@@ -197,7 +212,7 @@ export function cursorClient(bin = process.env.EVALS_CURSOR_BIN ?? "agent"): Llm
         .filter(Boolean)
         .join("\n\n");
       const model = process.env.EVALS_CURSOR_MODEL;
-      const r = await run(bin, ["-p", prompt, "--output-format", "json", "--trust", ...(model ? ["--model", model] : [])], 180_000);
+      const r = await run(bin, ["-p", prompt, "--output-format", "json", "--trust", "--mode", "ask", ...(model ? ["--model", model] : [])], 180_000);
       if (r.code !== 0) throw new Error(`agent -p failed (exit ${r.code}): ${(r.stderr || r.stdout).slice(0, 300)}`);
       const out = lastJsonLine(r.stdout);
       return { data: extractJsonObject(String(out.result ?? "")) as T, costUsd: 0, inputTokens: 0, outputTokens: 0 };

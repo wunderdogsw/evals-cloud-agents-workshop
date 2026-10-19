@@ -12,7 +12,7 @@ They pick 3–5 issues. Sample: the remaining `BACKLOG.md` items, including at l
 
 ## 19.2 [HUMAN] Assign and launch
 
-They decide which agent gets which issue and why, one line each in `agent-notes.md`, within the agreed budget. They can use any mix of `pnpm workshop delegate` (Claude Code or Cursor CLI, one terminal each), Cursor cloud agents, and Claude Code cloud sessions for GitHub repos. Every agent starts from the workshop branch and opens its MR/PR into it. They start all agents, then leave the keyboard for a few minutes. Working on something else while the agents run is the point of this phase.
+They decide which agent gets which issue and why, one line each in `agent-notes.md`, within the agreed budget. They can use any mix of `pnpm workshop delegate` (Claude Code or Cursor CLI, one terminal each), Cursor cloud agents, and Claude Code cloud sessions for GitHub repos. Every agent starts from the workshop branch and its MR/PR goes into it. For each cloud agent, run `pnpm workshop cloud <name> --issue <n>` first and start the agent on the branch it prints, as in Phase 17.4. When it has pushed, `pnpm workshop cloud-check <name> <branch>` opens the MR/PR. They start all agents, then leave the keyboard for a few minutes. Working on something else while the agents run is the point of this phase.
 
 ## 19.3 [LLM] Collect evidence
 
@@ -25,7 +25,7 @@ Do not recommend what to merge. That decision is theirs.
 
 ## 19.4 [HUMAN] Triage
 
-For each MR/PR they choose **merge**, **request changes** or **close**, with one reason. They merge the ones they would really merge, into the workshop branch only (confirm before you do anything). Nothing goes to the default branch. For one "request changes", they ask an agent for one more round (a follow-up `delegate`, a message to the cloud agent, or their editor's assistant) and check whether the result is now good enough.
+For each MR/PR they choose **merge**, **request changes** or **close**, with one reason. They are the author of every agent MR/PR, because the agents push with their login, so "request changes" is a comment, not a review state. They merge the ones they would really merge, into the workshop branch only (confirm before you do anything). Nothing goes to the default branch. For one "request changes", they ask an agent for one more round (a follow-up `delegate`, a message to the cloud agent, or their editor's assistant) and check whether the result is now good enough.
 
 ## 19.5 [HUMAN] Retro
 

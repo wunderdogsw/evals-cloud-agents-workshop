@@ -11,6 +11,11 @@
  *       run Claude Code or the Cursor CLI headless on a fresh branch, then push it and open an MR/PR
  *   review <name> <branch> [--agent claude|cursor] [--post]
  *       read-only agent review of a branch; --post puts it on the MR/PR via glab/gh
+ *   cloud <name> (--issue n | --task "…" | --task-file f) [--launch [--yes]]
+ *       push a dev-days-workshop/<participant>-cloud-… branch and write the task text for a cloud agent;
+ *       --launch starts a Cursor cloud agent on it through the API (needs CURSOR_API_KEY; --yes to spend budget)
+ *   cloud-check <name> <branch | MR/PR number>
+ *       open the cloud agent's MR/PR into the workshop branch, ready for review, or warn when head, base or draft is wrong
  *   catchup <phase> [--participant p]
  *   ci-check <name>
  *       list CI lines that look like deploys, so nobody's push to a real repo triggers production
@@ -31,6 +36,8 @@ import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 // @ts-ignore — plain ESM module shared with the Claude Code / Cursor hooks.
 import { checkCommand, contextFor, explain, PREFIX } from "./push-guard.mjs";
+import { cursorArgs, REVIEW_TIMEOUT_MS, reviewPrompt } from "./agent-cli.ts";
+import { changeRequestProblems, cloudBranchName, cloudTaskPrompt, cursorAgentRequest, CURSOR_AGENTS_URL, remoteWebUrl, type ChangeRequest } from "./cloud-agent.ts";
 
 /** Every workshop branch starts with this, e.g. dev-days-workshop/mikko. */
 const BRANCH_PREFIX: string = PREFIX;
@@ -112,6 +119,22 @@ function profileOf(name: string): Profile {
 
 // ───────────────────────────── attach ─────────────────────────────
 
+/**
+ * Leave the target checked out on the participant's workshop branch, where every phase works.
+ * Refuses to switch over uncommitted changes and says how to switch by hand instead.
+ */
+function checkOutWorkBranch(name: string): void {
+  const dir = targetDir(name);
+  const want = profileOf(name).workBranch;
+  const current = tryRun("git branch --show-current", dir);
+  if (current === want) return log(`✓ targets/${name} is on ${want}`);
+  if (tryRun("git status --porcelain", dir)) {
+    return log(`! targets/${name} is on ${current || "a detached HEAD"}, not ${want}, and has uncommitted changes. Commit or stash them, then: git -C targets/${name} checkout ${want}`);
+  }
+  run(`git checkout -q ${want}`, dir);
+  log(`✓ targets/${name} switched from ${current || "a detached HEAD"} to ${want}`);
+}
+
 function slug(s: string) {
   return s.toLowerCase().replace(/\.git$/, "").replace(/[^a-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "") || "target";
 }
@@ -175,6 +198,7 @@ function attach(src: string, opts: { name?: string; participant?: string; setup?
   writeJson(PROGRESS, progress);
   log(`✓ attached targets/${name} (${source}) on branch ${branch}, start marked by tag ${startTag}`);
   profile(name, { source, workBranch: branch, startTag });
+  checkOutWorkBranch(name);
   backupUserSettings();
   ciCheck(name);
 }
@@ -521,6 +545,11 @@ function installOne(name: string, component: string, opts: { suite?: string; for
       const node = p.languages.every((l) => l === "typescript" || l === "javascript") && p.languages.length > 0;
       done.push(`.cursor/environment.json: ${copyTemplate(join(T, "cursor", node ? "environment.node.json" : "environment.dockerfile.json"), join(dir, ".cursor", "environment.json"), { ...vars, TARGET_INSTALL: (p.commands.install ?? "true").replace(" --ignore-workspace", "") }, force)}`);
       if (!node) done.push(`.cursor/Dockerfile: ${copyTemplate(join(T, "cursor", "Dockerfile.example"), join(dir, ".cursor", "Dockerfile"), vars, force)}`);
+      // Cursor builds the VM from this file on the host's default branch only, not on the branch the agent starts on.
+      const remoteDefault = p.remote ? tryRun("git ls-remote --symref origin HEAD", dir).match(/refs\/heads\/(\S+)\s+HEAD/)?.[1] : undefined;
+      const defaultBranch = remoteDefault ?? p.defaultBranch;
+      if (contextFor(dir)?.unrestricted) done.push(`! Cursor reads .cursor/environment.json only from ${defaultBranch}, the default branch${remoteDefault ? " on the host" : ""}. This target is throwaway, so commit the file on ${defaultBranch} and push it (confirm first).`);
+      else done.push(`! Cursor reads .cursor/environment.json only from ${defaultBranch}, the default branch, and the workshop never commits there on a real repo. Put the install command in Cursor's saved environment instead (the setup Cursor offers when you start a cloud agent): ${p.commands.install ?? "your install command"}`);
       break;
     }
     case "agents-section": {
@@ -556,7 +585,7 @@ function installOne(name: string, component: string, opts: { suite?: string; for
     default:
       die(`unknown component "${component}"`);
   }
-  for (const d of done) log(`✓ ${d}`);
+  for (const d of done) log(d.startsWith("! ") ? d : `✓ ${d}`);
 }
 
 // ───────────────────────────── catchup ─────────────────────────────
@@ -620,6 +649,7 @@ function catchup(phase: number, participant?: string) {
     commit("workshop: agent instructions (catch-up)");
   }
   run(`git checkout -q -B ${p.workBranch}`, dir);
+  checkOutWorkBranch(name);
 
   // CI and cloud-agent files depend on the host, which is unknown until the sample is pushed somewhere.
   const later = [phase > 14 && "ci-agent-evals", phase > 16 && "cursor-env"].filter(Boolean) as string[];
@@ -667,11 +697,12 @@ function pickAgent(requested?: string): AgentCli {
 }
 
 /** Run a CLI with an argument array (no shell), streaming its stderr so the participant sees progress. */
-function runArgs(cmd: string, args: string[], cwd: string, timeoutMs = 60 * 60_000): { code: number | null; stdout: string } {
+function runArgs(cmd: string, args: string[], cwd: string, timeoutMs = 60 * 60_000): { code: number | null; stdout: string; timedOut: boolean } {
   const env = { ...process.env };
   delete env.CLAUDECODE;
   const r = spawnSync(cmd, args, { cwd, env, encoding: "utf8", timeout: timeoutMs, maxBuffer: 64 * 1024 * 1024, stdio: ["ignore", "pipe", "inherit"] });
-  return { code: r.status, stdout: r.stdout ?? "" };
+  const timedOut = r.error !== undefined && "code" in r.error && r.error.code === "ETIMEDOUT";
+  return { code: r.status, stdout: r.stdout ?? "", timedOut };
 }
 
 function lastJson(s: string): any {
@@ -689,17 +720,20 @@ const GUARD_SETTINGS = JSON.stringify({
 });
 
 function agentRun(agent: AgentCli, prompt: string, cwd: string, mode: "write" | "read"): { ok: boolean; summary: string; costUsd?: number } {
+  const timeoutMs = mode === "read" ? REVIEW_TIMEOUT_MS : undefined;
+  const timedOut = { ok: false, summary: `${agent} did not finish within ${Math.round((timeoutMs ?? 0) / 60_000)} minutes and was stopped.` };
   if (agent === "claude") {
     const args =
       mode === "write"
         ? ["-p", prompt, "--output-format", "json", "--permission-mode", "acceptEdits", "--allowedTools", "Read,Edit,Write,Glob,Grep,Bash", "--max-turns", "80", "--settings", GUARD_SETTINGS]
         : ["-p", prompt, "--output-format", "json", "--permission-mode", "dontAsk", "--allowedTools", "Read,Glob,Grep,Bash(git diff *),Bash(git log *),Bash(git show *)", "--max-turns", "30"];
-    const r = runArgs("claude", args, cwd);
+    const r = runArgs("claude", args, cwd, timeoutMs);
+    if (r.timedOut) return timedOut;
     const out = lastJson(r.stdout);
     return { ok: r.code === 0 && out.subtype === "success", summary: String(out.result ?? out.subtype ?? "no output"), costUsd: out.total_cost_usd };
   }
-  // Cursor CLI: --force lets it write; without it, it only proposes changes.
-  const r = runArgs("agent", ["-p", prompt, "--output-format", "json", "--trust", ...(mode === "write" ? ["--force"] : [])], cwd);
+  const r = runArgs("agent", cursorArgs(prompt, mode), cwd, timeoutMs);
+  if (r.timedOut) return timedOut;
   const out = lastJson(r.stdout);
   return { ok: r.code === 0, summary: String(out.result ?? "no output") };
 }
@@ -718,20 +752,22 @@ function fetchIssue(p: Profile, dir: string, n: string): { title: string; body: 
   return die(`Can't read issue #${n}: need ${p.host === "github" ? "gh" : "glab"} installed and logged in. Or pass the text with --task / --task-file.`);
 }
 
+/** The task for an agent: an issue from the host, a file whose first line is the title, or text. */
+function taskOf(p: Profile, dir: string, o: { task?: string; taskFile?: string; issue?: string }, cmd: string): { title: string; body: string } {
+  if (o.issue) return fetchIssue(p, dir, o.issue);
+  if (o.taskFile) {
+    const body = readFileSync(o.taskFile, "utf8");
+    return { title: oneLine(body.split("\n")[0]!.replace(/^#+\s*/, ""), 70), body };
+  }
+  if (o.task) return { title: oneLine(o.task, 70), body: o.task };
+  return die(`${cmd} needs --issue <n>, --task "…" or --task-file <file>`);
+}
+
 function delegate(name: string, o: { task?: string; taskFile?: string; issue?: string; agent?: string; push?: boolean }) {
   const dir = targetDir(name);
   const p = profileOf(name);
   const agent = pickAgent(o.agent);
-  let title: string;
-  let body: string;
-  if (o.issue) ({ title, body } = fetchIssue(p, dir, o.issue));
-  else if (o.taskFile) {
-    body = readFileSync(o.taskFile, "utf8");
-    title = oneLine(body.split("\n")[0]!.replace(/^#+\s*/, ""), 70);
-  } else if (o.task) {
-    body = o.task;
-    title = oneLine(o.task, 70);
-  } else return die("delegate needs --issue <n>, --task \"…\" or --task-file <file>");
+  const { title, body } = taskOf(p, dir, o, "delegate");
 
   // Agent work branches off the participant's workshop branch and its MR/PR targets that branch,
   // so nothing an agent does can land on the default branch of a real repo.
@@ -804,8 +840,7 @@ function review(name: string, branch: string, o: { agent?: string; post?: boolea
   const wt = join(tmpdir(), "workshop-review", slug(branch));
   if (existsSync(wt)) tryRun(`git worktree remove --force ${JSON.stringify(wt)}`, dir);
   run(`git worktree add -q --detach ${JSON.stringify(wt)} ${head}`, dir);
-  const prompt = `Review the changes on this branch: run \`git diff ${base}...HEAD\`. Follow REVIEW.md if it exists, otherwise AGENTS.md / CLAUDE.md. Do not modify any files.
-Report only real problems (bugs, missing tests, broken conventions, risky changes, edits to evals/suites/*/cases.jsonl or thresholds), most severe first, each with file:line and a one-line fix. If there are none, say so in one sentence. Markdown, under 300 words.`;
+  const prompt = reviewPrompt(base, runArgs("git", ["diff", `${base}...HEAD`], wt).stdout);
   log(`… ${agent} is reviewing ${branch}`);
   const res = agentRun(agent, prompt, wt, "read");
   const md = `### 🤖 ${agent === "claude" ? "Claude" : "Cursor"} review\n\n${res.summary}\n`;
@@ -817,6 +852,108 @@ Report only real problems (bugs, missing tests, broken conventions, risky change
   if (p.host === "gitlab" && onPath("glab")) log(run(`glab mr note ${branch} --message ${JSON.stringify(md)}`, dir) || "✓ posted");
   else if (p.host === "github" && onPath("gh")) log(run(`gh pr comment ${branch} --body-file ${JSON.stringify(out)}`, dir) || "✓ posted");
   else log(`! no ${p.host === "github" ? "gh" : "glab"} CLI — paste ${out} into the MR/PR by hand.`);
+}
+
+// ───────────────────────────── cloud agents ─────────────────────────────
+
+/**
+ * Prepare a cloud agent's branch and task. The branch is created from the remote workshop branch and
+ * pushed through the push guard here, because the guard does not run on the agent's VM. With --launch and
+ * CURSOR_API_KEY it also starts a Cursor cloud agent on that branch through the Cloud Agents API.
+ */
+async function cloud(name: string, o: { task?: string; taskFile?: string; issue?: string; launch?: boolean; yes?: boolean }): Promise<void> {
+  const dir = targetDir(name);
+  const p = profileOf(name);
+  if (!p.remote) die(`targets/${name} has no remote. A cloud agent clones the repo from its host, so push the workshop branch first (Phase 14, "No remote yet").`);
+  const key = process.env.CURSOR_API_KEY;
+  if (o.launch && !key) {
+    die("--launch needs CURSOR_API_KEY set in your shell: a Cursor dashboard API key. The Cursor CLI login does not work with the Cloud Agents API. Without a key, run this command without --launch and start the agent from Cursor's Cloud dropdown.");
+  }
+  const { title, body } = taskOf(p, dir, o, "cloud");
+  const branch = cloudBranchName(p.workBranch, slug(title), Date.now().toString(36).slice(-4));
+  const prompt = cloudTaskPrompt({ title: o.issue ? `Issue #${o.issue}: ${title}` : title, body, branch, base: p.workBranch });
+  if (o.launch && !o.yes) {
+    log(`Would push ${branch} and start a Cursor cloud agent on it (${remoteWebUrl(p.remote!)}). This spends Cursor cloud-agent budget.`);
+    return log("Run the same command again with --yes to start it.");
+  }
+
+  tryRun(`git fetch -q origin ${p.workBranch}`, dir);
+  if (!tryRun(`git rev-parse --verify --quiet refs/remotes/origin/${p.workBranch}`, dir)) die(`origin has no ${p.workBranch} yet. Push it first: git -C targets/${name} push -u origin ${p.workBranch}`);
+  run(`git branch --no-track ${branch} origin/${p.workBranch}`, dir);
+  guardedPush(`-q origin ${branch}`, dir);
+  log(`✓ pushed ${branch} from origin/${p.workBranch}`);
+  const promptFile = join(STATE, "targets", name, "cloud", `${slug(branch)}.md`);
+  mkdirSync(dirname(promptFile), { recursive: true });
+  writeFileSync(promptFile, prompt + "\n");
+  log(`✓ task text → ${relative(ROOT, promptFile)}`);
+  const check = `pnpm workshop cloud-check ${name} ${branch}`;
+
+  if (!o.launch) {
+    log(`\nStart the agent from Cursor: Agent input → Cloud, repo ${remoteWebUrl(p.remote!)}, branch ${branch}, and paste the task text.`);
+    log(`For a Claude Code cloud session (GitHub only), start it on ${branch} with the same task text.`);
+    return log(`When the agent has pushed: ${check}`);
+  }
+  const res = await fetch(CURSOR_AGENTS_URL, {
+    method: "POST",
+    headers: { authorization: `Basic ${Buffer.from(`${key}:`).toString("base64")}`, "content-type": "application/json" },
+    body: JSON.stringify(cursorAgentRequest({ name: title, prompt, remote: p.remote!, branch })),
+  });
+  const text = await res.text();
+  if (!res.ok) die(`Cursor Cloud Agents API answered ${res.status}: ${text.slice(0, 300)}`);
+  const started: { agent?: { id?: string; url?: string } } = JSON.parse(text);
+  log(`✓ Cursor cloud agent ${started.agent?.id ?? ""} started: ${started.agent?.url ?? "see cursor.com/agents"}`);
+  log(`When it has pushed: ${check}`);
+}
+
+/** The MR/PR for a branch name or number, as the host CLI reports it; null when there is none. */
+function changeRequestOf(p: Profile, dir: string, ref: string): (ChangeRequest & { id: string }) | null {
+  if (p.host === "gitlab") {
+    const out = tryRun(`glab mr view ${JSON.stringify(ref)} -F json`, dir);
+    if (!out) return null;
+    const j = JSON.parse(out);
+    return { id: String(j.iid), head: j.source_branch, base: j.target_branch, isDraft: Boolean(j.draft ?? j.work_in_progress), url: j.web_url };
+  }
+  const out = tryRun(`gh pr view ${JSON.stringify(ref)} --json number,headRefName,baseRefName,isDraft,url`, dir);
+  if (!out) return null;
+  const j = JSON.parse(out);
+  return { id: String(j.number), head: j.headRefName, base: j.baseRefName, isDraft: j.isDraft, url: j.url };
+}
+
+/**
+ * After a cloud agent has pushed: open its MR/PR into the workshop branch, ready for review, if there is
+ * none yet; otherwise warn when the head, the base or the draft state is wrong, with the command that fixes it.
+ */
+function cloudCheck(name: string, ref: string): void {
+  const dir = targetDir(name);
+  const p = profileOf(name);
+  if (p.host === "none") die(`targets/${name} has no GitHub or GitLab remote, so there is no MR/PR to check.`);
+  if (!onPath(p.host === "gitlab" ? "glab" : "gh")) die(`cloud-check needs the ${p.host === "gitlab" ? "glab" : "gh"} CLI, logged in.`);
+  let cr = changeRequestOf(p, dir, ref);
+  if (!cr) {
+    if (!ref.startsWith(`${p.workBranch}-`)) die(`no MR/PR found for ${ref}. Pass the cloud agent's branch (${p.workBranch}-cloud-…) or its MR/PR number.`);
+    tryRun(`git fetch -q origin ${ref}`, dir);
+    const subject = tryRun(`git log -1 --format=%s origin/${ref}`, dir);
+    if (!subject) die(`origin has no branch ${ref} yet. Wait until the cloud agent has pushed, then run this again.`);
+    const title = `Cloud agent: ${oneLine(subject, 100)}`;
+    const body = `Opened by the workshop helper for a cloud agent's branch ${ref}. The agent's summary is in its last commit message or in the agent's chat.`;
+    if (p.host === "gitlab") run(`glab mr create --source-branch ${ref} --target-branch ${p.workBranch} --title ${JSON.stringify(title)} --description ${JSON.stringify(body)} --yes`, dir);
+    else run(`gh pr create --base ${p.workBranch} --head ${ref} --title ${JSON.stringify(title)} --body ${JSON.stringify(body)}`, dir);
+    cr = changeRequestOf(p, dir, ref) ?? die(`opened an MR/PR for ${ref} but could not read it back`);
+    log(`✓ opened ${cr.url ?? cr.id} into ${p.workBranch}, ready for review`);
+  }
+  const problems = changeRequestProblems(cr, p.workBranch);
+  if (!problems.length) return log(`✓ ${cr.url ?? cr.id}: ${cr.head} → ${cr.base}, ready for review`);
+  log(`! ${cr.url ?? cr.id} needs attention:`);
+  for (const problem of problems) log(`  - ${problem}`);
+  const gl = p.host === "gitlab";
+  if (cr.base !== p.workBranch) log(`  fix the base: ${gl ? `glab mr update ${cr.id} --target-branch ${p.workBranch}` : `gh pr edit ${cr.id} --base ${p.workBranch}`}`);
+  if (cr.isDraft) log(`  mark it ready: ${gl ? `glab mr update ${cr.id} --ready` : `gh pr ready ${cr.id}`}`);
+  if (!cr.head.startsWith(`${p.workBranch}-`)) {
+    log(`  the head branch was created on the agent's VM, outside the push guard. Copy it to a workshop branch, close this ${gl ? "MR" : "PR"}, and check the copy:`);
+    log(`    git -C targets/${name} fetch origin ${cr.head} && git -C targets/${name} push origin FETCH_HEAD:refs/heads/${p.workBranch}-cloud-copy`);
+    log(`    pnpm workshop cloud-check ${name} ${p.workBranch}-cloud-copy`);
+  }
+  process.exitCode = 1;
 }
 
 // ───────────────────────────── ci-check / cleanup ─────────────────────────────
@@ -950,6 +1087,7 @@ const { values, positionals } = parseArgs({
     agent: { type: "string" },
     "no-push": { type: "boolean" },
     post: { type: "boolean" },
+    launch: { type: "boolean" },
     yes: { type: "boolean" },
   },
 });
@@ -980,6 +1118,19 @@ try {
       if (positionals.length < 2) die("review <name> <branch> [--agent claude|cursor] [--post]");
       review(positionals[0]!, positionals[1]!, { agent: values.agent, post: values.post });
       break;
+    case "cloud":
+      await cloud(positionals[0] ?? readJson<any>(PROGRESS, {}).activeTarget ?? die("cloud <name> --issue n | --task …"), {
+        task: values.task,
+        taskFile: values["task-file"],
+        issue: values.issue,
+        launch: values.launch,
+        yes: values.yes,
+      });
+      break;
+    case "cloud-check":
+      if (positionals.length < 2) die("cloud-check <name> <branch | MR/PR number>");
+      cloudCheck(positionals[0]!, positionals[1]!);
+      break;
     case "catchup":
       catchup(Number(positionals[0]), values.participant);
       break;
@@ -992,7 +1143,11 @@ try {
     case "status": {
       const pr = readJson<any>(PROGRESS, null);
       if (!pr) log("No .workshop/progress.json yet.");
-      else log(JSON.stringify({ activeTarget: pr.activeTarget, currentPhase: pr.currentPhase, targets: Object.keys(pr.targets) }, null, 2));
+      else {
+        const branches = Object.fromEntries(Object.keys(pr.targets).filter((t) => existsSync(join(TARGETS, t))).map((t) => [t, tryRun("git branch --show-current", join(TARGETS, t)) || "(detached)"]));
+        log(JSON.stringify({ activeTarget: pr.activeTarget, currentPhase: pr.currentPhase, targets: Object.keys(pr.targets), branches }, null, 2));
+        if (pr.activeTarget && existsSync(join(TARGETS, pr.activeTarget))) checkOutWorkBranch(pr.activeTarget);
+      }
       break;
     }
     default:
