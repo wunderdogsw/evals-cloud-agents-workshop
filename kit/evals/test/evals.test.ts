@@ -246,7 +246,25 @@ describe("cursor provider", () => {
     const argv: string[] = JSON.parse(await readFile(argsFile, "utf8"));
     expect(r.data.pass).toBe(false);
     expect(argv).not.toContain("--force");
+    expect(argv.slice(argv.indexOf("--mode"), argv.indexOf("--mode") + 2)).toEqual(["--mode", "ask"]);
     expect(argv).toContain("--output-format");
+  });
+});
+
+describe("judge provider for an agent run", () => {
+  it("follows the agent CLI unless EVALS_PROVIDER is set", async () => {
+    const { providerForAgent } = await import("../src/llm.ts");
+    const saved = process.env.EVALS_PROVIDER;
+    try {
+      delete process.env.EVALS_PROVIDER;
+      expect(providerForAgent("cursor")).toBe("cursor");
+      expect(providerForAgent("claude")).toBe("claude-code");
+      process.env.EVALS_PROVIDER = "claude-code";
+      expect(providerForAgent("cursor")).toBe("claude-code");
+    } finally {
+      if (saved === undefined) delete process.env.EVALS_PROVIDER;
+      else process.env.EVALS_PROVIDER = saved;
+    }
   });
 });
 

@@ -5,7 +5,7 @@ import { createInterface } from "node:readline/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { parseArgs } from "node:util";
-import { model as defaultModel, parseJsonl, toMarkdown, writeRun, type HumanLabel, type RunResult } from "@workshop/evals";
+import { clientFor, isMock, model as defaultModel, parseJsonl, providerForAgent, setLlmClient, toMarkdown, writeRun, type HumanLabel, type Provider, type RunResult } from "@workshop/evals";
 import { AGENTS, patchAgent } from "./agents.ts";
 import { mineTasks } from "./mine.ts";
 import { assertCommitted, loadAgentSuite, recordAgentRun, suiteFingerprint } from "./record.ts";
@@ -245,6 +245,11 @@ async function main() {
       judges = suite.judges;
       before = suiteFingerprint(suite);
     }
+    const judgeProvider = judges.length && !isMock() ? providerForAgent(agent.name) : undefined;
+    if (judgeProvider) {
+      setLlmClient(clientFor(judgeProvider));
+      console.error(`Judges run on ${judgeProvider}${judgeProvider === "cursor" ? "" : ` (${defaultModel("judge")})`}. Set EVALS_PROVIDER to use another login.`);
+    }
     const result = await runTasks({
       ...common,
       agent,
@@ -262,7 +267,7 @@ async function main() {
     const dir = await writeRun(result, outDir);
     console.log(toMarkdown(result));
     if (suite && before) {
-      const p = recordAgentRun(suite, before, result, { agent: agent.name, models: { agent: values.model ?? (agent.name === "claude" ? defaultModel("agent") : "default"), ...(judges.length ? { judge: defaultModel("judge") } : {}) } });
+      const p = recordAgentRun(suite, before, result, { agent: agent.name, models: { agent: values.model ?? (agent.name === "claude" ? defaultModel("agent") : "default"), ...(judges.length ? { judge: judgeModelLabel(judgeProvider) } : {}) } });
       console.log(`→ recorded ${p}: commit it with your change`);
     }
     console.log(`→ ${dir}\nWorkspaces kept in ${join(runsRoot, label)}/ — open one and run \`git diff eval-base\` to read what the agent did.`);
@@ -270,6 +275,12 @@ async function main() {
   }
 
   throw new Error(`unknown command "${cmd}"\n\n${HELP}`);
+}
+
+/** The judge model as recorded in last-run.json. Cursor model names are not Anthropic IDs, so they carry a prefix. */
+function judgeModelLabel(provider: Provider | undefined): string {
+  if (provider === "cursor") return `cursor:${process.env.EVALS_CURSOR_MODEL ?? "default"}`;
+  return defaultModel("judge");
 }
 
 main().catch((e) => {

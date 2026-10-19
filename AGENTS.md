@@ -103,7 +103,7 @@ Initial `.workshop/progress.json`:
 }
 ```
 
-`targets.<name>` is filled in by `pnpm workshop attach` / `pnpm workshop profile` (see `.agents/assets/workshop.ts`); the full profile lives in `.workshop/targets/<name>/profile.json`. **Read the active target's profile at the start of every phase** — later phases choose their path from `host` (`gitlab` | `github` | `none`) and the commands recorded there.
+`targets.<name>` is filled in by `pnpm workshop attach` / `pnpm workshop profile` (see `.agents/assets/workshop.ts`); the full profile lives in `.workshop/targets/<name>/profile.json`. **Read the active target's profile at the start of every phase** — later phases choose their path from `host` (`gitlab` | `github` | `none`) and the commands recorded there. Also run `pnpm workshop status` at the start of every phase: it shows the branch each target is on and switches the active target back to `dev-days-workshop/<participant>` if it moved. Show that branch in the phase banner.
 
 ## Phase map
 
@@ -143,7 +143,7 @@ Repeat for each phase:
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Phase N of M — <Title>        (target: <name>)
+Phase N of M — <Title>        (target: <name>, branch: <branch>)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 What you do
@@ -217,5 +217,7 @@ If a participant falls behind or their target breaks, offer `pnpm workshop catch
 | `pnpm agent-evals mine\|validate\|run …` | Coding-agent benchmark from the target's history (`--agent claude\|cursor`, `--without-setup`, `--rules`, `--judge`, `--record`) |
 | `pnpm agent-evals regrade\|label\|grade-patch …` | Grade stored runs again without the agent; label diffs by hand without seeing the judge; test a rule grader on a change that breaks the rule on purpose |
 | `pnpm workshop delegate <name> --issue n` | Give an issue to Claude Code or the Cursor CLI in headless mode on a new branch; pushes it and opens the MR/PR into the workshop branch |
+| `pnpm workshop cloud <name> --issue n` | Push a `dev-days-workshop/<participant>-cloud-…` branch through the push guard and write the cloud agent's task text; `--launch --yes` starts a Cursor cloud agent on it (needs `CURSOR_API_KEY`) |
+| `pnpm workshop cloud-check <name> <branch>` | Open the cloud agent's MR/PR into the workshop branch, ready for review, or warn when its head, base or draft state is wrong |
 | `pnpm workshop review <name> <branch>` | Read-only agent review of a branch (`--post` to comment on the MR/PR) |
 | `pnpm --dir targets/<name>/evals verify suites/agent` | Check the agent eval recording the same way CI does |
