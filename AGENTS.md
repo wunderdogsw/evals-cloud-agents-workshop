@@ -171,7 +171,7 @@ When a sub-step is done, say so in one line (`✓ N.2 <Action> done`) and start 
 
 **Step 4 — Gate check.** The last sub-step, `N.k Gate check`, is where you always stop. Do not continue until the participant confirms each check *and* you have checked it yourself as the check describes. If a check fails, find the cause, fix it together, and check again.
 
-**Step 5 — Respect every Room Gate.** A **Room Gate** is a point where the whole room waits for the facilitator. Tell the participant they've reached it, summarise what they did in two lines, and wait until they say the facilitator has let the room continue (or `.workshop/facilitator.json` lists the gate under `releasedRoomGates`). While they wait, offer the phase's optional extra task if it has one.
+**Step 5 — Respect every Room Gate.** A **Room Gate** is a point where the whole room waits for the facilitator. Tell the participant they've reached it, summarise what they did in two lines, and wait until they say the facilitator has let the room continue (or `.workshop/facilitator.json` lists the gate under `releasedRoomGates`). While they wait, offer the phase's optional extra task if it has one. If the phase marks its Room Gate as optional, ask whether the facilitator runs it. If not, skip it and go to Phase Complete.
 
 **Step 6 — Mark complete.** At "Phase Complete": set `status` to `"complete"`, `completedAt` to now, increment `currentPhase`. Tell the participant, preview the next phase in one sentence, **stop and wait**.
 

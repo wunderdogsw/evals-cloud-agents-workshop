@@ -67,7 +67,7 @@ Participants use any coding tool (Claude Code, Cursor or both) at any time; ther
 
 ## Hosts
 
-Phase 1 records `host`: `gitlab`, `github` or `none` (local only). Phases 14–18 choose their path from it. A target with `none` can complete Phases 1–13 locally, but needs a pushed remote from Phase 14 on.
+Phase 1 records `host`: `gitlab`, `github` or `none` (local only). Phases 14–18 choose their path from it. A target with `none` can complete Phases 1–13 locally. Phases 14–15 need a pushed remote. Phases 16–18 work without one: Phase 18 then uses the no-cloud path.
 
 ## Safety
 
