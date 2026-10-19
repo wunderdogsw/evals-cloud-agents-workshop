@@ -532,7 +532,7 @@ text(450, 873, "if a run fails or takes too long", "edge-label", null, "middle")
 const ghost = el("g", { class: "ghost" });
 el("rect", { x: 80, y: 1475, width: 240, height: 50, rx: 6 }, ghost);
 text(200, 1496, "Cloud agents section", "", ghost, "middle");
-text(200, 1513, "Phases 16–19", "", ghost, "middle");
+text(200, 1513, "Phases 16–18", "", ghost, "middle");
 
 // Phase nodes
 const NODES = [
@@ -577,7 +577,7 @@ function render(p) {
   const steps = p.do.map((s, i) => `<li><span class="sn">${p.n}.${i + 1}</span><span>${s}</span></li>`).join("")
     + `<li class="check"><span class="sn">${p.n}.${p.do.length + 1}</span><span>Gate check: verify every gate item</span></li>`;
   const branch = (p.branches || []).map((b) => `<div class="branch"><strong>${b.label}</strong>: ${b.text}</div>`).join("");
-  const next = p.n < 15 ? `Gives <strong>${HANDOFF[p.n]}</strong> to Phase ${p.n + 1}.` : `Ends the evals section with a working <strong>merge gate</strong>. The cloud agents section (Phases 16–19) comes next.`;
+  const next = p.n < 15 ? `Gives <strong>${HANDOFF[p.n]}</strong> to Phase ${p.n + 1}.` : `Ends the evals section with a working <strong>merge gate</strong>. The cloud agents section (Phases 16–18) comes next.`;
   panel.innerHTML = `
     <span class="part">Part ${p.part}</span>
     <h2>Phase ${p.n} · ${p.title}</h2>

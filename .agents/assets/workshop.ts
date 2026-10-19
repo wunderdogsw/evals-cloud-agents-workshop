@@ -21,7 +21,8 @@
  *       list CI lines that look like deploys, so nobody's push to a real repo triggers production
  *   cleanup <name> [--yes]
  *       list (dry run) or undo everything the workshop created: MRs/PRs, dev-days-workshop/* branches
- *       (remote and local), the start tag, worktrees, and the backed-up ~/.claude / ~/.cursor files
+ *       (remote and local), the start tag, worktrees, and the backed-up ~/.claude / ~/.cursor files;
+ *       also lists what only the participant can remove (cloud job, local schedule, skill-creator)
  *   status
  *
  * Safety on real repos: all work happens on dev-days-workshop/<participant> branches, every push this
@@ -30,7 +31,7 @@
  */
 import { execSync, spawnSync } from "node:child_process";
 import { homedir, tmpdir } from "node:os";
-import { copyFileSync, cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { chmodSync, copyFileSync, cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
@@ -393,7 +394,7 @@ function profile(name: string, extra: Partial<Profile> = {}, redetect = false) {
     suite: prev.suite ?? (extra.source === "sample" ? "cost-coder" : null),
     notes: det.notes,
   };
-  if (p.host === "none") p.notes.push("No git remote: Day 1 works locally, Day 2 needs the target pushed to GitLab or GitHub.");
+  if (p.host === "none") p.notes.push("No git remote: Phases 1–13 and 16–17 work locally. Phases 14–15 need the target pushed to GitLab or GitHub, and Phase 18 takes the no-cloud path.");
   writeJson(join(STATE, "targets", name, "profile.json"), p);
   const progress = readJson<any>(PROGRESS, initialProgress());
   progress.targets[name] = { profile: `.workshop/targets/${name}/profile.json`, host: p.host, evalSubject: p.evalSubject, suite: p.suite };
@@ -605,6 +606,49 @@ function installOne(name: string, component: string, opts: { suite?: string; for
 
 // ───────────────────────────── catchup ─────────────────────────────
 
+/** Reference Phase 17 decisions, one per finding of kit/catchup/cost-coder/review-lessons-report.md, in its order. */
+const CATCHUP_DECISIONS = [
+  "fix — it came back in two PRs, and `.claude/rules/llm.md` loads exactly when `src/classify.ts` is edited, which `AGENTS.md` does not",
+  "skip — a pull request template only asks, like `AGENTS.md` does, and the team has to agree on a template first",
+  "fix — a `test.env` setting in `vitest.config.ts` sets the mock on every test run, so no test can reach the real model",
+  "skip — a new rules file only states the rule again, and `AGENTS.md` already has it",
+];
+
+/** Quotes a value for a POSIX shell: single quotes, with each `'` closed, escaped and reopened. */
+const shellQuote = (value: string): string => `'${value.replace(/'/g, `'\\''`)}'`;
+
+/**
+ * The PATH for a script that launchd or cron starts later: without folders that belong to one shell session or to
+ * this pnpm run, and with the folder of the node binary that runs this helper.
+ */
+function stablePath(path: string): string {
+  const kept = path.split(":").filter((dir) => dir && !/fnm_multishells|\/node_modules\/\.bin$|node-gyp-bin$/.test(dir));
+  return [...new Set([dirname(process.execPath), ...kept])].join(":");
+}
+
+/** The Phase 17 Claude Code script for a catch-up target, with this machine's paths and the sample's review history. */
+function reviewLessonsScript(workshop: string, name: string, path: string): string {
+  return `#!/bin/sh
+# Runs the review-lessons skill once and writes a dated report.
+set -eu
+WORKSHOP=${shellQuote(workshop)}
+NAME=${shellQuote(name)}
+STATE="$WORKSHOP/.workshop/targets/$NAME"
+REPORT="$STATE/review-lessons/scheduled-$(date +%Y-%m-%d).md"
+export PATH=${shellQuote(path)}
+export USER="$(id -un)" LOGNAME="$(id -un)"
+cd "$WORKSHOP/targets/$NAME"
+claude -p "/review-lessons $REPORT --data $STATE/review-history" \\
+  --permission-mode dontAsk \\
+  --max-budget-usd 2 \\
+  --output-format json \\
+  --add-dir "$STATE" \\
+  --allowedTools "Bash(gh api *)" "Bash(glab api *)" "Bash(git remote get-url *)" "Edit(/$STATE/review-lessons/**)" \\
+  < /dev/null > "$STATE/review-lessons/scheduled-run.json"
+test -s "$REPORT"
+`;
+}
+
 function catchup(phase: number, participant?: string) {
   const count = phaseCount();
   if (!(Number.isInteger(phase) && phase >= 2 && phase <= count)) die(`catchup <phase>: phase 2–${count} = the phase you want to START`);
@@ -661,21 +705,29 @@ function catchup(phase: number, participant?: string) {
     commit("workshop: agent eval threshold (catch-up)");
   }
   // Phase 16 reference work: the review-lessons skill in the target, and its first report outside it.
+  const reports = join(STATE, "targets", name, "review-lessons");
+  // The "sv-SE" locale writes the local date as YYYY-MM-DD, the report's file name.
+  const today = new Date().toLocaleDateString("sv-SE");
   if (phase > 16) {
     cpSync(join(KIT, "catchup", "cost-coder", "review-lessons"), join(dir, ".claude", "skills", "review-lessons"), { recursive: true, force: true });
     commit("workshop: review-lessons skill (catch-up)");
-    const reports = join(STATE, "targets", name, "review-lessons");
     mkdirSync(reports, { recursive: true });
-    // The "sv-SE" locale writes the local date as YYYY-MM-DD, the report's file name.
-    const today = new Date().toLocaleDateString("sv-SE");
     cpSync(join(KIT, "catchup", "cost-coder", "review-lessons-report.md"), join(reports, `${today}.md`));
     log(`✓ .workshop/targets/${name}/review-lessons/${today}.md (reference report)`);
   }
-
-  if (phase > 18) {
-    install(name, ["agents-section", "review-md"], {});
-    commit("workshop: agent instructions (catch-up)");
+  // Phase 17 reference work: a decision under each finding, and the script a local schedule would run. No schedule is created.
+  if (phase > 17) {
+    const report = join(reports, `${today}.md`);
+    let i = 0;
+    const decided = readFileSync(report, "utf8").replace(/^- Evidence: .*$/gm, (line) => `${line}\n- Decision: ${CATCHUP_DECISIONS[i++] ?? "skip — no reference decision for this finding"}`);
+    writeFileSync(report, decided);
+    log(`✓ .workshop/targets/${name}/review-lessons/${today}.md: ${i} reference decisions`);
+    const script = join(STATE, "targets", name, "review-lessons.sh");
+    writeFileSync(script, reviewLessonsScript(ROOT, name, stablePath(process.env.PATH ?? "/usr/bin:/bin")));
+    chmodSync(script, 0o755);
+    log(`✓ .workshop/targets/${name}/review-lessons.sh (reference Phase 17 script, no schedule)`);
   }
+
   run(`git checkout -q -B ${p.workBranch}`, dir);
   checkOutWorkBranch(name);
 
@@ -686,6 +738,10 @@ function catchup(phase: number, participant?: string) {
   const progress = readJson<any>(PROGRESS, initialProgress());
   const now = new Date().toISOString();
   for (let i = 1; i <= count; i++) progress.phases[String(i)] ??= { status: "not_started", startedAt: null, completedAt: null };
+  // A progress file from before a phase was removed keeps that phase's key; drop it unless work was recorded there.
+  for (const k of Object.keys(progress.phases)) {
+    if (Number(k) > count && progress.phases[k]?.status === "not_started") delete progress.phases[k];
+  }
   for (let i = 1; i < phase; i++) {
     const ph = progress.phases[String(i)];
     if (ph.status !== "complete") Object.assign(ph, { status: "complete", completedAt: now, note: "catch-up" });
@@ -1023,6 +1079,27 @@ function ciCheck(name: string) {
   writeJson(f, { ...readJson<any>(f, {}), ciCheck: { checkedAt: new Date().toISOString(), verdict, deployLines: hits.length } });
 }
 
+/** Things the Day 2 phases create outside git, which only the participant can remove. */
+function manualCleanup(name: string): string[] {
+  return [
+    "the Phase 18 cloud job, if you made one: pause or delete the Claude Code routine (claude.ai/code/routines) or the Cursor automation (cursor.com/automations) before its workshop branch is deleted",
+    ...localSchedules(name),
+    `skill-creator, if you installed it in Phase 16: in targets/${name}, run \`claude plugin uninstall skill-creator@claude-plugins-official --scope local\``,
+  ];
+}
+
+/** The Phase 17 local schedules found for this target, with the exact way to remove each, in the names 17.4 gives them. */
+function localSchedules(name: string): string[] {
+  const label = `workshop.review-lessons.${name}`;
+  const plist = join(homedir(), "Library", "LaunchAgents", `${label}.plist`);
+  const routine = join(homedir(), ".claude", "scheduled-tasks", `review-lessons-${name}`);
+  const found: string[] = [];
+  if (existsSync(plist)) found.push(`the Phase 17 launchd job: run \`launchctl bootout gui/$(id -u)/${label}\`, then \`rm ${plist}\``);
+  if (tryRun("crontab -l").includes(`/.workshop/targets/${name}/review-lessons.sh`)) found.push("the Phase 17 cron job: run `crontab -e` and delete the line with `review-lessons.sh`");
+  if (existsSync(routine)) found.push(`the Phase 17 Desktop routine review-lessons-${name}: open it in Routines, click Delete, and check Also delete files on disk`);
+  return found.length ? found : ["the Phase 17 local schedule, if you made one under another name: the Desktop app's local routine, the line in `crontab -l`, or the launchd job"];
+}
+
 function cleanup(name: string, yes: boolean) {
   const dir = targetDir(name);
   const p = profileOf(name);
@@ -1064,6 +1141,7 @@ function cleanup(name: string, yes: boolean) {
   list("restore from backup", restore.map((b) => `${b.from.replace(home, "~")} ← ${b.to}`));
   if (created.length) log(`  created during the workshop (review and remove by hand if unwanted):\n${created.map((b) => `    - ${b.from.replace(home, "~")}`).join("\n")}`);
   if (reviewNote) log(`  manual: ${reviewNote}`);
+  list("manual, outside git (--yes does not do these)", manualCleanup(name));
   if (!yes) return log(`\nDry run — nothing changed. Run \`pnpm workshop cleanup ${name} --yes\` to do it.`);
 
   for (const r of reviews) {

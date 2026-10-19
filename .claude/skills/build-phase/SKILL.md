@@ -70,6 +70,6 @@ These come from `AGENTS.md` → Invariants; read it for the full list.
    - `.agents/assets/workshop.ts`: the phase loop in progress init, the `catchup` range, and the phase-specific reference work in `catchup`
    - `.agents/PLAN.md`
    - every "Phase N" mention in other phase docs (search for them)
-5. Run `pnpm lint:phases .agents/phases/<file>.md` (without pnpm: `node .agents/assets/lint-phases.ts <file>`). Fix every error and re-run until it passes. Docs reported as "old format, not migrated yet" are fine for now.
+5. Run `pnpm lint:phases .agents/phases/<file>.md` (without pnpm: `node .agents/assets/lint-phases.ts <file>`). Fix every error and re-run until it passes. Every phase doc uses the new format, so `pnpm lint:phases --strict` must pass too.
    For an evals phase (1–15), also run `pnpm docs:flow` so the interactive flow page in `docs/phase-flow/` shows the new text. If the phase gets a new path or a new branch note, update the chart and `BRANCHES` in `.agents/assets/build-phase-flow.ts`, then `pnpm docs:flow --images` for the README images (needs Playwright).
 6. Report back: the four top sections, the slash commands the linter listed with the docs page that confirms each, and any open questions. Don't commit unless the user asks.

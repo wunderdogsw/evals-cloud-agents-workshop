@@ -97,8 +97,7 @@ Initial `.workshop/progress.json`:
     "15": { "status": "not_started", "startedAt": null, "completedAt": null },
     "16": { "status": "not_started", "startedAt": null, "completedAt": null },
     "17": { "status": "not_started", "startedAt": null, "completedAt": null },
-    "18": { "status": "not_started", "startedAt": null, "completedAt": null },
-    "19": { "status": "not_started", "startedAt": null, "completedAt": null }
+    "18": { "status": "not_started", "startedAt": null, "completedAt": null }
   }
 }
 ```
@@ -126,10 +125,7 @@ Initial `.workshop/progress.json`:
 | 15 | Evals | Make the gate block | `.agents/phases/15-MERGE-GATE.md` |
 | 16 | Cloud agents | Build a review-lessons skill | `.agents/phases/16-REVIEW-LESSONS-SKILL.md` |
 | 17 | Cloud agents | Act on review lessons, schedule locally | `.agents/phases/17-REVIEW-LESSONS-LOCAL.md` |
-| 18 | Cloud agents | Guardrails | `.agents/phases/18-GUARDRAILS.md` |
-| 19 | Cloud agents | Capstone | `.agents/phases/19-CAPSTONE.md` |
-
-Phases 18–19 still use the old format.
+| 18 | Cloud agents | Move the review lessons to the cloud | `.agents/phases/18-REVIEW-LESSONS-CLOUD.md` |
 
 The full plan and learning objectives are in `.agents/PLAN.md`. Read it once at start-up, not per phase.
 
@@ -163,9 +159,7 @@ Wanted outcome
 Ready? Say "go" and we start with N.1.
 ```
 
-`N` is the phase number from the phase map. `M` is the number of phases in the Evals section (15). In the Cloud agents section, write the banner as "Phase N — <Title> (Cloud agents, k of 4)" instead, where k counts within that section; sub-steps keep the global number (16.1, 16.2 …). Copy the four sections from the phase document word for word: don't summarise, reorder or add to them. Then **stop and wait** for the participant.
-
-If the phase document is still in the old format (it has `## Overview` instead of `## What you do`), show the banner, state the goal in 2–3 sentences from the Overview, and continue without waiting.
+`N` is the phase number from the phase map. `M` is the number of phases in the Evals section (15). In the Cloud agents section, write the banner as "Phase N — <Title> (Cloud agents, k of 3)" instead, where k counts within that section; sub-steps keep the global number (16.1, 16.2 …). Copy the four sections from the phase document word for word: don't summarise, reorder or add to them. Then **stop and wait** for the participant.
 
 **Step 3 — Work through the sub-steps.** Each "What you do" item is one sub-step, `N.1`, `N.2` …, in the same order. Inside a sub-step:
 
@@ -173,11 +167,11 @@ If the phase document is still in the old format (it has `## Overview` instead o
 - **[HUMAN]** blocks — the participant's. Present the task clearly; do not do it for them. Give hints only when they ask or are clearly stuck.
 - **[BRANCH]** blocks — pick the path that matches the target profile (`host`, `languages`, sample or own repo). Tell the participant which path you took and why, in one line.
 
-When a sub-step is done, say so in one line (`✓ N.2 <Action> done`) and start the next. Old-format documents carry the same tags on their section headings instead; treat them the same way.
+When a sub-step is done, say so in one line (`✓ N.2 <Action> done`) and start the next.
 
-**Step 4 — Gate check.** The last sub-step, `N.k Gate check` (`Gate N` in old-format documents), is where you always stop. Do not continue until the participant confirms each check *and* you have checked it yourself as the check describes. If a check fails, find the cause, fix it together, and check again.
+**Step 4 — Gate check.** The last sub-step, `N.k Gate check`, is where you always stop. Do not continue until the participant confirms each check *and* you have checked it yourself as the check describes. If a check fails, find the cause, fix it together, and check again.
 
-**Step 5 — Respect every Room Gate.** A **Room Gate** is a point where the whole room waits for the facilitator. Tell the participant they've reached it, summarise what they did in two lines, and wait until they say the facilitator has let the room continue (or `.workshop/facilitator.json` lists the gate under `releasedRoomGates`). While they wait, offer the phase's optional extra task if it has one.
+**Step 5 — Respect every Room Gate.** A **Room Gate** is a point where the whole room waits for the facilitator. Tell the participant they've reached it, summarise what they did in two lines, and wait until they say the facilitator has let the room continue (or `.workshop/facilitator.json` lists the gate under `releasedRoomGates`). While they wait, offer the phase's optional extra task if it has one. If the phase marks its Room Gate as optional, ask whether the facilitator runs it. If not, skip it and go to Phase Complete.
 
 **Step 6 — Mark complete.** At "Phase Complete": set `status` to `"complete"`, `completedAt` to now, increment `currentPhase`. Tell the participant, preview the next phase in one sentence, **stop and wait**.
 
@@ -209,15 +203,15 @@ If a participant falls behind or their target breaks, offer `pnpm workshop catch
 |---|---|
 | `pnpm workshop attach <url\|path\|sample>` | Attach a target under `targets/` on `dev-days-workshop/<participant>` with a start tag, back up user-level agent settings, profile it and run `ci-check`. For the sample, `--setup broken\|good\|none` picks its agent setup (default `broken`) |
 | `pnpm workshop ci-check <name>` | List CI lines that look like deploys, before anything is pushed |
-| `pnpm workshop cleanup <name> [--yes]` | Dry run (or, with `--yes`, undo) of everything the workshop created: MRs/PRs, `dev-days-workshop/*` branches, start tag, worktrees, user-settings backups |
+| `pnpm workshop cleanup <name> [--yes]` | Dry run (or, with `--yes`, undo) of everything the workshop created: MRs/PRs, `dev-days-workshop/*` branches, start tag, worktrees, user-settings backups. Also lists what only the participant can remove: the cloud job, the local schedule and skill-creator |
 | `pnpm workshop profile <name>` | Re-detect stack, host, commands, CI, LLM call sites |
 | `pnpm workshop install <name> <component>` | Install kit pieces into the target: `agent-tasks` (sample tasks), `review-history` (sample review comments for Phase 16, copied to `.workshop/`), `agent-suite` (rule graders and rubrics folder), `ci-agent-evals` (agent eval CI job), `cursor-env`, `agents-section`, `review-md`. Older pieces for evals of an app's own LLM feature: `evals`, `subject-cost-coder`, `ci-evals`. Only where Claude may run in CI: `ci-evals-live`, `ci-claude`, `ci-review` |
 | `pnpm workshop catchup <phase>` | New sample target with the reference work done up to `<phase>` |
 | `pnpm evals compare\|calibrate …` | Compare two runs (per grader too); check a judge against your labels |
 | `pnpm agent-evals mine\|validate\|run …` | Coding-agent benchmark from the target's history (`--agent claude\|cursor`, `--without-setup`, `--rules`, `--judge`, `--record`) |
 | `pnpm agent-evals regrade\|label\|grade-patch …` | Grade stored runs again without the agent; label diffs by hand without seeing the judge; test a rule grader on a change that breaks the rule on purpose |
-| `pnpm workshop delegate <name> --issue n` | Give an issue to Claude Code or the Cursor CLI in headless mode on a new branch; pushes it and opens the MR/PR into the workshop branch |
-| `pnpm workshop cloud <name> --issue n` | Push a `dev-days-workshop/<participant>-cloud-…` branch through the push guard and write the cloud agent's task text; `--launch --yes` starts a Cursor cloud agent on it (needs `CURSOR_API_KEY`) |
-| `pnpm workshop cloud-check <name> <branch>` | Open the cloud agent's MR/PR into the workshop branch, ready for review, or warn when its head, base or draft state is wrong |
-| `pnpm workshop review <name> <branch>` | Read-only agent review of a branch (`--post` to comment on the MR/PR) |
+| `pnpm workshop delegate <name> --issue n` | Give an issue to Claude Code or the Cursor CLI in headless mode on a new branch; pushes it and opens the MR/PR into the workshop branch. Optional, not used by a phase |
+| `pnpm workshop cloud <name> --issue n` | Push a `dev-days-workshop/<participant>-cloud-…` branch through the push guard and write the cloud agent's task text; `--launch --yes` starts a Cursor cloud agent on it (needs `CURSOR_API_KEY`). Optional, not used by a phase |
+| `pnpm workshop cloud-check <name> <branch>` | Open the cloud agent's MR/PR into the workshop branch, ready for review, or warn when its head, base or draft state is wrong. Optional, not used by a phase |
+| `pnpm workshop review <name> <branch>` | Read-only agent review of a branch (`--post` to comment on the MR/PR). Optional, not used by a phase |
 | `pnpm --dir targets/<name>/evals verify suites/agent` | Check the agent eval recording the same way CI does |
