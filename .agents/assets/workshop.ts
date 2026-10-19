@@ -644,7 +644,7 @@ claude -p "/review-lessons $REPORT --data $STATE/review-history" \\
   --output-format json \\
   --add-dir "$STATE" \\
   --allowedTools "Bash(gh api *)" "Bash(glab api *)" "Bash(git remote get-url *)" "Edit(/$STATE/review-lessons/**)" \\
-  > "$STATE/review-lessons/scheduled-run.json"
+  < /dev/null > "$STATE/review-lessons/scheduled-run.json"
 test -s "$REPORT"
 `;
 }
@@ -738,6 +738,10 @@ function catchup(phase: number, participant?: string) {
   const progress = readJson<any>(PROGRESS, initialProgress());
   const now = new Date().toISOString();
   for (let i = 1; i <= count; i++) progress.phases[String(i)] ??= { status: "not_started", startedAt: null, completedAt: null };
+  // A progress file from before a phase was removed keeps that phase's key; drop it unless work was recorded there.
+  for (const k of Object.keys(progress.phases)) {
+    if (Number(k) > count && progress.phases[k]?.status === "not_started") delete progress.phases[k];
+  }
   for (let i = 1; i < phase; i++) {
     const ph = progress.phases[String(i)];
     if (ph.status !== "complete") Object.assign(ph, { status: "complete", completedAt: now, note: "catch-up" });
@@ -1079,9 +1083,21 @@ function ciCheck(name: string) {
 function manualCleanup(name: string): string[] {
   return [
     "the Phase 18 cloud job, if you made one: pause or delete the Claude Code routine (claude.ai/code/routines) or the Cursor automation (cursor.com/automations) before its workshop branch is deleted",
-    "the Phase 17 local schedule, if you made one: the Desktop app's local routine, the line in `crontab -l`, or the launchd job",
+    ...localSchedules(name),
     `skill-creator, if you installed it in Phase 16: in targets/${name}, run \`claude plugin uninstall skill-creator@claude-plugins-official --scope local\``,
   ];
+}
+
+/** The Phase 17 local schedules found for this target, with the exact way to remove each, in the names 17.4 gives them. */
+function localSchedules(name: string): string[] {
+  const label = `workshop.review-lessons.${name}`;
+  const plist = join(homedir(), "Library", "LaunchAgents", `${label}.plist`);
+  const routine = join(homedir(), ".claude", "scheduled-tasks", `review-lessons-${name}`);
+  const found: string[] = [];
+  if (existsSync(plist)) found.push(`the Phase 17 launchd job: run \`launchctl bootout gui/$(id -u)/${label}\`, then \`rm ${plist}\``);
+  if (tryRun("crontab -l").includes(`/.workshop/targets/${name}/review-lessons.sh`)) found.push("the Phase 17 cron job: run `crontab -e` and delete the line with `review-lessons.sh`");
+  if (existsSync(routine)) found.push(`the Phase 17 Desktop routine review-lessons-${name}: open it in Routines, click Delete, and check Also delete files on disk`);
+  return found.length ? found : ["the Phase 17 local schedule, if you made one under another name: the Desktop app's local routine, the line in `crontab -l`, or the launchd job"];
 }
 
 function cleanup(name: string, yes: boolean) {

@@ -37,6 +37,8 @@ Explain in a few short lines:
 - It acts with your accounts: your Claude or Cursor login, your GitHub or GitLab access, and your Slack account. A post from the job shows your name.
 - That is why the company decides how cloud agents are set up. The facilitator knows the company's rules for this workshop, including special cases for GitLab.
 
+If the profile says `host: none`, say first that this target takes the no-cloud path (see [BRANCH]), so they know before they ask. They still ask, so `cloud-instructions.md` records the company's way for a later target with a remote.
+
 Then wait for their answer. Do not ask them about environments, networks or approvals, and do not give them a list of questions. The facilitator explains what matters.
 
 When they paste the answer:
@@ -64,7 +66,7 @@ They ask the facilitator: "How does our company run cloud agents in this worksho
 - **The instructions say there is no cloud option for this target** (for example no paid plan, or the company does not allow it) → write that and the reason in `cloud-instructions.md`. 18.3 and 18.4 use the no-cloud path: the Phase 17 local schedule stays.
 - **The instructions name a different repo** (for example a facilitator mirror) → attach it as its own target with `pnpm workshop attach <url>`, so the push guard and `cleanup` know it. Commit the `review-lessons` skill on that target's workshop branch too. Never touch remotes other than the one in each target's profile.
 - **Target with no remote** (`host: none`) → a cloud job has nothing to clone. Use the no-cloud path.
-- **Catch-up target** → it has the Phase 17 script `.workshop/targets/<name>/review-lessons.sh`, but no schedule. On the no-cloud path, running that script once by hand counts as the local job, and `cloud-instructions.md` names the script.
+- **Catch-up target** → a target from `catchup 17` or later has the reference Phase 17 script `.workshop/targets/<name>/review-lessons.sh`, but no schedule. On the no-cloud path, running that script once by hand counts as the local job, and `cloud-instructions.md` names the script. If the participant made a schedule in Phase 17 themselves, that schedule is the local job, and the file names it.
 
 ## 18.2 Choose where it posts
 
@@ -144,7 +146,7 @@ Then they create the job in their tool, the way the instructions say, with that 
   - Run as: **Me**. The usage is billed to you. Cloud agents are charged at API pricing for the selected model, and Cursor asks you to set a spend limit when you first use them.
   - Facts to tell them: cloud agents need a paid Cursor plan. Cursor with GitLab needs GitLab Premium or Ultimate, and self-hosted GitLab also needs a Cursor Teams or Enterprise plan. Cursor's skills page says Cursor also loads skills from `.claude/skills/`. Its docs don't say that automations do. That is why the prompt reads the `SKILL.md` file. The docs also don't say that `gh` or `glab` is logged in on the cloud machine. If the instructions name a secret for this, it is added in the Cursor dashboard, never in a file or the chat.
 - **The instructions name another tool or setup** → use it. The prompt requirements above, Gate 3 and the safety rules from 18.1 stay the same.
-- **No cloud option** (from 18.1) → nothing is pushed. The Phase 17 local schedule stays; on a catch-up target, the Phase 17 script is the local job. If the team wants the post, they add the posting to the local job's prompt, with a Slack connection the local tool already has. Otherwise they share the saved report in the chosen place by hand after the run. They write this in `cloud-instructions.md` under `## Cloud job`, with the name of the schedule or the script.
+- **No cloud option** (from 18.1) → nothing is pushed. The Phase 17 local schedule stays; on a catch-up target, the Phase 17 script is the local job. If the team wants the post, they add the posting to the local job's prompt, with a Slack connection the local tool already has. Otherwise they share the saved report in the chosen place by hand after the run. They write this in `cloud-instructions.md` under `## Cloud job`, with the name of the schedule or the script. They still write `cloud-job-prompt.md` and the guide checks it against the requirements above, so it is ready when the team has a cloud option. To see a real cloud run, they pair with a participant on a cloud path and read that run's transcript together in 18.4, or the facilitator shows one run.
 - **Sample or catch-up target** → it has no real PRs, and the skill reads the review history in `.workshop/`, which a cloud machine can't see. If the instructions name a repo with real review history, use that repo (see 18.1). If not, and the target has a remote, commit the review history to the sample target. The sample is a throwaway target, so this is allowed:
 
   ```bash
@@ -193,7 +195,7 @@ They start one run:
 
 - **Claude Code routine:** **Run now** on the routine's page, or `/schedule run` in the CLI.
 - **Cursor automation:** Cursor's docs don't describe a manual run. If the automation's page has a button for it, use it. If not, set the schedule a few minutes ahead, wait for the run, and then set the team's schedule back.
-- **No-cloud path:** start the Phase 17 local job once by hand. On a catch-up target, that is `sh .workshop/targets/<name>/review-lessons.sh`.
+- **No-cloud path:** start the Phase 17 local job once by hand. On a catch-up target, that is `sh .workshop/targets/<name>/review-lessons.sh`. The script writes today's `scheduled-<YYYY-MM-DD>.md` and `scheduled-run.json` again, so a Phase 17 run from the same day is replaced. Phase 17's gate has already passed, so that is fine.
 
 When the run is done, they read three things:
 
