@@ -1,0 +1,34 @@
+[
+  {
+    "id": 4010700,
+    "user": {
+      "login": "aino-v",
+      "id": 5103,
+      "type": "User",
+      "html_url": "https://github.example.invalid/aino-v"
+    },
+    "body": "Formatting belongs in the CLI. See the inline comment.",
+    "state": "CHANGES_REQUESTED",
+    "html_url": "https://github.example.invalid/workshop/cost-coder/pull/107#pullrequestreview-4010700",
+    "pull_request_url": "https://github.example.invalid/api/v3/repos/workshop/cost-coder/pulls/107",
+    "submitted_at": "2026-09-12T10:45:00Z",
+    "commit_id": "0aac30b673fb52be0aadcc7c020a8548733cb59d",
+    "author_association": "MEMBER"
+  },
+  {
+    "id": 4010701,
+    "user": {
+      "login": "aino-v",
+      "id": 5103,
+      "type": "User",
+      "html_url": "https://github.example.invalid/aino-v"
+    },
+    "body": "",
+    "state": "APPROVED",
+    "html_url": "https://github.example.invalid/workshop/cost-coder/pull/107#pullrequestreview-4010701",
+    "pull_request_url": "https://github.example.invalid/api/v3/repos/workshop/cost-coder/pulls/107",
+    "submitted_at": "2026-09-15T08:50:00Z",
+    "commit_id": "0aac30b673fb52be0aadcc7c020a8548733cb59d",
+    "author_association": "MEMBER"
+  }
+]

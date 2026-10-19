@@ -1,0 +1,34 @@
+[
+  {
+    "id": 4010300,
+    "user": {
+      "login": "mikko-l",
+      "id": 5104,
+      "type": "User",
+      "html_url": "https://github.example.invalid/mikko-l"
+    },
+    "body": "Code is fine. CHANGELOG.md still needs a line: this changes what offline runs return, and the site team notices that.",
+    "state": "COMMENTED",
+    "html_url": "https://github.example.invalid/workshop/cost-coder/pull/103#pullrequestreview-4010300",
+    "pull_request_url": "https://github.example.invalid/api/v3/repos/workshop/cost-coder/pulls/103",
+    "submitted_at": "2026-08-02T09:15:00Z",
+    "commit_id": "bd0ec60789c25cfc0957d2804ab19d43586206a3",
+    "author_association": "MEMBER"
+  },
+  {
+    "id": 4010301,
+    "user": {
+      "login": "mikko-l",
+      "id": 5104,
+      "type": "User",
+      "html_url": "https://github.example.invalid/mikko-l"
+    },
+    "body": "",
+    "state": "APPROVED",
+    "html_url": "https://github.example.invalid/workshop/cost-coder/pull/103#pullrequestreview-4010301",
+    "pull_request_url": "https://github.example.invalid/api/v3/repos/workshop/cost-coder/pulls/103",
+    "submitted_at": "2026-08-04T09:50:00Z",
+    "commit_id": "bd0ec60789c25cfc0957d2804ab19d43586206a3",
+    "author_association": "MEMBER"
+  }
+]

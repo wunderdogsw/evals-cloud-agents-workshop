@@ -1,0 +1,18 @@
+[
+  {
+    "id": 4011000,
+    "user": {
+      "login": "mikko-l",
+      "id": 5104,
+      "type": "User",
+      "html_url": "https://github.example.invalid/mikko-l"
+    },
+    "body": "LGTM.",
+    "state": "APPROVED",
+    "html_url": "https://github.example.invalid/workshop/cost-coder/pull/110#pullrequestreview-4011000",
+    "pull_request_url": "https://github.example.invalid/api/v3/repos/workshop/cost-coder/pulls/110",
+    "submitted_at": "2026-10-09T08:00:00Z",
+    "commit_id": "7304aedfba268a5f510a5c6f0094bd5e4fdc0060",
+    "author_association": "MEMBER"
+  }
+]

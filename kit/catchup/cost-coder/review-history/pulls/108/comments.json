@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://github.example.invalid/api/v3/repos/workshop/cost-coder/pulls/comments/2010800",
+    "pull_request_review_id": 4010800,
+    "id": 2010800,
+    "diff_hunk": "@@ -36,3 +36,12 @@ describe(\"mockClassify\", () => {\n+describe(\"MODEL\", () => {\n+  it(\"uses COST_CODER_MODEL\", async () => {\n+    process.env.COST_CODER_MODEL = \"claude-haiku-5-5\";\n+    const r = await classifyLine({ description: \"Telinevuokra\" });",
+    "path": "test/classify.test.ts",
+    "commit_id": "c55bb25ae6f6d0999905d74cd42551babc1ea04d",
+    "original_commit_id": "c55bb25ae6f6d0999905d74cd42551babc1ea04d",
+    "user": {
+      "login": "sara-k",
+      "id": 5105,
+      "type": "User",
+      "html_url": "https://github.example.invalid/sara-k"
+    },
+    "body": "This test sets COST_CODER_MODEL and then calls `classifyLine`. Without `COST_CODER_MOCK=1` it calls Claude, and CI has no login, so it fails there. Use the mock.",
+    "created_at": "2026-09-22T15:00:00Z",
+    "updated_at": "2026-09-22T15:00:00Z",
+    "html_url": "https://github.example.invalid/workshop/cost-coder/pull/108#discussion_r2010800",
+    "pull_request_url": "https://github.example.invalid/api/v3/repos/workshop/cost-coder/pulls/108",
+    "author_association": "MEMBER",
+    "start_line": null,
+    "original_start_line": null,
+    "line": 40,
+    "original_line": 40,
+    "side": "RIGHT",
+    "subject_type": "line"
+  },
+  {
+    "url": "https://github.example.invalid/api/v3/repos/workshop/cost-coder/pulls/comments/2010801",
+    "pull_request_review_id": 4010891,
+    "id": 2010801,
+    "diff_hunk": "@@ -36,3 +36,12 @@ describe(\"mockClassify\", () => {",
+    "path": "test/classify.test.ts",
+    "commit_id": "c55bb25ae6f6d0999905d74cd42551babc1ea04d",
+    "original_commit_id": "c55bb25ae6f6d0999905d74cd42551babc1ea04d",
+    "user": {
+      "login": "mikko-l",
+      "id": 5104,
+      "type": "User",
+      "html_url": "https://github.example.invalid/mikko-l"
+    },
+    "body": "Could we set `COST_CODER_MOCK=1` for the whole test run in vitest.config.ts? Then nobody can forget it. This is the third time it has come up.",
+    "created_at": "2026-09-22T15:30:00Z",
+    "updated_at": "2026-09-22T15:30:00Z",
+    "html_url": "https://github.example.invalid/workshop/cost-coder/pull/108#discussion_r2010801",
+    "pull_request_url": "https://github.example.invalid/api/v3/repos/workshop/cost-coder/pulls/108",
+    "author_association": "MEMBER",
+    "start_line": null,
+    "original_start_line": null,
+    "line": 40,
+    "original_line": 40,
+    "side": "RIGHT",
+    "subject_type": "line"
+  }
+]

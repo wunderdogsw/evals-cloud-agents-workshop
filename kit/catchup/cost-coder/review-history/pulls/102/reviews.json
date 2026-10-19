@@ -1,0 +1,34 @@
+[
+  {
+    "id": 4010200,
+    "user": {
+      "login": "aino-v",
+      "id": 5103,
+      "type": "User",
+      "html_url": "https://github.example.invalid/aino-v"
+    },
+    "body": "Two comments on where the comma parsing happens. The core code should only see numbers.",
+    "state": "CHANGES_REQUESTED",
+    "html_url": "https://github.example.invalid/workshop/cost-coder/pull/102#pullrequestreview-4010200",
+    "pull_request_url": "https://github.example.invalid/api/v3/repos/workshop/cost-coder/pulls/102",
+    "submitted_at": "2026-07-20T11:25:00Z",
+    "commit_id": "478ecbe508a9eba846c9006efe1a96f24124eb52",
+    "author_association": "MEMBER"
+  },
+  {
+    "id": 4010201,
+    "user": {
+      "login": "aino-v",
+      "id": 5103,
+      "type": "User",
+      "html_url": "https://github.example.invalid/aino-v"
+    },
+    "body": "Thanks. With the parsing in cli.ts, classify.ts stays simple.",
+    "state": "APPROVED",
+    "html_url": "https://github.example.invalid/workshop/cost-coder/pull/102#pullrequestreview-4010201",
+    "pull_request_url": "https://github.example.invalid/api/v3/repos/workshop/cost-coder/pulls/102",
+    "submitted_at": "2026-07-22T14:30:00Z",
+    "commit_id": "478ecbe508a9eba846c9006efe1a96f24124eb52",
+    "author_association": "MEMBER"
+  }
+]

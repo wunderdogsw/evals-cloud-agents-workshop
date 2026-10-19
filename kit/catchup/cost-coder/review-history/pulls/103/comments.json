@@ -1,0 +1,29 @@
+[
+  {
+    "url": "https://github.example.invalid/api/v3/repos/workshop/cost-coder/pulls/comments/2010300",
+    "pull_request_review_id": 4010390,
+    "id": 2010300,
+    "diff_hunk": "@@ -22,6 +22,9 @@ describe(\"mockClassify\", () => {\n   it(\"routes scaffolding rental to 3100\", () => {\n     expect(mockClassify({ description: \"Telinevuokra 4 vk\" }).costCode).toBe(\"3100\");\n   });\n+  it(\"routes crane rental to 3100\", () => {\n+    expect(mockClassify({ description: \"Nosturivuokra 2 pv\" }).costCode).toBe(\"3100\");\n+  });",
+    "path": "test/classify.test.ts",
+    "commit_id": "bd0ec60789c25cfc0957d2804ab19d43586206a3",
+    "original_commit_id": "bd0ec60789c25cfc0957d2804ab19d43586206a3",
+    "user": {
+      "login": "sara-k",
+      "id": 5105,
+      "type": "User",
+      "html_url": "https://github.example.invalid/sara-k"
+    },
+    "body": "Good test, thanks.",
+    "created_at": "2026-08-02T08:40:00Z",
+    "updated_at": "2026-08-02T08:40:00Z",
+    "html_url": "https://github.example.invalid/workshop/cost-coder/pull/103#discussion_r2010300",
+    "pull_request_url": "https://github.example.invalid/api/v3/repos/workshop/cost-coder/pulls/103",
+    "author_association": "MEMBER",
+    "start_line": null,
+    "original_start_line": null,
+    "line": 26,
+    "original_line": 26,
+    "side": "RIGHT",
+    "subject_type": "line"
+  }
+]

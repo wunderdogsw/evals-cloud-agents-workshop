@@ -1,0 +1,34 @@
+[
+  {
+    "id": 4010600,
+    "user": {
+      "login": "mikko-l",
+      "id": 5104,
+      "type": "User",
+      "html_url": "https://github.example.invalid/mikko-l"
+    },
+    "body": "",
+    "state": "CHANGES_REQUESTED",
+    "html_url": "https://github.example.invalid/workshop/cost-coder/pull/106#pullrequestreview-4010600",
+    "pull_request_url": "https://github.example.invalid/api/v3/repos/workshop/cost-coder/pulls/106",
+    "submitted_at": "2026-09-01T09:35:00Z",
+    "commit_id": "8990b6ba6bf8b1d97399bfecaca64c4716c16cd7",
+    "author_association": "MEMBER"
+  },
+  {
+    "id": 4010601,
+    "user": {
+      "login": "mikko-l",
+      "id": 5104,
+      "type": "User",
+      "html_url": "https://github.example.invalid/mikko-l"
+    },
+    "body": "",
+    "state": "APPROVED",
+    "html_url": "https://github.example.invalid/workshop/cost-coder/pull/106#pullrequestreview-4010601",
+    "pull_request_url": "https://github.example.invalid/api/v3/repos/workshop/cost-coder/pulls/106",
+    "submitted_at": "2026-09-03T13:40:00Z",
+    "commit_id": "8990b6ba6bf8b1d97399bfecaca64c4716c16cd7",
+    "author_association": "MEMBER"
+  }
+]

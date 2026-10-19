@@ -1,0 +1,332 @@
+[
+  {
+    "url": "https://github.example.invalid/api/v3/repos/workshop/cost-coder/pulls/111",
+    "id": 1900000111,
+    "html_url": "https://github.example.invalid/workshop/cost-coder/pull/111",
+    "number": 111,
+    "state": "closed",
+    "title": "WIP: Finnish rationales",
+    "user": {
+      "login": "ella-dev",
+      "id": 5101,
+      "type": "User",
+      "html_url": "https://github.example.invalid/ella-dev"
+    },
+    "body": "Trying a Finnish rationale when the line is Finnish. Not ready.",
+    "created_at": "2026-10-07T09:00:00Z",
+    "updated_at": "2026-10-12T16:00:00Z",
+    "closed_at": "2026-10-12T16:00:00Z",
+    "merged_at": null,
+    "merge_commit_sha": null,
+    "draft": false,
+    "head": {
+      "ref": "finnish-rationales",
+      "sha": "582a952dc2dc3cff6df334d7be7f3ba42e41ccf1"
+    },
+    "base": {
+      "ref": "main",
+      "sha": "f41f0a761d4142480d86a0235aa0ad4d4bcae6eb"
+    },
+    "author_association": "MEMBER"
+  },
+  {
+    "url": "https://github.example.invalid/api/v3/repos/workshop/cost-coder/pulls/110",
+    "id": 1900000110,
+    "html_url": "https://github.example.invalid/workshop/cost-coder/pull/110",
+    "number": 110,
+    "state": "closed",
+    "title": "chore(deps): update vitest and typescript",
+    "user": {
+      "login": "renovate[bot]",
+      "id": 29139614,
+      "type": "Bot",
+      "html_url": "https://github.example.invalid/apps/renovate"
+    },
+    "body": "This PR updates vitest and typescript to their latest versions.",
+    "created_at": "2026-10-06T03:00:00Z",
+    "updated_at": "2026-10-09T08:15:00Z",
+    "closed_at": "2026-10-09T08:15:00Z",
+    "merged_at": "2026-10-09T08:15:00Z",
+    "merge_commit_sha": "b0d4ea02b937adb2150004e3f99ba537df406b4c",
+    "draft": false,
+    "head": {
+      "ref": "renovate/test-tooling",
+      "sha": "7304aedfba268a5f510a5c6f0094bd5e4fdc0060"
+    },
+    "base": {
+      "ref": "main",
+      "sha": "e61aaf8cce7efbadfdc1fc92cbab5cde29577f66"
+    },
+    "author_association": "NONE"
+  },
+  {
+    "url": "https://github.example.invalid/api/v3/repos/workshop/cost-coder/pulls/109",
+    "id": 1900000109,
+    "html_url": "https://github.example.invalid/workshop/cost-coder/pull/109",
+    "number": 109,
+    "state": "closed",
+    "title": "mockClassify: site fences and cabins go to 3200",
+    "user": {
+      "login": "ella-dev",
+      "id": 5101,
+      "type": "User",
+      "html_url": "https://github.example.invalid/ella-dev"
+    },
+    "body": "\"Työmaa-aita\" went to 9000 offline. Also fixed a seed case that looked wrong.",
+    "created_at": "2026-09-30T08:20:00Z",
+    "updated_at": "2026-10-02T12:00:00Z",
+    "closed_at": "2026-10-02T12:00:00Z",
+    "merged_at": "2026-10-02T12:00:00Z",
+    "merge_commit_sha": "08a63edb6b18d1fa5bfee1c0242643dbfe339e42",
+    "draft": false,
+    "head": {
+      "ref": "mock-site-facilities",
+      "sha": "cb3e0797ea7080060dd21c657759e513396d51a6"
+    },
+    "base": {
+      "ref": "main",
+      "sha": "27379cec45a2638a1ed92287ba666698b5b57750"
+    },
+    "author_association": "MEMBER"
+  },
+  {
+    "url": "https://github.example.invalid/api/v3/repos/workshop/cost-coder/pulls/108",
+    "id": 1900000108,
+    "html_url": "https://github.example.invalid/workshop/cost-coder/pull/108",
+    "number": 108,
+    "state": "closed",
+    "title": "models: read the model ID from COST_CODER_MODEL",
+    "user": {
+      "login": "tuomas-dev",
+      "id": 5102,
+      "type": "User",
+      "html_url": "https://github.example.invalid/tuomas-dev"
+    },
+    "body": "Lets us try a new model without a code change.",
+    "created_at": "2026-09-22T13:10:00Z",
+    "updated_at": "2026-09-24T07:55:00Z",
+    "closed_at": "2026-09-24T07:55:00Z",
+    "merged_at": "2026-09-24T07:55:00Z",
+    "merge_commit_sha": "f3bce7778b731fd404b495647378fa4f7af5cee2",
+    "draft": false,
+    "head": {
+      "ref": "model-from-env",
+      "sha": "c55bb25ae6f6d0999905d74cd42551babc1ea04d"
+    },
+    "base": {
+      "ref": "main",
+      "sha": "1517ac87c6271b029606d703db444f86da745d83"
+    },
+    "author_association": "MEMBER"
+  },
+  {
+    "url": "https://github.example.invalid/api/v3/repos/workshop/cost-coder/pulls/107",
+    "id": 1900000107,
+    "html_url": "https://github.example.invalid/workshop/cost-coder/pull/107",
+    "number": 107,
+    "state": "closed",
+    "title": "Show the amount in the CLI output",
+    "user": {
+      "login": "ella-dev",
+      "id": 5101,
+      "type": "User",
+      "html_url": "https://github.example.invalid/ella-dev"
+    },
+    "body": "Site managers want to see the amount next to the cost code.",
+    "created_at": "2026-09-12T08:00:00Z",
+    "updated_at": "2026-09-15T09:25:00Z",
+    "closed_at": "2026-09-15T09:25:00Z",
+    "merged_at": "2026-09-15T09:25:00Z",
+    "merge_commit_sha": "2884fb8c35e8c5543f2983ff51d6801345d5d098",
+    "draft": false,
+    "head": {
+      "ref": "cli-amount",
+      "sha": "0aac30b673fb52be0aadcc7c020a8548733cb59d"
+    },
+    "base": {
+      "ref": "main",
+      "sha": "106b5e72c68ce0cec735e210445a1c82f403f8eb"
+    },
+    "author_association": "MEMBER"
+  },
+  {
+    "url": "https://github.example.invalid/api/v3/repos/workshop/cost-coder/pulls/106",
+    "id": 1900000106,
+    "html_url": "https://github.example.invalid/workshop/cost-coder/pull/106",
+    "number": 106,
+    "state": "closed",
+    "title": "llm: retry once when the model is overloaded",
+    "user": {
+      "login": "tuomas-dev",
+      "id": 5102,
+      "type": "User",
+      "html_url": "https://github.example.invalid/tuomas-dev"
+    },
+    "body": "Batch runs failed on 529 errors during busy hours. One retry after a short wait fixes most of them.",
+    "created_at": "2026-09-01T06:50:00Z",
+    "updated_at": "2026-09-03T14:10:00Z",
+    "closed_at": "2026-09-03T14:10:00Z",
+    "merged_at": "2026-09-03T14:10:00Z",
+    "merge_commit_sha": "829434b930beddce8393bb0b67c663d87d5650cb",
+    "draft": false,
+    "head": {
+      "ref": "llm-retry",
+      "sha": "8990b6ba6bf8b1d97399bfecaca64c4716c16cd7"
+    },
+    "base": {
+      "ref": "main",
+      "sha": "c776fe1282b2b616890d9a27673b35980b58aaff"
+    },
+    "author_association": "MEMBER"
+  },
+  {
+    "url": "https://github.example.invalid/api/v3/repos/workshop/cost-coder/pulls/105",
+    "id": 1900000105,
+    "html_url": "https://github.example.invalid/workshop/cost-coder/pull/105",
+    "number": 105,
+    "state": "closed",
+    "title": "codes: add describeCode and searchCodes",
+    "user": {
+      "login": "ella-dev",
+      "id": 5101,
+      "type": "User",
+      "html_url": "https://github.example.invalid/ella-dev"
+    },
+    "body": "Site managers asked for a way to look up a code by name.",
+    "created_at": "2026-08-21T10:30:00Z",
+    "updated_at": "2026-08-25T11:45:00Z",
+    "closed_at": "2026-08-25T11:45:00Z",
+    "merged_at": "2026-08-25T11:45:00Z",
+    "merge_commit_sha": "b13c876c0631c1520f8a453a0abf4513f3c21f3c",
+    "draft": false,
+    "head": {
+      "ref": "code-lookup",
+      "sha": "e38bf805c78e94869c0d4f76b65c044fc0bedc48"
+    },
+    "base": {
+      "ref": "main",
+      "sha": "75e0c0905ad4ff72b7cf2fdd767fbf175f60b47e"
+    },
+    "author_association": "MEMBER"
+  },
+  {
+    "url": "https://github.example.invalid/api/v3/repos/workshop/cost-coder/pulls/104",
+    "id": 1900000104,
+    "html_url": "https://github.example.invalid/workshop/cost-coder/pull/104",
+    "number": 104,
+    "state": "closed",
+    "title": "parseClassification: reject a confidence that is not a number",
+    "user": {
+      "login": "tuomas-dev",
+      "id": 5102,
+      "type": "User",
+      "html_url": "https://github.example.invalid/tuomas-dev"
+    },
+    "body": "`Number(\"high\")` gave NaN, and NaN went through the clamp.",
+    "created_at": "2026-08-10T12:00:00Z",
+    "updated_at": "2026-08-12T08:35:00Z",
+    "closed_at": "2026-08-12T08:35:00Z",
+    "merged_at": "2026-08-12T08:35:00Z",
+    "merge_commit_sha": "ada7d61e53cec1dc65a4a0af9fa08f1f814b9c08",
+    "draft": false,
+    "head": {
+      "ref": "confidence-nan",
+      "sha": "0671871c1b6eaa494bc0e1b75bf55f7dff798e90"
+    },
+    "base": {
+      "ref": "main",
+      "sha": "b85828128ceabf22e4d4875e8969acb1d4227feb"
+    },
+    "author_association": "MEMBER"
+  },
+  {
+    "url": "https://github.example.invalid/api/v3/repos/workshop/cost-coder/pulls/103",
+    "id": 1900000103,
+    "html_url": "https://github.example.invalid/workshop/cost-coder/pull/103",
+    "number": 103,
+    "state": "closed",
+    "title": "mockClassify: route crane and lift rental to 3100",
+    "user": {
+      "login": "ella-dev",
+      "id": 5101,
+      "type": "User",
+      "html_url": "https://github.example.invalid/ella-dev"
+    },
+    "body": "\"Nosturivuokra\" and \"henkilönostin\" went to 9000 in offline runs.",
+    "created_at": "2026-08-01T09:00:00Z",
+    "updated_at": "2026-08-04T10:20:00Z",
+    "closed_at": "2026-08-04T10:20:00Z",
+    "merged_at": "2026-08-04T10:20:00Z",
+    "merge_commit_sha": "f846013df1b9db0d959cec9535f75b5b2e1bdd27",
+    "draft": false,
+    "head": {
+      "ref": "mock-crane-rental",
+      "sha": "bd0ec60789c25cfc0957d2804ab19d43586206a3"
+    },
+    "base": {
+      "ref": "main",
+      "sha": "df4354b2119ce90cf8185f35c0bd4817573c5abd"
+    },
+    "author_association": "MEMBER"
+  },
+  {
+    "url": "https://github.example.invalid/api/v3/repos/workshop/cost-coder/pulls/102",
+    "id": 1900000102,
+    "html_url": "https://github.example.invalid/workshop/cost-coder/pull/102",
+    "number": 102,
+    "state": "closed",
+    "title": "Accept Finnish amounts like \"1 840,00\" in formatLine",
+    "user": {
+      "login": "tuomas-dev",
+      "id": 5102,
+      "type": "User",
+      "html_url": "https://github.example.invalid/tuomas-dev"
+    },
+    "body": "Supplier exports have amounts as Finnish strings. This makes `formatLine` accept them.",
+    "created_at": "2026-07-20T07:45:00Z",
+    "updated_at": "2026-07-22T15:05:00Z",
+    "closed_at": "2026-07-22T15:05:00Z",
+    "merged_at": "2026-07-22T15:05:00Z",
+    "merge_commit_sha": "1398bc34b811d4ac482774303c27a301fb7a4011",
+    "draft": false,
+    "head": {
+      "ref": "finnish-amounts",
+      "sha": "478ecbe508a9eba846c9006efe1a96f24124eb52"
+    },
+    "base": {
+      "ref": "main",
+      "sha": "acf2451cb5042ddf381b85a5ff7213e5210610bf"
+    },
+    "author_association": "MEMBER"
+  },
+  {
+    "url": "https://github.example.invalid/api/v3/repos/workshop/cost-coder/pulls/101",
+    "id": 1900000101,
+    "html_url": "https://github.example.invalid/workshop/cost-coder/pull/101",
+    "number": 101,
+    "state": "closed",
+    "title": "CLI: read an invoice line as JSON from stdin",
+    "user": {
+      "login": "ella-dev",
+      "id": 5101,
+      "type": "User",
+      "html_url": "https://github.example.invalid/ella-dev"
+    },
+    "body": "Adds `--json` to `pnpm classify` so other tools can pipe a full invoice line in.",
+    "created_at": "2026-07-10T08:12:00Z",
+    "updated_at": "2026-07-14T13:40:00Z",
+    "closed_at": "2026-07-14T13:40:00Z",
+    "merged_at": "2026-07-14T13:40:00Z",
+    "merge_commit_sha": "ffec91e131a1df353a36596d4c7a52a46fca6d4f",
+    "draft": false,
+    "head": {
+      "ref": "cli-json-input",
+      "sha": "c79f33d6cf304dae58d74b2a05daa23edc392aa1"
+    },
+    "base": {
+      "ref": "main",
+      "sha": "dee8ef00a4bb727d383a6db6069c5a57c70034ca"
+    },
+    "author_association": "MEMBER"
+  }
+]

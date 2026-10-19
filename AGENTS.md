@@ -124,12 +124,12 @@ Initial `.workshop/progress.json`:
 | 13 | Evals | Catch a regression | `.agents/phases/13-CATCH-REGRESSION.md` |
 | 14 | Evals | Record evals for CI | `.agents/phases/14-RECORD-FOR-CI.md` |
 | 15 | Evals | Make the gate block | `.agents/phases/15-MERGE-GATE.md` |
-| 16 | Cloud agents | Delegate: issue in, MR out | `.agents/phases/16-DELEGATE.md` |
+| 16 | Cloud agents | Build a review-lessons skill | `.agents/phases/16-REVIEW-LESSONS-SKILL.md` |
 | 17 | Cloud agents | Cloud agents | `.agents/phases/17-CLOUD-AGENTS.md` |
 | 18 | Cloud agents | Guardrails | `.agents/phases/18-GUARDRAILS.md` |
 | 19 | Cloud agents | Capstone | `.agents/phases/19-CAPSTONE.md` |
 
-The cloud agents section (16–19) still uses the old format.
+Phases 17–19 still use the old format.
 
 The full plan and learning objectives are in `.agents/PLAN.md`. Read it once at start-up, not per phase.
 
@@ -211,7 +211,7 @@ If a participant falls behind or their target breaks, offer `pnpm workshop catch
 | `pnpm workshop ci-check <name>` | List CI lines that look like deploys, before anything is pushed |
 | `pnpm workshop cleanup <name> [--yes]` | Dry run (or, with `--yes`, undo) of everything the workshop created: MRs/PRs, `dev-days-workshop/*` branches, start tag, worktrees, user-settings backups |
 | `pnpm workshop profile <name>` | Re-detect stack, host, commands, CI, LLM call sites |
-| `pnpm workshop install <name> <component>` | Install kit pieces into the target: `agent-tasks` (sample tasks), `agent-suite` (rule graders and rubrics folder), `ci-agent-evals` (agent eval CI job), `cursor-env`, `agents-section`, `review-md`. Older pieces for evals of an app's own LLM feature: `evals`, `subject-cost-coder`, `ci-evals`. Only where Claude may run in CI: `ci-evals-live`, `ci-claude`, `ci-review` |
+| `pnpm workshop install <name> <component>` | Install kit pieces into the target: `agent-tasks` (sample tasks), `review-history` (sample review comments for Phase 16, copied to `.workshop/`), `agent-suite` (rule graders and rubrics folder), `ci-agent-evals` (agent eval CI job), `cursor-env`, `agents-section`, `review-md`. Older pieces for evals of an app's own LLM feature: `evals`, `subject-cost-coder`, `ci-evals`. Only where Claude may run in CI: `ci-evals-live`, `ci-claude`, `ci-review` |
 | `pnpm workshop catchup <phase>` | New sample target with the reference work done up to `<phase>` |
 | `pnpm evals compare\|calibrate …` | Compare two runs (per grader too); check a judge against your labels |
 | `pnpm agent-evals mine\|validate\|run …` | Coding-agent benchmark from the target's history (`--agent claude\|cursor`, `--without-setup`, `--rules`, `--judge`, `--record`) |

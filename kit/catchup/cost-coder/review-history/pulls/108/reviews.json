@@ -1,0 +1,18 @@
+[
+  {
+    "id": 4010800,
+    "user": {
+      "login": "sara-k",
+      "id": 5105,
+      "type": "User",
+      "html_url": "https://github.example.invalid/sara-k"
+    },
+    "body": "LGTM after the mock fix.",
+    "state": "APPROVED",
+    "html_url": "https://github.example.invalid/workshop/cost-coder/pull/108#pullrequestreview-4010800",
+    "pull_request_url": "https://github.example.invalid/api/v3/repos/workshop/cost-coder/pulls/108",
+    "submitted_at": "2026-09-24T07:30:00Z",
+    "commit_id": "c55bb25ae6f6d0999905d74cd42551babc1ea04d",
+    "author_association": "MEMBER"
+  }
+]

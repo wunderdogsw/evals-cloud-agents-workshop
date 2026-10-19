@@ -1,0 +1,34 @@
+[
+  {
+    "id": 4010900,
+    "user": {
+      "login": "aino-v",
+      "id": 5103,
+      "type": "User",
+      "html_url": "https://github.example.invalid/aino-v"
+    },
+    "body": "",
+    "state": "CHANGES_REQUESTED",
+    "html_url": "https://github.example.invalid/workshop/cost-coder/pull/109#pullrequestreview-4010900",
+    "pull_request_url": "https://github.example.invalid/api/v3/repos/workshop/cost-coder/pulls/109",
+    "submitted_at": "2026-09-30T10:12:00Z",
+    "commit_id": "cb3e0797ea7080060dd21c657759e513396d51a6",
+    "author_association": "MEMBER"
+  },
+  {
+    "id": 4010901,
+    "user": {
+      "login": "aino-v",
+      "id": 5103,
+      "type": "User",
+      "html_url": "https://github.example.invalid/aino-v"
+    },
+    "body": "",
+    "state": "APPROVED",
+    "html_url": "https://github.example.invalid/workshop/cost-coder/pull/109#pullrequestreview-4010901",
+    "pull_request_url": "https://github.example.invalid/api/v3/repos/workshop/cost-coder/pulls/109",
+    "submitted_at": "2026-10-02T11:30:00Z",
+    "commit_id": "cb3e0797ea7080060dd21c657759e513396d51a6",
+    "author_association": "MEMBER"
+  }
+]
