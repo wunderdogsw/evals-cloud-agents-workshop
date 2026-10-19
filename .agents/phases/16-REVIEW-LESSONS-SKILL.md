@@ -46,6 +46,10 @@ Claude Code keeps `.claude/settings.local.json` out of git. If the repo doesn't 
 git -C targets/<name> check-ignore -q .claude/settings.local.json || echo ".claude/settings.local.json" >> targets/<name>/.git/info/exclude
 ```
 
+If `check-ignore` already matches, for example through a global ignore file, nothing needs to change.
+
+This phase uses two sessions. The guide stays in this session, in the workshop repo. The participant opens a second Claude Code session with `targets/<name>` as its folder: in a terminal `cd targets/<name> && claude`, or in the Desktop app a new session on that folder. This is the **target session**. The plugin and the skill must be set up there, not here: local scope in this session would write the workshop repo's settings, not the target's. When the target session asks whether to trust the folder, they accept. Without that, later runs without the interactive screen (Phase 17) ignore the target's own permission settings.
+
 When the workshop is over, they can remove the plugin with `claude plugin uninstall skill-creator@claude-plugins-official --scope local`, run in `targets/<name>`.
 
 ### [HUMAN]
@@ -108,10 +112,11 @@ In the target session they ask skill-creator for the skill in their own words. F
 
 Claude Code asks before it writes inside `.claude/`. They approve the writes to `.claude/skills/review-lessons/`.
 
-skill-creator interviews them. They answer the questions themselves. Two decisions are theirs:
+skill-creator interviews them. They answer the questions themselves. Three decisions are theirs:
 
 - How many comments, in how many PRs/MRs, make a finding? One comment is an opinion. The same comment in three PRs is a pattern.
 - What happens to comments that fit no finding? Drop them, or list them once at the end?
+- When one group of comments needs two different changes (for example a missing CHANGELOG line, and a line written for the wrong readers), is it one finding or two? A fixed rule keeps the report the same shape from week to week.
 
 They read the `SKILL.md` it writes before they accept it. Then they run the skill once and save the first report:
 
@@ -125,13 +130,24 @@ For the sample or a catch-up target, the data folder comes first:
 /review-lessons <absolute path of the workshop repo>/.workshop/targets/<name>/review-history <absolute path of the workshop repo>/.workshop/targets/<name>/review-lessons/<YYYY-MM-DD>.md
 ```
 
-They read the report and check each finding against the format. Does it have all three parts? Does "where" name one file that could stop the problem? Is a code file listed only as evidence? They open two evidence links and check that the comments say what the finding says.
+The report path is outside the target, so Claude Code asks before it writes there. They approve the write to `.workshop/targets/<name>/review-lessons/`.
+
+They read the report and check each finding against the format. Does it have all three parts? Does "where" name one file that could stop the problem? Is a code file listed only as evidence? They open two evidence links and check that the comments say what the finding says. On the sample the links don't open. The number at the end of a link is the comment's `id`, which they find in the review history: `grep -rh -A20 '"id": <id>' .workshop/targets/<name>/review-history/ | grep -m1 '"body"'`.
 
 ### [BRANCH]
 
 - **GitHub** (`host: github`) → the skill uses `gh api`. Check `gh auth status` first. On GitHub Enterprise, `gh` needs to be logged in to that host.
 - **GitLab** (`host: gitlab`) → the skill uses `glab api`. Check `glab auth status` first.
-- **Target is `sample` or a catch-up target** → it has no PRs. This path applies even though the profile says `host: none`. For `sample`, run `pnpm workshop install <name> review-history`; a catch-up target already has it. It copies a made-up review history to `.workshop/targets/<name>/review-history/`, in the same shapes `gh api` returns. They tell skill-creator: "when a data folder is given, read these files instead of calling `gh api`". They pass the folder's absolute path when they run the skill.
+- **Target is `sample` or a catch-up target** → it has no PRs. This path applies even though the profile says `host: none`. For `sample`, run `pnpm workshop install <name> review-history`; a catch-up target already has it. It copies a made-up review history to `.workshop/targets/<name>/review-history/`, in the same shapes `gh api` returns. They tell skill-creator: "when a data folder is given, read these files instead of calling `gh api`". They pass the folder's absolute path when they run the skill. Each file matches one endpoint, with `repos/{owner}/{repo}/` replaced by the folder:
+
+  | File | `gh api` endpoint |
+  |---|---|
+  | `pulls.json` | `pulls?state=closed` |
+  | `pulls/<n>/comments.json` | `pulls/<n>/comments` (inline review comments) |
+  | `pulls/<n>/reviews.json` | `pulls/<n>/reviews` (review bodies) |
+  | `issues/<n>/comments.json` | `issues/<n>/comments` (top-level comments) |
+
+  The dates are fixed, between July and October 2026, so the skill uses a count window ("the last 30 merged PRs"), not a day window.
 - **Own repo with no remote** (`host: none`) → there is no PR/MR history to read. Build the skill for the host the team uses, and test it against `kit/catchup/cost-coder/review-history/` in the workshop repo, read in place.
 - **Very few review comments** → widen the window (for example the last 100 merged PRs/MRs, or 180 days), and make sure the skill reads review bodies and top-level comments too. If there are still fewer than about 10 comments, say so: a report from so few comments shows little. They also test the skill against `kit/catchup/cost-coder/review-history/`, read in place.
 - **Only Cursor, no Claude Code** → in Cursor's agent chat, in the target, they attach `.workshop/targets/<name>/skill-creator.md` and ask the agent to follow those instructions to build `.claude/skills/review-lessons/`. They answer its questions themselves. To run the skill they type `/review-lessons` in Cursor's agent chat, with the same path argument.
@@ -146,8 +162,14 @@ Explain, from skill-creator's own instructions:
 
 - Test prompts are saved in `evals/evals.json` inside the skill folder. Checks on the output (skill-creator calls them assertions) are added to the same file.
 - For each prompt it starts two subagents: one with the skill and one without it. The run without the skill has the same tools, so it can call `gh api` too. The difference shows what the skill adds: the filtering, the grouping and the format.
-- Results go in a `review-lessons-workspace/` folder next to the skill folder, so inside the target: `iteration-1/` for the first run, `iteration-2/` after a change. `benchmark.md` and `benchmark.json` show the pass rate, time and tokens with and without the skill. A viewer opens the outputs in the browser.
-- Each prompt costs two agent runs. Report the token figures from `benchmark.md`.
+- skill-creator's default place for the results is a `review-lessons-workspace/` folder next to the skill folder, inside the target. In 16.2 they told it to use `.workshop/targets/<name>/review-lessons-workspace/` instead. `iteration-1/` holds the first run, `iteration-2/` the run after a change. `benchmark.md` and `benchmark.json` show the pass rate, time and tokens with and without the skill. A viewer opens the outputs in the browser.
+- Each prompt costs two agent runs. Three prompts use about 0.5 million tokens. Report the token figures from `benchmark.md`. It runs each prompt once, so the "±" is the spread across prompts, not across repeats of one prompt.
+
+Check the workspace before the participant reads the results, because skill-creator's own files don't always agree on the folder layout:
+
+- `benchmark.md` shows no runs → its script reads only `eval-<n>/<with_skill|without_skill>/run-1/grading.json`. Ask skill-creator to move each run into a `run-1/` folder and build the benchmark again.
+- The viewer shows "(No prompt found)" → the viewer looks for `eval_metadata.json` in the run folder or the folder above it. Ask skill-creator to copy it into each `with_skill/` and `without_skill/` folder and build the viewer again.
+- The run without the skill takes place in the target session, where the new skill is already a project skill. Check in its transcript or output that it did not read `.claude/skills/review-lessons/`. If it did, the comparison is not with and without. Ask skill-creator to tell the baseline subagents not to use the skill, and run again.
 
 ### [HUMAN]
 
@@ -162,7 +184,7 @@ They write the assertions themselves too. Examples:
 
 Before the run, ask: "What difference do you expect between with and without?" Then they ask skill-creator to run the eval: "Test the review-lessons skill with my prompts, with and without the skill, and show the benchmark." They skip the description optimization step that skill-creator may offer: it runs many `claude -p` calls, and Phase 17 starts the skill by name.
 
-They read `benchmark.md` and the viewer. They write one line in `.workshop/targets/<name>/findings.md` (create the file if it doesn't exist) under `## review-lessons benchmark`: the pass rate with and without, the tokens, and what they changed in the skill because of it. If they changed the skill, they run 16.2's command again, so the saved report comes from the final skill.
+They read `benchmark.md` and the viewer. They look at which assertions passed in both runs: those don't measure the skill. Often the run without the skill finds the same problems, and the skill mostly adds the fixed format and the links to single comments. That is what a weekly job needs, because the team reads the same shape every week. They write one line in `.workshop/targets/<name>/findings.md` (create the file if it doesn't exist) under `## review-lessons benchmark`: the pass rate with and without, the tokens, and what they changed in the skill because of it. If they changed the skill, they run 16.2's command again, so the saved report comes from the final skill.
 
 Then they commit only the skill. `evals/evals.json` in the skill folder holds the test prompts. If it contains absolute paths from their machine, they replace them with a placeholder such as `<data folder>` first. If skill-creator put the workspace inside the target after all, they move it out before the commit:
 
@@ -191,6 +213,7 @@ If the workspace is in neither place, they ask skill-creator where it wrote it. 
   `--force` lets the agent run `gh api` without asking, so `git status` must show no changes. They check both reports against their own assertions and write the result in `findings.md` in the same way.
 - **No Python 3** → skill-creator can't run its benchmark script or viewer. They ask it to show the with/without comparison in the chat instead, and note that in `findings.md`.
 - **With and without look the same** → the prompt probably asks for the format, so the run without the skill can copy it. They make the prompt a plain question and run again.
+- **A run has no output file** → Claude Code may have stopped the subagent from writing a report file. Ask skill-creator to save the run's final message as its output, then grade it.
 
 ## 16.4 Gate check
 
