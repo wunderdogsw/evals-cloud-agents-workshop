@@ -394,7 +394,7 @@ function profile(name: string, extra: Partial<Profile> = {}, redetect = false) {
     suite: prev.suite ?? (extra.source === "sample" ? "cost-coder" : null),
     notes: det.notes,
   };
-  if (p.host === "none") p.notes.push("No git remote: Day 1 works locally, Day 2 needs the target pushed to GitLab or GitHub.");
+  if (p.host === "none") p.notes.push("No git remote: Phases 1–13 and 16–17 work locally. Phases 14–15 need the target pushed to GitLab or GitHub, and Phase 18 takes the no-cloud path.");
   writeJson(join(STATE, "targets", name, "profile.json"), p);
   const progress = readJson<any>(PROGRESS, initialProgress());
   progress.targets[name] = { profile: `.workshop/targets/${name}/profile.json`, host: p.host, evalSubject: p.evalSubject, suite: p.suite };
