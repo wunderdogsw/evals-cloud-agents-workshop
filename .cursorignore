@@ -1,0 +1,6 @@
+# Facilitator answers for the sample's review history (Phases 16-17).
+# Participants' agents run in targets/<name>/, inside this repo, and Cursor's agent reads files above its workspace.
+# Listing the files here keeps Cursor's Read tool from reaching them. `catchup` copies them with code, not with the agent.
+kit/catchup/cost-coder/review-history-key.md
+kit/catchup/cost-coder/review-lessons-report.md
+kit/catchup/cost-coder/review-lessons/

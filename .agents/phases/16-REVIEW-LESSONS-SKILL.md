@@ -48,7 +48,9 @@ git -C targets/<name> check-ignore -q .claude/settings.local.json || echo ".clau
 
 If `check-ignore` already matches, for example through a global ignore file, nothing needs to change.
 
-This phase uses two sessions. The guide stays in this session, in the workshop repo. The participant opens a second Claude Code session with `targets/<name>` as its folder: in a terminal `cd targets/<name> && claude`, or in the Desktop app a new session on that folder. This is the **target session**. The plugin and the skill must be set up there, not here: local scope in this session would write the workshop repo's settings, not the target's. When the target session asks whether to trust the folder, they accept. Without that, later runs without the interactive screen (Phase 17) ignore the target's own permission settings.
+This phase uses two sessions. The guide stays in this session, in the workshop repo. The participant opens a second Claude Code session with `targets/<name>` as its folder: in a terminal `cd targets/<name> && claude`, or in the Desktop app a new session on that folder. This is the **target session**. The plugin and the skill must be set up there, not here: local scope in this session would write the workshop repo's settings, not the target's. When the target session asks whether to trust the folder, they accept. Without that, later runs without the interactive screen (Phase 17) ignore the target's own permission settings. In Cursor, the target session is a Cursor window opened on `targets/<name>` (File → Open Folder, or `cursor targets/<name>`), with its agent chat.
+
+The target is a folder inside the workshop repo, and an agent can read files above its folder. On the sample, that includes the facilitator's answers in `kit/catchup/`. `.cursorignore` in the workshop repo hides them from Cursor's Read tool, and Claude Code asks before it reads outside the target. When a target session asks to read a file outside the target and the review data, they say no.
 
 When the workshop is over, they can remove the plugin with `claude plugin uninstall skill-creator@claude-plugins-official --scope local`, run in `targets/<name>`.
 
@@ -79,7 +81,7 @@ claude plugin install skill-creator@claude-plugins-official --scope local
   curl -fsSL https://raw.githubusercontent.com/anthropics/skills/main/skills/skill-creator/SKILL.md -o .workshop/targets/<name>/skill-creator.md
   ```
 
-  Cursor loads skills from `.claude/skills/` too, so the skill they build works in both tools.
+  Cursor loads skills from `.claude/skills/` too, so the skill they build works in both tools. It also loads the user's Claude Code skills from `~/.claude/skills/`. If Claude Code is installed as well, skill-creator may already be there: they ask the agent to list its skills. Cursor's own `create-skill` skill can write a skill too, but it has no with/without test.
 
 ## 16.2 Build the skill
 
@@ -89,7 +91,7 @@ claude plugin install skill-creator@claude-plugins-official --scope local
 
 Explain the requirements the skill must meet. Don't write the request for them.
 
-- **Data source on GitHub:** `gh api` REST calls only. Merged PRs from `repos/{owner}/{repo}/pulls?state=closed&sort=updated&direction=desc&per_page=100` (keep the ones with `merged_at`, and read more pages only until the time window is full). Per PR: inline review comments from `repos/{owner}/{repo}/pulls/<n>/comments`, review bodies from `repos/{owner}/{repo}/pulls/<n>/reviews`, and top-level comments from `repos/{owner}/{repo}/issues/<n>/comments`. Not `gh pr …`: it uses GitHub's GraphQL API, and Claude Code cloud sessions block GraphQL. Later in this section the same skill runs in a cloud session.
+- **Data source on GitHub:** `gh api` REST calls only. Merged PRs from `repos/{owner}/{repo}/pulls?state=closed&sort=updated&direction=desc&per_page=100` (keep the ones with `merged_at`, and read more pages only until the time window is full). Per PR: inline review comments from `repos/{owner}/{repo}/pulls/<n>/comments`, review bodies from `repos/{owner}/{repo}/pulls/<n>/reviews`, and top-level comments from `repos/{owner}/{repo}/issues/<n>/comments`. Not `gh pr …` and not `gh repo view`: they use GitHub's GraphQL API, and Claude Code cloud sessions block GraphQL. Later in this section the same skill runs in a cloud session. The skill finds `{owner}/{repo}` with `git remote get-url origin`. With a data folder (below) it needs no remote.
 - **Data source on GitLab:** `glab api`. Merged MRs from `projects/:fullpath/merge_requests?state=merged&order_by=merged_at` (`merged_at` ordering needs GitLab 17.2 or later; on older GitLab use `updated_at`). Per MR: `projects/:fullpath/merge_requests/<iid>/discussions`. Skip notes with `"system": true`.
 - **Time window:** by default the last 30 merged PRs/MRs. An argument can change it, for example to 90 days.
 - **Who counts:** leave out bots (on GitHub `user.type` is `"Bot"` or the login ends in `[bot]`; on GitLab, access-token bots have usernames like `project_<id>_bot_<random>`), the PR/MR author's own replies, and empty review bodies.
@@ -103,8 +105,9 @@ Explain the requirements the skill must meet. Don't write the request for them.
   ```
 
   "What reviewers said" is the kind of problem the comments pointed out, grouped across PRs. "Where a change could help" is the one file where a change could stop the problem from coming back. It can be an agent file (`CLAUDE.md`, `AGENTS.md`, `.claude/rules/`, a skill, a hook), another file (lint config, test helper, PR template), or "no file change would help". The code files the comments were on are evidence only. They are never the answer to "where".
-- **Output:** print the report. When a file path is given, also write the report there. Phase 17 runs the skill on a schedule, so it needs the file. In the workshop, the path is `.workshop/targets/<name>/review-lessons/<YYYY-MM-DD>.md` in the workshop repo, never inside the target. Give the skill the absolute path.
+- **Output:** print the report. When a file path is given, also write the report there, and create its folder if needed. Phase 17 runs the skill on a schedule, so it needs the file. In the workshop, the path is `.workshop/targets/<name>/review-lessons/<YYYY-MM-DD>.md` in the workshop repo, never inside the target. Give the skill the absolute path.
 - **Read-only:** the skill never comments on a PR/MR and never changes any file except the report.
+- **Reads only the comments:** the skill reads the review data and the repo's own files, nothing else. It reads no earlier report, and nothing in folders above the repo. A report copied from an earlier report, or from the facilitator's answers on the sample, shows nothing new.
 
 ### [HUMAN]
 
@@ -132,6 +135,8 @@ For the sample or a catch-up target, the data folder comes first:
 
 The report path is outside the target, so Claude Code asks before it writes there. They approve the write to `.workshop/targets/<name>/review-lessons/`.
 
+The guide asks whether the run read anything outside the target and the review data. If it did (on the sample, for example a file in `kit/catchup/`), the report doesn't count: they add the "reads only the comments" rule to the skill and run it again.
+
 They read the report and check each finding against the format. Does it have all three parts? Does "where" name one file that could stop the problem? Is a code file listed only as evidence? They open two evidence links and check that the comments say what the finding says. On the sample the links don't open. The number at the end of a link is the comment's `id`, which they find in the review history: `grep -rh -A20 '"id": <id>' .workshop/targets/<name>/review-history/ | grep -m1 '"body"'`.
 
 ### [BRANCH]
@@ -150,7 +155,7 @@ They read the report and check each finding against the format. Does it have all
   The dates are fixed, between July and October 2026, so the skill uses a count window ("the last 30 merged PRs"), not a day window.
 - **Own repo with no remote** (`host: none`) → there is no PR/MR history to read. Build the skill for the host the team uses, and test it against `kit/catchup/cost-coder/review-history/` in the workshop repo, read in place.
 - **Very few review comments** → widen the window (for example the last 100 merged PRs/MRs, or 180 days), and make sure the skill reads review bodies and top-level comments too. If there are still fewer than about 10 comments, say so: a report from so few comments shows little. They also test the skill against `kit/catchup/cost-coder/review-history/`, read in place.
-- **Only Cursor, no Claude Code** → in Cursor's agent chat, in the target, they attach `.workshop/targets/<name>/skill-creator.md` and ask the agent to follow those instructions to build `.claude/skills/review-lessons/`. They answer its questions themselves. To run the skill they type `/review-lessons` in Cursor's agent chat, with the same path argument.
+- **Only Cursor, no Claude Code** → in Cursor's agent chat, in the target, they attach `.workshop/targets/<name>/skill-creator.md` and ask the agent to follow those instructions to build `.claude/skills/review-lessons/`. They add: "Only use the parts about writing the skill. Skip the test, benchmark and description sections." The file refers to scripts and subagents that don't come with it, and 16.3 tests the skill by hand. They answer its questions themselves. To run the skill they type `/review-lessons` in Cursor's agent chat, with the same path argument.
 
 ## 16.3 Test it
 
@@ -173,7 +178,7 @@ Check the workspace before the participant reads the results, because skill-crea
 
 ### [HUMAN]
 
-They write 2–3 test prompts themselves. Each prompt is a question a teammate would ask, without the report format and without the skill's name. For example: "What did reviewers keep pointing out in our last 30 merged PRs?" For the sample, the prompt gives the review-history folder.
+They write 2–3 test prompts themselves. Each prompt is a question a teammate would ask, without the report format and without the skill's name. For example: "What did reviewers keep pointing out in our last 30 merged PRs?" For the sample, the prompt gives the review-history folder and says to read only that folder and the repo. Otherwise the run without the skill may find the format and the answers in the workshop repo above the target.
 
 They write the assertions themselves too. Examples:
 
@@ -199,20 +204,22 @@ If the workspace is in neither place, they ask skill-creator where it wrote it. 
 
 ### [BRANCH]
 
-- **Only Cursor, no Claude Code** → they compare by hand. The same prompt runs twice with the Cursor CLI, once with the skill folder and once without it:
+- **Only Cursor, no Claude Code** → they compare by hand. The same prompt runs twice with the Cursor CLI, first without the skill folder, then with it. The run without goes first, so it can't read the other run's report:
 
   ```bash
-  mkdir -p .workshop/targets/<name>/review-lessons
-  agent -p --force --trust --workspace targets/<name> "<their prompt>" > .workshop/targets/<name>/review-lessons/with-skill.md
+  C=.workshop/targets/<name>/review-lessons-compare
+  mkdir -p $C
   mv targets/<name>/.claude/skills/review-lessons .workshop/targets/<name>/review-lessons-aside
-  agent -p --force --trust --workspace targets/<name> "<their prompt>" > .workshop/targets/<name>/review-lessons/without-skill.md
+  agent -p --trust --workspace targets/<name> --output-format json "<their prompt>" < /dev/null > $C/without-skill.json
   mv .workshop/targets/<name>/review-lessons-aside targets/<name>/.claude/skills/review-lessons
+  agent -p --trust --workspace targets/<name> --output-format json "<their prompt>" < /dev/null > $C/with-skill.json
   git -C targets/<name> status --short
+  python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print(d["result"]); print(d["usage"])' $C/with-skill.json
   ```
 
-  `--force` lets the agent run `gh api` without asking, so `git status` must show no changes. They check both reports against their own assertions and write the result in `findings.md` in the same way.
+  Each file has the report in `result` and the token figures in `usage`. Cursor shows no cost here, only in its dashboard. On the sample, the commands have no `--force`: the agent reads the data with its Read tool, and `.cursorignore` keeps that tool away from the facilitator's answers. `--force` would let its shell read them. On a real repo, add `--force` so the agent can run `gh api` without asking. `git status` must show no changes. They check both reports against their own assertions and write the result in `findings.md` in the same way.
 - **No Python 3** → skill-creator can't run its benchmark script or viewer. They ask it to show the with/without comparison in the chat instead, and note that in `findings.md`.
-- **With and without look the same** → the prompt probably asks for the format, so the run without the skill can copy it. They make the prompt a plain question and run again.
+- **With and without look the same** → the prompt probably asks for the format, so the run without the skill can copy it. They make the prompt a plain question and run again. If the prompt is already plain, the run may have read the format from a file outside the target, for example this phase's document. Ask which files it read, and add the read limit to the prompt.
 - **A run has no output file** → Claude Code may have stopped the subagent from writing a report file. Ask skill-creator to save the run's final message as its output, then grade it.
 
 ## 16.4 Gate check

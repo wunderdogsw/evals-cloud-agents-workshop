@@ -629,23 +629,25 @@ function stablePath(path: string): string {
 /** The Phase 17 Claude Code script for a catch-up target, with this machine's paths and the sample's review history. */
 function reviewLessonsScript(workshop: string, name: string, path: string): string {
   return `#!/bin/sh
-# Runs the review-lessons skill once and writes a dated report.
+# Runs the review-lessons skill once and writes a dated report in its own folder.
 set -eu
 WORKSHOP=${shellQuote(workshop)}
 NAME=${shellQuote(name)}
 STATE="$WORKSHOP/.workshop/targets/$NAME"
-REPORT="$STATE/review-lessons/scheduled-$(date +%Y-%m-%d).md"
+OUT="$STATE/review-lessons/scheduled/$(date +%Y-%m-%d)"
+mkdir -p "$OUT"
 export PATH=${shellQuote(path)}
 export USER="$(id -un)" LOGNAME="$(id -un)"
 cd "$WORKSHOP/targets/$NAME"
-claude -p "/review-lessons $REPORT --data $STATE/review-history" \\
+claude -p "/review-lessons $OUT/report.md --data $STATE/review-history" \\
   --permission-mode dontAsk \\
   --max-budget-usd 2 \\
   --output-format json \\
-  --add-dir "$STATE" \\
-  --allowedTools "Bash(gh api *)" "Bash(glab api *)" "Bash(git remote get-url *)" "Edit(/$STATE/review-lessons/**)" \\
-  < /dev/null > "$STATE/review-lessons/scheduled-run.json"
-test -s "$REPORT"
+  --add-dir "$OUT" \\
+  --add-dir "$STATE/review-history" \\
+  --allowedTools "Bash(gh api *)" "Bash(glab api *)" "Bash(git remote get-url *)" "Edit(/$OUT/**)" \\
+  < /dev/null > "$OUT/run.json"
+test -s "$OUT/report.md"
 `;
 }
 
@@ -1084,8 +1086,16 @@ function manualCleanup(name: string): string[] {
   return [
     "the Phase 18 cloud job, if you made one: pause or delete the Claude Code routine (claude.ai/code/routines) or the Cursor automation (cursor.com/automations) before its workshop branch is deleted",
     ...localSchedules(name),
-    `skill-creator, if you installed it in Phase 16: in targets/${name}, run \`claude plugin uninstall skill-creator@claude-plugins-official --scope local\``,
+    ...(skillCreatorInstalled(name)
+      ? [`skill-creator, installed in Phase 16: in targets/${name}, run \`claude plugin uninstall skill-creator@claude-plugins-official --scope local\``]
+      : []),
   ];
+}
+
+/** True when the target's local Claude Code settings turn on skill-creator (16.1). The Cursor path installs nothing. */
+function skillCreatorInstalled(name: string): boolean {
+  const local = readJson<any>(join(targetDir(name), ".claude", "settings.local.json"), {});
+  return Object.keys(local.enabledPlugins ?? {}).some((k) => k.startsWith("skill-creator@"));
 }
 
 /** The Phase 17 local schedules found for this target, with the exact way to remove each, in the names 17.4 gives them. */

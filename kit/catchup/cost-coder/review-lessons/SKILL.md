@@ -6,11 +6,11 @@ argument-hint: "[report path] [--data <folder>] [--last <n> | --days <n>]"
 
 # Review lessons
 
-Find the problems that reviewers point out again and again, and say where a change could stop them. This skill only reads. It never comments on a pull request or merge request, and it changes no file except the report.
+Find the problems that reviewers point out again and again, and say where a change could stop them. This skill only reads. It never comments on a pull request or merge request, and it changes no file except the report. It reads only the review data and this repository's files: no earlier report, and nothing in the folders above the repository. A report copied from somewhere else shows nothing new.
 
 Arguments: $ARGUMENTS
 
-- **Report path** (optional): an absolute path ending in `.md`. Print the report, and also write it to this path.
+- **Report path** (optional): an absolute path ending in `.md`. Print the report, and also write it to this path. Create the folder if it doesn't exist.
 - `--data <folder>` (optional): read the review history from this folder instead of calling the host's API. The files have the same shapes as the GitHub REST responses: `pulls.json`, `pulls/<n>/comments.json`, `pulls/<n>/reviews.json` and `issues/<n>/comments.json`.
 - `--last <n>` or `--days <n>` (optional): the time window. The default is the last 30 merged pull requests or merge requests.
 

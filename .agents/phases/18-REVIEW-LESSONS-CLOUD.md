@@ -34,7 +34,7 @@ Run `pnpm workshop status` and read the profile: `host`, `remote` and the worksh
 Explain in a few short lines:
 
 - A **cloud agent** runs on a virtual machine (VM) that another company runs. It clones the repo from the host. So it sees only commits that are pushed.
-- It acts with your accounts: your Claude or Cursor login, your GitHub or GitLab access, and your Slack account. A post from the job shows your name.
+- It acts with your accounts: your Claude or Cursor login, and your GitHub or GitLab access. A Claude Code routine posts with your Slack account, so the post shows your name. A Cursor automation posts as the Cursor bot in your Slack workspace.
 - That is why the company decides how cloud agents are set up. The facilitator knows the company's rules for this workshop, including special cases for GitLab.
 
 If the profile says `host: none`, say first that this target takes the no-cloud path (see [BRANCH]), so they know before they ask. They still ask, so `cloud-instructions.md` records the company's way for a later target with a remote.
@@ -142,7 +142,7 @@ Then they create the job in their tool, the way the instructions say, with that 
 - **Cursor automation** (GitHub or GitLab) → create it at cursor.com/automations, in the Agents Window, or with `/automate`.
   - Trigger: a schedule, from a preset or a cron expression.
   - Repository: **single repository**, and the branch `dev-days-workshop/<participant>`.
-  - Tools: add **Send to Slack** with the channel from 18.2. Don't add **Read Slack channels**, **Comment on pull request** or **Request reviewers**. **Pull request creation** and **Computer use** are included by default for every automation. Cursor's docs don't say whether they can be removed. Remove both if the form allows it. If not, the prompt forbids pull requests, and 18.4 checks it. **Memories** are on by default and can be turned off. Turn them off, so each run starts from the same state.
+  - Tools: add **Send to Slack** with the one channel from 18.2. Don't let it choose any channel: that also lets the agent read the public channels. Don't add **Read Slack channels**, **Comment on pull request** or **Request reviewers**. **Pull request creation** and **Computer use** are included by default for every automation. Cursor's docs don't say whether they can be removed. Remove both if the form allows it. If not, the prompt forbids pull requests, and 18.4 checks it. **Memories** are on by default and can be turned off. Turn them off, so each run starts from the same state.
   - Run as: **Me**. The usage is billed to you. Cloud agents are charged at API pricing for the selected model, and Cursor asks you to set a spend limit when you first use them.
   - Facts to tell them: cloud agents need a paid Cursor plan. Cursor with GitLab needs GitLab Premium or Ultimate, and self-hosted GitLab also needs a Cursor Teams or Enterprise plan. Cursor's skills page says Cursor also loads skills from `.claude/skills/`. Its docs don't say that automations do. That is why the prompt reads the `SKILL.md` file. The docs also don't say that `gh` or `glab` is logged in on the cloud machine. If the instructions name a secret for this, it is added in the Cursor dashboard, never in a file or the chat.
 - **The instructions name another tool or setup** → use it. The prompt requirements above, Gate 3 and the safety rules from 18.1 stay the same.
@@ -187,21 +187,21 @@ mkdir -p .workshop/targets/<name>/cloud-check
 
 The branch and PR/MR lists don't show comments on PRs/MRs. For those, the participant reads the run's transcript after the run.
 
-Then confirm once with the participant: "This run posts the report to <place>, with your name. Start it?" When the report is shared by hand, there is nothing to confirm here.
+Then confirm once with the participant: "This run posts the report to <place>, as you (Claude Code routine) or as the Cursor bot (Cursor automation). Start it?" When the report is shared by hand, there is nothing to confirm here.
 
 ### [HUMAN]
 
 They start one run:
 
 - **Claude Code routine:** **Run now** on the routine's page, or `/schedule run` in the CLI.
-- **Cursor automation:** Cursor's docs don't describe a manual run. If the automation's page has a button for it, use it. If not, set the schedule a few minutes ahead, wait for the run, and then set the team's schedule back.
-- **No-cloud path:** start the Phase 17 local job once by hand. On a catch-up target, that is `sh .workshop/targets/<name>/review-lessons.sh`. The script writes today's `scheduled-<YYYY-MM-DD>.md` and `scheduled-run.json` again, so a Phase 17 run from the same day is replaced. Phase 17's gate has already passed, so that is fine.
+- **Cursor automation:** Cursor's docs don't describe a manual run. If the automation's page has a button for it, use it. If not, set the schedule a few minutes ahead, wait for the run, and then set the team's schedule back. The docs also describe a webhook trigger ("POST to the endpoint to start a run"), but not whether an automation can have it next to its schedule.
+- **No-cloud path:** start the Phase 17 local job once by hand. On a catch-up target, that is `sh .workshop/targets/<name>/review-lessons.sh`. The script writes `report.md` and `run.json` in today's `scheduled/<YYYY-MM-DD>/` folder again, so a Phase 17 run from the same day is replaced. Phase 17's gate has already passed, so that is fine.
 
 When the run is done, they read three things:
 
 1. **The post.** Is it in the right place? Is it the whole report? Does each finding have its three parts? They open two evidence links and check that they show the right comment.
 2. **The run's transcript.** Claude Code opens each run as a session. Cursor shows it with the cloud agents. Did it read the PRs/MRs without errors? Did it try to push, comment on a PR/MR or change a file? Look for comment attempts in particular, for example a `gh api` or `glab api` call with `POST` and a `body`, because the lists below don't show comments.
-3. **The cost.** Claude Code routines use subscription usage, shown at claude.ai/settings/usage. Cursor shows cloud agent usage in its dashboard. On the no-cloud path with the Claude Code script, `scheduled-run.json` has `total_cost_usd`. Report the figures the tool shows.
+3. **The cost.** Claude Code routines use subscription usage, shown at claude.ai/settings/usage. Cursor shows cloud agent usage in its dashboard. On the no-cloud path, the run's `run.json` has `total_cost_usd` (Claude Code script) or the `usage` tokens (Cursor script). Report the figures the tool shows.
 
 Then they run the same checks as before the run.
 

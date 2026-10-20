@@ -121,7 +121,7 @@ If it exists and the change touches an agent file, say this once: the agent eval
 
 They write the change themselves, for one or two "fix" findings.
 
-Before they commit, the guide checks the change against the finding: would it have stopped the comments in the evidence? If a comment would still be possible after the change, the guide says which one. They run the target's own tests, and its lint or typecheck if the profile or the target's `AGENTS.md` lists one. They follow the target's own rules for a change too, for example a CHANGELOG line. If such a rule doesn't fit a change to an agent file, they decide, and say why in the commit message.
+Before they commit, the guide checks the change against the finding: would it have stopped the comments in the evidence? If a comment would still be possible after the change, the guide says which one. The guide also reads the rest of the diff, for example a CHANGELOG line an agent added: does it repeat a finding from the report? They run the target's own tests, and its lint or typecheck if the profile or the target's `AGENTS.md` lists one. They follow the target's own rules for a change too, for example a CHANGELOG line. If such a rule doesn't fit a change to an agent file, they decide, and say why in the commit message.
 
 Then they commit each change on its own:
 
@@ -162,31 +162,32 @@ Explain the choices, from the Claude Code and Cursor docs:
 - **Cursor CLI with launchd or cron.** The Cursor CLI has no scheduler of its own. `agent -p` runs one prompt and exits.
 - **`/loop`** runs a prompt again and again, but only inside one open session. Recurring tasks expire after 7 days. Use it only for a quick try, not as the schedule.
 
-Each scheduled run writes `scheduled-<YYYY-MM-DD>.md` next to the Phase 16 report. The new name keeps the decisions from 17.2 safe.
+Each scheduled run writes its report to a new, empty folder, `scheduled/<YYYY-MM-DD>/report.md`, under the Phase 16 report's folder. The new folder keeps the decisions from 17.2 safe. The run also can't see an earlier report there and copy it instead of reading the comments again.
 
 A schedule is persistent configuration on the participant's machine, outside any repo. **Before you add one, show the exact entry and ask once.** Use a weekly schedule. Phase Complete tells them how to remove it.
 
-For the launchd and cron paths, write a small script outside the target, so the schedule entry stays short. Fill in the absolute paths and the `PATH` from their shell (`echo $PATH`), because launchd and cron start with an almost empty environment. Replace any folder that belongs to one shell session or one tool version, for example a `fnm_multishells` or `nvm/versions` folder, with a stable folder that has `node`, `claude` and `gh` (`command -v node claude gh` shows where they are). Use the arguments their own skill takes, from 16.2, with the new report path. Claude Code version, saved as `.workshop/targets/<name>/review-lessons.sh`:
+For the launchd and cron paths, write a small script outside the target, so the schedule entry stays short. Fill in the absolute paths and the `PATH` from their shell (`echo $PATH`), because launchd and cron start with an almost empty environment. Replace any folder that belongs to one shell session or one tool version, for example a `fnm_multishells`, `nvm/versions` or `cursor-agent/versions` folder, with a stable folder that has `node`, `claude` and `gh` (`command -v node claude gh` shows where they are). Use the arguments their own skill takes, from 16.2, with the new report path. Claude Code version, saved as `.workshop/targets/<name>/review-lessons.sh`:
 
 ```sh
 #!/bin/sh
-# Runs the review-lessons skill once and writes a dated report.
+# Runs the review-lessons skill once and writes a dated report in its own folder.
 set -eu
 WORKSHOP="<absolute path of the workshop repo>"
 NAME="<name>"
 STATE="$WORKSHOP/.workshop/targets/$NAME"
-REPORT="$STATE/review-lessons/scheduled-$(date +%Y-%m-%d).md"
+OUT="$STATE/review-lessons/scheduled/$(date +%Y-%m-%d)"
+mkdir -p "$OUT"
 export PATH="<PATH from their shell>"
 export USER="$(id -un)" LOGNAME="$(id -un)"
 cd "$WORKSHOP/targets/$NAME"
-claude -p "/review-lessons $REPORT" \
+claude -p "/review-lessons $OUT/report.md" \
   --permission-mode dontAsk \
   --max-budget-usd 2 \
   --output-format json \
-  --add-dir "$STATE" \
-  --allowedTools "Bash(gh api *)" "Bash(glab api *)" "Bash(git remote get-url *)" "Edit(/$STATE/review-lessons/**)" \
-  < /dev/null > "$STATE/review-lessons/scheduled-run.json"
-test -s "$REPORT"
+  --add-dir "$OUT" \
+  --allowedTools "Bash(gh api *)" "Bash(glab api *)" "Bash(git remote get-url *)" "Edit(/$OUT/**)" \
+  < /dev/null > "$OUT/run.json"
+test -s "$OUT/report.md"
 ```
 
 If the skill runs a helper script of its own (skill-creator often adds one under `scripts/`), add its command to `--allowedTools` too, for example `"Bash(python3 .claude/skills/review-lessons/scripts/* *)"`. Look in the skill's `SKILL.md` for the exact command.
@@ -195,13 +196,13 @@ Explain the script line by line:
 
 - `USER` and `LOGNAME` let `claude` find the login that macOS keeps in the keychain. Without them, the run says "Not logged in".
 - `dontAsk` denies every call that the list doesn't allow, so a run never waits for an answer.
-- `--add-dir` lets it read the workshop files for this target, for example the review history.
+- `--add-dir "$OUT"` lets it use the run's own folder, which is new and empty. It doesn't give the run the rest of `.workshop/`, so it can't read the Phase 16 report or last week's report.
 - `Bash(gh api *)` and `Bash(glab api *)` allow the API calls. They also allow write calls, so the skill's own read-only rule is what keeps the run to reads.
-- `Edit(//<path>/**)` allows writing only in the report folder. The `//` means an absolute path. In the script, `/` plus `$STATE` gives `//`.
-- `--max-budget-usd 2` stops the run at about 2 dollars. `scheduled-run.json` has the cost in `total_cost_usd`. Report it after each test run.
+- `Edit(//<path>/**)` allows writing only in the run's folder. The `//` means an absolute path. In the script, `/` plus `$OUT` gives `//`.
+- `--max-budget-usd 2` stops the run at about 2 dollars. `run.json` in the run's folder has the cost in `total_cost_usd`. Report it after each test run.
 - `< /dev/null` gives the run an empty input. Without it, `claude -p` waits 3 seconds for input and logs a warning on every run.
 
-After each test run, check `permission_denials` in `scheduled-run.json`. It must be empty. A denied call doesn't stop the run: the agent works around it, for example by reading every file by hand instead of running the skill's script. The report still looks right, but the run takes more turns and costs about twice as much. Add the denied command to `--allowedTools` and run again.
+After each test run, check `permission_denials` in `run.json`. It must be empty. A denied call doesn't stop the run: the agent works around it, for example by reading every file by hand instead of running the skill's script. The report still looks right, but the run takes more turns and costs about twice as much. Add the denied command to `--allowedTools` and run again.
 
 The log may say `Ignoring … permissions.allow entries from .claude/settings.json: this workspace has not been trusted`. This happens when nobody accepted the trust question in the target session (16.1). The run still works, because the script lists everything it may do. To remove the message, open Claude Code in `targets/<name>` once and accept.
 
@@ -216,10 +217,10 @@ They check the new report the same way as in 17.1: does every finding have its t
 - **Claude Desktop** → in the **Code** tab, **Routines**, then **New routine** and **Local**. Name: `review-lessons-<name>`. Folder: the absolute path of `targets/<name>`, with the worktree option off. Permission mode: **Manual**. Schedule: **Weekly**, with a day and time. Instructions, with the arguments their skill takes:
 
   ```text
-  /review-lessons <absolute path of the workshop repo>/.workshop/targets/<name>/review-lessons/scheduled-<today's date as YYYY-MM-DD>.md
+  /review-lessons <absolute path of the workshop repo>/.workshop/targets/<name>/review-lessons/scheduled/<today's date as YYYY-MM-DD>/report.md
   ```
 
-  Claude fills in the date when the routine runs. They click **Run now**, and answer each permission prompt with "always allow". The routine's later runs then don't stop to ask. Allow rules in `~/.claude/settings.json` also apply to these runs.
+  Claude fills in the date when the routine runs. When the routine asks to read a file outside the target and the review data, they say no. They click **Run now**, and answer each permission prompt with "always allow". The routine's later runs then don't stop to ask. Allow rules in `~/.claude/settings.json` also apply to these runs.
 - **Claude Code CLI on macOS** → launchd. The guide writes the script above and `~/Library/LaunchAgents/workshop.review-lessons.<name>.plist`, after the participant says yes:
 
   ```xml
@@ -246,7 +247,7 @@ They check the new report the same way as in 17.1: does every finding have its t
   launchctl kickstart gui/$(id -u)/workshop.review-lessons.<name>
   ```
 
-  `kickstart` returns at once, but the run takes a few minutes. Wait until `scheduled-run.json` is written and `launchd.log` stops growing, then check the result. `last exit code = 0` means it worked:
+  `kickstart` returns at once, but the run takes a few minutes. Wait until `run.json` in today's `scheduled/<YYYY-MM-DD>/` folder is written and `launchd.log` stops growing, then check the result. `last exit code = 0` means it worked:
 
   ```bash
   launchctl print gui/$(id -u)/workshop.review-lessons.<name> | grep -i "last exit"
@@ -275,19 +276,21 @@ They check the new report the same way as in 17.1: does every finding have its t
 - **Only Cursor, no Claude Code** → the same script and the same launchd or cron entry. The `claude` line changes to:
 
   ```sh
-  agent -p --force --trust --workspace "$WORKSHOP/targets/$NAME" \
-    "Follow .claude/skills/review-lessons/SKILL.md with these arguments: $REPORT" \
-    > "$STATE/review-lessons/scheduled-run.txt"
-  git -C "$WORKSHOP/targets/$NAME" status --short >> "$STATE/review-lessons/scheduled-run.txt"
-  test -s "$REPORT"
+  agent -p --force --trust --workspace "$WORKSHOP/targets/$NAME" --output-format json \
+    "Follow .claude/skills/review-lessons/SKILL.md with these arguments: $OUT/report.md" \
+    < /dev/null > "$OUT/run.json"
+  git -C "$WORKSHOP/targets/$NAME" status --short > "$OUT/git-status.txt"
+  test -s "$OUT/report.md"
+  test ! -s "$OUT/git-status.txt"
   ```
 
-  `--force` lets the agent run `gh api` or `glab api` without asking, as in 16.3. `git status` at the end must print nothing. The Cursor docs recommend an API key for scripts. If the test run says the agent is not logged in, the participant creates a key in the Cursor dashboard and saves it in a file outside any repo, readable only by them: `chmod 600`. The script reads it with `export CURSOR_API_KEY="$(cat <that file>)"`. The key never goes into the schedule entry, the target or the chat. If they prefer no key on disk, they take the Claude Desktop path. The Cursor CLI prints no cost figure. Say so.
+  `--force` lets the agent write the report outside the target and run `gh api` or `glab api` without asking. Without it, a `-p` run can't write outside its workspace, not even into an `--add-dir` folder. It then leaves the report inside the target. `--force` also lets the agent's shell read any file. So in Cursor, the skill's own "reads only the comments" rule (16.2) is what keeps a run from copying an earlier report or, on the sample, the facilitator's answers. If the run's `result` says it looked at earlier reports, they tighten the skill and run again. `git-status.txt` must be empty: the run changed nothing in the target. `run.json` has the token figures in `usage`. The Cursor CLI prints no cost figure; the dashboard has the usage. Say so. On macOS the CLI usually finds its login when `USER` and `LOGNAME` are set, as in the script. The Cursor docs recommend an API key for scripts. Only if the test run says the agent is not logged in, the participant creates a key in the Cursor dashboard and saves it in a file outside any repo, readable only by them: `chmod 600`. The script reads it with `export CURSOR_API_KEY="$(cat <that file>)"`. The key never goes into the schedule entry, the target or the chat. If they prefer no key on disk, they take the Claude Desktop path. The Cursor CLI prints no cost figure. Say so.
 - **GitLab** (`host: gitlab`) → the same schedule. The skill uses `glab api`, which the allow list already has. If the API calls fail in the test run, run `glab auth status`.
-- **Target is `sample` or a catch-up target** → add the review-history folder to the skill's arguments, in the script's `claude -p` line and in the Desktop instructions, in the form their skill takes. For example, with the reference skill from catch-up, the script's line is:
+- **Target is `sample` or a catch-up target** → add the review-history folder to the skill's arguments, in the script's `claude -p` or `agent -p` line and in the Desktop instructions, in the form their skill takes. In the Claude Code script, also add `--add-dir "$STATE/review-history"`, so the run may read it. For example, with the reference skill from catch-up, the script's lines are:
 
   ```sh
-  claude -p "/review-lessons $REPORT --data $STATE/review-history" \
+  claude -p "/review-lessons $OUT/report.md --data $STATE/review-history" \
+    --add-dir "$STATE/review-history" \
   ```
 
   The findings stay much the same each week, because the history doesn't change. Wording, counts and the suggested file can differ between runs, and a file they changed in 17.3 changes what the report suggests. That is fine for this phase.
@@ -298,7 +301,7 @@ The participant confirms, and you verify:
 
 - [ ] Every finding has a decision (fix / skip) and a reason. — in the Phase 16 report `.workshop/targets/<name>/review-lessons/<YYYY-MM-DD>.md`, every `###` finding has a `- Decision: fix — …` or `- Decision: skip — …` line with a reason after the dash
 - [ ] At least one change is committed and names its finding. — `git -C targets/<name> log --stat --grep "review-lessons:"` on `dev-days-workshop/<participant>` shows the commit, its message names a finding title from the report, and the report has its `- Change:` line
-- [ ] The local schedule has run once and written a new report. — `ls -l .workshop/targets/<name>/review-lessons/scheduled-*.md` shows a file written after the schedule was added, with findings in the Phase 16 format (a test run by hand on the same day writes the same name, so compare the file's time with the time the schedule was added); the schedule exists: the routine in Claude Desktop's **Routines** list with a run in its history, `launchctl print gui/$(id -u)/workshop.review-lessons.<name>`, or `crontab -l | grep review-lessons.sh`; on the CLI paths, report `total_cost_usd` from `scheduled-run.json`, and its `permission_denials` is empty
+- [ ] The local schedule has run once and written a new report. — `ls -l .workshop/targets/<name>/review-lessons/scheduled/*/report.md` shows a file written after the schedule was added, with findings in the Phase 16 format (a test run by hand on the same day writes the same folder, so compare the file's time with the time the schedule was added); the schedule exists: the routine in Claude Desktop's **Routines** list with a run in its history, `launchctl print gui/$(id -u)/workshop.review-lessons.<name>`, or `crontab -l | grep review-lessons.sh`; on the CLI paths, report `total_cost_usd` (Claude Code) or the `usage` tokens (Cursor) from the run's `run.json`; with Claude Code its `permission_denials` is empty
 
 ---
 
